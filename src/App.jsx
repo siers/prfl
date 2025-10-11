@@ -19,15 +19,15 @@ function randomItem(array) {
 }
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [command, setCommand] = useState(0)
+  const [running, setRunning] = useState(true)
   const number = useRef()
   const interval = useRef()
 
-  const startInterval = () => interval.current = setInterval(nextItem, 1000)
-  const stopInterval = () => clearInterval(interval.current)
-
-  const nextItem = useCallback(() => {
+  const makeItem = useCallback(() => {
     console.log('nextitem')
+
+    return Math.floor(Math.random() * 100)
 
     // document.querySelector('.wrap').dataset.mode = getMode()
     // if (getMode() == 'violin') {
@@ -38,8 +38,11 @@ function App() {
     //   number.innerHTML = randomItem(getThings())
     // stop() // must come after `timeoutId = ...`
 
-    number.innerHTML = randomItem(getThings())
+    // number.innerHTML = randomItem(getThings())
   })
+
+  const startInterval = () => { setRunning(true); interval.current = setInterval(() => setCommand(makeItem()), 1000) }
+  const stopInterval = () => { setRunning(false); clearInterval(interval.current); console.log('stop'); }
 
   // function button(event, key) {
   //   if (key == 's' || key == 'Escape') stop(event)
@@ -56,21 +59,23 @@ function App() {
 
   useEffect(() => {
     // console.log('set interval')
-    startInterval()
+    if (running) {
+      startInterval()
+    }
 
     return () => {
       // console.log('clear interval')
       stopInterval()
     }
-  }, [nextItem])
+  }, [running])
 
   return (
     <>
-      <a className="start" xonclick="nextItem()">start</a>
-      <a className="stop" xonclick="stop()">stop</a>
+      {!running && <a className="start" onClick={() => startInterval()}>start</a>}
+      {running && <a className="stop" onClick={() => stopInterval()}>stop</a>}
 
       <div className="wrap" style={{ display: "block" }}>
-        <div ref={number} className="number">0</div>
+        <div ref={number} className="number">{command}</div>
       </div>
 
       <div className="log">
