@@ -1,42 +1,12 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+a { color: #4796e6; }
+a:hover { color: #52b8e3; }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
+.start { position: absolute; top: 1em; left: 1em; font-size: 3em; }
+.stop { position: absolute; top: 2.2em; left: 1em; font-size: 3em; }
+.wrap { height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.number { font-weight: 700; font-size: 60vmin; display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
+.wrap[data-mode=violin] .number { font-family: monospace; font-size: 60px; }
+sub { font-size: xx-large; } /* weird name, but renders as small */
+::selection { background: transparent; }
+.log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: white; font-family: monospace; pointer-events: none; z-index: -10; }
+.log p { margin: 0; padding: 0; }
