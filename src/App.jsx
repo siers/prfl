@@ -24,10 +24,16 @@ function App() {
   const number = useRef()
   const interval = useRef()
 
+  const flash = () => {
+    const el = number.current
+    el.classList.toggle("flash1")
+    el.classList.toggle("flash2")
+  }
+
   const makeItem = useCallback(() => {
     console.log('nextitem')
 
-    return Math.floor(Math.random() * 100)
+    return randomItem(getThings())
 
     // document.querySelector('.wrap').dataset.mode = getMode()
     // if (getMode() == 'violin') {
@@ -37,11 +43,14 @@ function App() {
     // } else
     //   number.innerHTML = randomItem(getThings())
     // stop() // must come after `timeoutId = ...`
-
-    // number.innerHTML = randomItem(getThings())
   })
 
-  const startInterval = () => { setRunning(true); interval.current = setInterval(() => setCommand(makeItem()), 1000) }
+  const setItem = () => {
+    setCommand(makeItem())
+    flash()
+  }
+
+  const startInterval = () => { setRunning(true); interval.current = setInterval(() => setItem(), 1000) }
   const stopInterval = () => { setRunning(false); clearInterval(interval.current); console.log('stop'); }
 
   // function button(event, key) {
@@ -58,15 +67,8 @@ function App() {
   })
 
   useEffect(() => {
-    // console.log('set interval')
-    if (running) {
-      startInterval()
-    }
-
-    return () => {
-      // console.log('clear interval')
-      stopInterval()
-    }
+    if (running) startInterval()
+    return () => stopInterval()
   }, [running])
 
   return (
@@ -75,7 +77,7 @@ function App() {
       {running && <a className="stop" onClick={() => stopInterval()}>stop</a>}
 
       <div className="wrap" style={{ display: "block" }}>
-        <div ref={number} className="number">{command}</div>
+        <div ref={number} className="number flash1">{command}</div>
       </div>
 
       <div className="log">

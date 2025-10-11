@@ -10,3 +10,8 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 ::selection { background: transparent; }
 .log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: white; font-family: monospace; pointer-events: none; z-index: -10; }
 .log p { margin: 0; padding: 0; }
+
+.flash1 { animation: flash-bg1 0.3s ease; }
+.flash2 { animation: flash-bg2 0.3s ease; }
+@keyframes flash-bg1 { 0% { background-color: #ffffff18; } 100% { background-color: #00000000; } }
+@keyframes flash-bg2 { 0% { background-color: #ffffff18; } 100% { background-color: #00000000; } }
