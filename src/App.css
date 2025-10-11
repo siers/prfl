@@ -3,6 +3,8 @@ a:hover { color: #52b8e3; }
 
 .start { position: absolute; top: 1em; left: 1em; font-size: 3em; }
 .stop { position: absolute; top: 1em; left: 1em; font-size: 3em; }
+.next { position: absolute; top: 50%; right: 1em; font-size: 5em; }
+
 .wrap { height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .number { font-weight: 700; font-size: 60vmin; display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
 .wrap[data-mode=violin] .number { font-family: monospace; font-size: 60px; }

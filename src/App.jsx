@@ -76,6 +76,8 @@ function App() {
       {!running && <a className="start" onClick={() => startInterval()}>start</a>}
       {running && <a className="stop" onClick={() => stopInterval()}>stop</a>}
 
+      <a className="next" onClick={() => setItem()}>➡️</a>
+
       <div className="wrap" style={{ display: "block" }}>
         <div ref={number} className="number flash1">{command}</div>
       </div>
