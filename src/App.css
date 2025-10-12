@@ -1,12 +1,14 @@
 a { color: #4796e6; }
 a:hover { color: #52b8e3; }
 
+.app { padding: 1em; text-align: center; }
+
 .knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
 .next { position: absolute; top: 50%; right: 1em; font-size: 5em; }
+.programs { font-size: 20px; padding: 0.3em; }
 
 .wrap { height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.number { font-weight: 700; font-size: 60vmin; display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
-.wrap[data-mode=violin] .number { font-family: monospace; font-size: 60px; }
+.content { font-weight: 700; font-size: 30vmin; display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
 sub { font-size: xx-large; } /* weird name, but renders as small */
 ::selection { background: transparent; }
 .log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: white; font-family: monospace; pointer-events: none; z-index: -10; }
@@ -16,3 +18,6 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .flash2 { animation: flash-bg2 0.3s ease; }
 @keyframes flash-bg1 { 0% { background-color: #ffffff18; } 100% { background-color: #00000000; } }
 @keyframes flash-bg2 { 0% { background-color: #ffffff18; } 100% { background-color: #00000000; } }
+
+.wrap[data-mode=violin] .content { font-family: monospace; font-size: 60px; }
+.wrap[data-mode=keys] .content { font-family: monospace; font-size: 60px; }

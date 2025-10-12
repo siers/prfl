@@ -1,44 +1,56 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import './App.css'
-import { randomViolinNote } from './lib/ViolinNote'
 import Knob from './Knob'
+import programs from './Programs'
 
-function getHash() {
-  return location.hash.substr(1)
-}
+function useLocalStorage(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const item = localStorage.getItem(key)
+      return item ? JSON.parse(item) : initialValue
+    } catch {
+      return initialValue
+    }
+  })
 
-function getInterval() {
-  var parts = getHash().indexOf(':') == -1 ? [] : getHash().split(':')
-  return parts[0] || 3000
-}
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch {
+      /* ignore write errors */
+    }
+  }, [key, value])
 
-function getThings() {
-  return (getHash() != '') ? getHash().split(':').at(-1).split('-') : [0, 1, 2, 3]
-}
-
-function randomItem(array) {
-  return array[Math.floor(Math.random() * array.length)]
+  return [value, setValue]
 }
 
 function App() {
-  const makeItem = () => {
-    return randomItem(randomViolinNote())[1]
-  }
-
-  const [command, setCommand] = useState(makeItem())
-  const [running, setRunning] = useState(true)
-  const number = useRef()
+  const [running, setRunning] = useLocalStorage('running', true)
+  const [speed, setSpeed] = useLocalStorage('speed', 1500)
   const interval = useRef()
-  const [speed, setSpeed] = useState(1500)
+
+  const [state, setState] = useState({})
+  const [program, setProgram] = useLocalStorage('program', 'violin')
+  const [command, setCommand] = useState('-')
+  const makeItem = (advance) => {
+    const programState = window.structuredClone(state[program]) || {}
+    const setProgramState = newState => {
+      state[program] = newState
+      setState(state)
+    }
+    const result = programs[program]({state: programState, setState: setProgramState, advance})
+    return result
+  }
+  const content = useRef()
 
   const flash = () => {
-    const el = number.current
+    const el = content.current
     el.classList.toggle("flash1")
     el.classList.toggle("flash2")
   }
 
   const setItem = () => {
-    setCommand(makeItem())
+    setCommand(makeItem(true))
     flash()
   }
 
@@ -55,7 +67,6 @@ function App() {
     }
   }
 
-  let tone
   let timeoutId
 
   useEffect(() => {
@@ -68,23 +79,36 @@ function App() {
   })
 
   useEffect(() => {
-    if (running) startInterval()
+    if (running) {
+      setItem()
+      startInterval()
+    }
     return () => stopInterval()
-  }, [running, speed])
+  }, [running, speed, program])
 
   return (
     <>
-      <a className="next" onClick={() => setItem()}>➡️</a>
+      <div className="app">
+        <select onChange={e => setProgram(e.target.value)} value={program} className="programs">
+          <option value="violin">violin</option>
+          <option value="keys">keys</option>
+          <option value="hash">hash</option>
+        </select>
 
-      <div className="wrap" style={{ display: "block" }} data-mode="violin">
-        <div ref={number} className="number flash1" dangerouslySetInnerHTML={ { __html: command } }></div>
-      </div>
+        <a className="next" onClick={() => setItem()}>➡️</a>
 
-      <div className="log">
-      </div>
+        <div className="wrap" style={{ display: "block" }} data-mode={program}>
+          <div ref={content} className="content flash1">
+            {makeItem()}
+          </div>
+        </div>
 
-      <div className="knob-wrapwrap">
-        <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s`} />
+        <div className="log">
+        </div>
+
+        <div className="knob-wrapwrap">
+          <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s`} />
+        </div>
       </div>
     </>
   )

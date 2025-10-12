@@ -133,3 +133,5 @@ export default class ToneLib {
   // modulateFifth(major, 1).map(n => log(JSON.stringify(n) + ' ' + renderNote(n)))
   // log(keysMajor.map(k => renderNote(k[0])).join())
 }
+
+window.ToneLib = ToneLib

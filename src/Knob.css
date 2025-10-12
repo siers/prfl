@@ -1,5 +1,5 @@
 :root{ --size:200px; }
-html,body{height:100%;display:flex;align-items:center;justify-content:center;margin:0}
+
 .knob-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
 
 .knob{
@@ -76,7 +76,6 @@ html,body{height:100%;display:flex;align-items:center;justify-content:center;mar
 /* debug text (optional) */
 .knob-out{
   font-family:system-ui,-apple-system,Segoe UI,Roboto;
-  color:#444;
-  font-size:13px;
+  font-size:20px;
   user-select:none;
 }
