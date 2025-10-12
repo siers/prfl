@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import './App.css'
+import { randomViolinNote } from './lib/ViolinNote'
 
 function getHash() {
   return location.hash.substr(1)
@@ -31,18 +32,7 @@ function App() {
   }
 
   const makeItem = useCallback(() => {
-    console.log('nextitem')
-
-    return randomItem(getThings())
-
-    // document.querySelector('.wrap').dataset.mode = getMode()
-    // if (getMode() == 'violin') {
-    //   let [semi, name] = pick(randomViolinNote())
-    //   number.innerHTML = name
-    //   tone = semi
-    // } else
-    //   number.innerHTML = randomItem(getThings())
-    // stop() // must come after `timeoutId = ...`
+    return randomItem(randomViolinNote())[1]
   })
 
   const setItem = () => {
@@ -68,9 +58,11 @@ function App() {
 
   useEffect(() => {
     const handleKey = (e) => button(event, e.key)
-    // addEventListener('hashchange', () => document.location.reload())
     addEventListener('keydown', handleKey)
-    return () => removeEventListener('keydown', handleKey)
+
+    return () => {
+      removeEventListener('keydown', handleKey)
+    }
   })
 
   useEffect(() => {
@@ -86,35 +78,11 @@ function App() {
 
       <a className="next" onClick={() => setItem()}>➡️</a>
 
-      <div className="wrap" style={{ display: "block" }}>
-        <div ref={number} className="number flash1">{command}</div>
+      <div className="wrap" style={{ display: "block" }} data-mode="violin">
+        <div ref={number} className="number flash1" dangerouslySetInnerHTML={ { __html: command } }></div>
       </div>
 
       <div className="log">
-      </div>
-
-      <div style={{ display: "none" }} className="string-symbols">
-        <svg className="icon" width="48" height="48" viewBox="0 0 48 48" style={{ marginBottom: "-9px" }}>
-          <rect x="0" y="30" width="48" height="3" fill="#fff"/>
-        </svg>
-
-        <svg className="icon" width="48" height="48" viewBox="0 0 48 48" style={{ marginBottom: "-9px" }}>
-          <rect x="0" y="30" width="48" height="3" fill="#fff"/>
-          <rect x="0" y="20" width="48" height="3" fill="#fff"/>
-        </svg>
-
-        <svg className="icon" width="48" height="48" viewBox="0 0 48 48" style={{ marginBottom: "-9px" }}>
-          <rect x="0" y="30" width="48" height="3" fill="#fff"/>
-          <rect x="0" y="20" width="48" height="3" fill="#fff" />
-          <rect x="0" y="10" width="48" height="3" fill="#fff"/>
-        </svg>
-
-        <svg className="icon" width="48" height="48" viewBox="0 0 48 48" style={{ marginBottom: "-9px" }}>
-          <rect x="0" y="30" width="48" height="3" fill="#fff"/>
-          <rect x="0" y="20" width="48" height="3" fill="#fff"/>
-          <rect x="0" y="10" width="48" height="3" fill="#fff"/>
-          <rect x="0" y="00" width="48" height="3" fill="#fff"/>
-        </svg>
       </div>
     </>
   )

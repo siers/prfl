@@ -1,0 +1,135 @@
+export default class ToneLib {
+  names = 'CDEFGAB'.split('')
+
+  arrayShift(arr, count) {
+    const len = arr.length
+    const c = len - count
+    arr.push(...arr.splice(0, (-c % len + len) % len))
+    return arr
+  }
+
+  renderNote({semi, name, alter}) {
+    switch (alter) {
+      case 0: return this.names[name]
+      case 1: return `${this.names[name]}#`
+      case -1: return `${this.names[name]}b`
+      case 2: return `${this.names[name]}##`
+      case -2: return `${this.names[name]}bb`
+      default:
+        console.log(`bad alter: ${alter}`)
+        return `${name}?`
+    }
+  }
+
+  noteWithRender(note) {
+    return {...note, render: this.renderNote(note)}
+  }
+
+  sharp = 1
+  flat = -1
+
+  // steps in key
+  unison = 0
+  second = 1
+  third = 2
+  fourth = 3
+  fifth = 4
+  sixth = 5
+  seventh = 6
+  octave = 7
+  ninth = 8
+
+  addAccidental({semi, name, alter}, accidental) {
+    return this.noteWithRender({semi: semi + accidental, name, alter: alter + accidental})
+  }
+
+  addSharp(note) {
+    return this.addAccidental(note, this.sharp)
+  }
+
+  addFlat(note) {
+    return this.addAccidental(note, this.flat)
+  }
+
+  rebase({semi, name, alter, render}, baseSemi) {
+    return {semi: baseSemi + ((12000 + semi - baseSemi) % 12), name, alter, render: render}
+  }
+
+  major() {
+    return [
+      {semi: 49 + 3 + 0, name: 0, alter: 0},
+      {semi: 49 + 3 + 2, name: 1, alter: 0},
+      {semi: 49 + 3 + 4, name: 2, alter: 0},
+      {semi: 49 + 3 + 5, name: 3, alter: 0},
+      {semi: 49 + 3 + 7, name: 4, alter: 0},
+      {semi: 49 + 3 + 9, name: 5, alter: 0},
+      {semi: 49 + 3 + 11, name: 6, alter: 0},
+    ].map(n => this.noteWithRender(n))
+  }
+
+  keyAddAccidental(keyOld, n, sign) {
+    const key = structuredClone(keyOld)
+    key[n] = this.addAccidental(key[n], sign)
+    return key
+  }
+
+  keyRebase(key, baseSemi) {
+    return key.map(n => this.rebase(n, baseSemi))
+  }
+
+  // semitones are unordered, but not names and order is correct
+  modulateFifthBaseless(key, direction) {
+    switch (direction) {
+      case 1: return this.arrayShift(this.keyAddAccidental(key, this.fourth, this.sharp), this.fifth)
+      case -1: return this.arrayShift(this.keyAddAccidental(key, this.seventh, this.flat), this.fourth)
+      case 0: return key
+      default:
+        return this.modulateFifth(this.modulateFifth(key, direction - Math.sign(direction)), Math.sign(direction))
+    }
+  }
+
+  modulateFifth(key, direction) {
+    const modulated = this.modulateFifthBaseless(key, direction)
+    return this.keyRebase(modulated, modulated[0].semi)
+  }
+
+  findCommonKey(a, b) {
+    var af, bf
+    var key = this.keysMajor().find(k => {
+      af = k.find(({semi}) => semi % 12 == a % 12)
+      bf = k.find(({semi}) => semi % 12 == b % 12)
+
+      return af && bf
+    })
+
+    if (key) {
+      return [key, [af, bf]]
+    } else {
+      console.log(`finding common key failed for ${a}/${b}`)
+    }
+  }
+
+  keysMajor() {
+    return [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6].map(d => {
+      return this.modulateFifth(this.major(), d)
+    })
+  }
+
+  keysDominant() {
+    return this.keysMajor().map(k => this.keyAddAccidental(k, this.seventh, -1))
+  }
+
+  keysDominantFlatNine() {
+    return this.keysDominant().map(k => this.keyAddAccidental(k, this.second, -1))
+  }
+
+  nameLeadingDim7() {
+    return this.keysDominantFlatNine().map(k => [this.third, this.fifth, this.seventh, this.ninth % this.octave].map(n => k[n].render).join(' '))
+    // return this.keysDominantFlatNine().map(k => k[0].render + ": " + [this.third, this.fifth, this.seventh, this.second].map(n => k[n].render).join(' '))
+  }
+
+  // modulateFifth(major, -1).map(n => log(JSON.stringify(n) + ' ' + renderNote(n)))
+  // log()
+  // modulateFifth(major, 1).map(n => log(JSON.stringify(n) + ' ' + renderNote(n)))
+  // log(keysMajor.map(k => renderNote(k[0])).join())
+}
