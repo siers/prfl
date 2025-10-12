@@ -1,7 +1,7 @@
 a { color: #4796e6; }
 a:hover { color: #52b8e3; }
 
-.toggle { position: absolute; top: 1em; left: 1em; font-size: 3em; }
+.knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
 .next { position: absolute; top: 50%; right: 1em; font-size: 5em; }
 
 .wrap { height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }

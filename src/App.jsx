@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import './App.css'
 import { randomViolinNote } from './lib/ViolinNote'
+import Knob from './Knob'
 
 function getHash() {
   return location.hash.substr(1)
@@ -20,10 +21,15 @@ function randomItem(array) {
 }
 
 function App() {
-  const [command, setCommand] = useState(0)
+  const makeItem = () => {
+    return randomItem(randomViolinNote())[1]
+  }
+
+  const [command, setCommand] = useState(makeItem())
   const [running, setRunning] = useState(true)
   const number = useRef()
   const interval = useRef()
+  const [speed, setSpeed] = useState(1500)
 
   const flash = () => {
     const el = number.current
@@ -31,18 +37,14 @@ function App() {
     el.classList.toggle("flash2")
   }
 
-  const makeItem = useCallback(() => {
-    return randomItem(randomViolinNote())[1]
-  })
-
   const setItem = () => {
     setCommand(makeItem())
     flash()
   }
 
-  const postponeInterval = () => { clearInterval(interval.current); interval.current = setInterval(() => setItem(), 1000) }
-  const startInterval = () => { setRunning(true); interval.current = setInterval(() => setItem(), 1000) }
-  const stopInterval = () => { setRunning(false); clearInterval(interval.current); console.log('stop'); }
+  const postponeInterval = () => { clearInterval(interval.current); interval.current = setInterval(() => setItem(), speed) }
+  const startInterval = () => { setRunning(true); interval.current = setInterval(() => setItem(), speed) }
+  const stopInterval = () => { setRunning(false); clearInterval(interval.current); }
   const toggleInterval = () => { if (running) stopInterval(); else startInterval() }
 
   function button(event, key) {
@@ -68,14 +70,10 @@ function App() {
   useEffect(() => {
     if (running) startInterval()
     return () => stopInterval()
-  }, [running])
+  }, [running, speed])
 
   return (
     <>
-      <a className="toggle" onClick={() => toggleInterval()}>
-        {running && "stop" || "start"}
-      </a>
-
       <a className="next" onClick={() => setItem()}>➡️</a>
 
       <div className="wrap" style={{ display: "block" }} data-mode="violin">
@@ -83,6 +81,10 @@ function App() {
       </div>
 
       <div className="log">
+      </div>
+
+      <div className="knob-wrapwrap">
+        <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s`} />
       </div>
     </>
   )
