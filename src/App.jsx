@@ -93,6 +93,7 @@ function App() {
           <option value="violin">violin</option>
           <option value="keys">keys</option>
           <option value="hash">hash</option>
+          <option value="sheet">sheet</option>
         </select>
 
         <a className="next" onClick={() => setItem()}>➡️</a>

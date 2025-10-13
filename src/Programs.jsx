@@ -1,5 +1,6 @@
 import { randomViolinNote } from './lib/ViolinNote'
 import ToneLib from './lib/ToneLib'
+import { Score } from './Vexflow'
 
 function shuffleArray(array) {
   for (var i = array.length - 1; i > 0; i--) {
@@ -53,10 +54,20 @@ function Hash() {
   return randomItem(getThings())
 }
 
+function Sheet() {
+  return <Score staves={[
+        ['G#/3', 'd4', 'e4', 'd4'],
+        ['a4', 'd4', 'e4', 'd4'],
+        ['a4', 'a4', 'b4', 'a4'],
+        ['d4', 'e4', ['g3', 2]],
+      ]} />
+}
+
 const programs = {
   violin: Violin,
   keys: Keys,
   hash: Hash,
+  sheet: Sheet,
 }
 
 export default programs
