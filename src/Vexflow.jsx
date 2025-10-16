@@ -1,71 +1,34 @@
-// https://github.com/markacola/react-vexflow/blob/e4542b5b2e8ef1dfa49d925afdf44b81951d9899/src/index.js
-
-import React, { useRef, useEffect } from 'react'
-import { Formatter, Renderer, Stave, StaveNote } from 'vexflow'
-
-const clefWidth = 30;
-const timeWidth = 30;
+import React, { useRef, useEffect, useId } from 'react'
+import { Factory } from 'vexflow'
 
 export function Score({
-  staves = [],
+  notes = [],
   clef = 'treble',
   timeSignature = '4/4',
-  width = 450,
-  height = 150,
+  width = 250,
+  height = 250,
 }) {
-  const container = useRef()
-  const rendererRef = useRef()
+  const id = useId()
 
   useEffect(() => {
-    if (rendererRef.current == null) {
-      rendererRef.current = new Renderer(
-        container.current,
-        Renderer.Backends.SVG
-      )
+    const factory = new Factory({renderer: {elementId: id, width, height}})
+
+    const score = factory.EasyScore()
+    const system = factory.System()
+
+    const voice = score.voice(score.notes(notes, { stem: 'up' }))
+
+    system
+      .addStave({voices: [voice]})
+      .addClef(clef)
+      .addTimeSignature(timeSignature)
+
+    factory.draw()
+
+    return () => {
+      document.getElementById(id).innerHTML = ''
     }
-    const renderer = rendererRef.current
-    renderer.resize(width, height)
-    const context = renderer.getContext()
-    context.setFont('Arial', 10, '').setBackgroundFillStyle('#eed')
-    const clefAndTimeWidth = (clef ? clefWidth : 0) + (timeSignature ? timeWidth : 0);
-    const staveWidth = (width - clefAndTimeWidth) / staves.length
+  }, [notes, clef, timeSignature, width, height])
 
-    let currX = 0
-    staves.forEach((notes, i) => {
-      const stave = new Stave(currX, 0, staveWidth)
-      if (i === 0) {
-        stave.setWidth(staveWidth + clefAndTimeWidth)
-        clef && stave.addClef(clef);
-        timeSignature && stave.addTimeSignature(timeSignature);
-      }
-      currX += stave.getWidth()
-      stave.setContext(context).draw()
-
-      const processedNotes = notes
-        .map(note => (typeof note === 'string' ? { key: note } : note))
-        .map(note =>
-          Array.isArray(note) ? { key: note[0], duration: note[1] } : note
-        )
-        .map(({ key, ...rest }) =>
-          typeof key === 'string'
-            ? {
-                key: key.includes('/') ? key : `${key[0]}/${key.slice(1)}`,
-                ...rest,
-              }
-            : rest
-        )
-        .map(
-          ({ key, keys, duration = 'q' }) =>
-            new StaveNote({
-              keys: key ? [key] : keys,
-              duration: String(duration),
-            })
-        )
-      Formatter.FormatAndDraw(context, stave, processedNotes, {
-        auto_beam: true,
-      })
-    })
-  }, [staves])
-
-  return <div ref={container} />
+  return <div id={id} />
 }

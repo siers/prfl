@@ -1,6 +1,7 @@
 import { randomViolinNote } from './lib/ViolinNote'
 import ToneLib from './lib/ToneLib'
 import { Score } from './Vexflow'
+import { randomViolinNoteEasyScore } from './lib/ViolinNote'
 
 function shuffleArray(array) {
   for (var i = array.length - 1; i > 0; i--) {
@@ -31,14 +32,12 @@ function Violin() {
 function Keys({state, setState, advance}) {
   if (!state.next?.length) {
     state.next = shuffleArray((new ToneLib).keysMajor().map(k => k[0].render))
-    console.log(`setting: state.next = ${shuffleArray((new ToneLib).keysMajor().map(k => k[0].render))}`)
     setState(state)
   }
 
   if (advance) {
     state.next.shift()
     setState(state)
-    console.log(`keys advancing`)
   }
 
   return (
@@ -55,12 +54,26 @@ function Hash() {
 }
 
 function Sheet() {
-  return <Score staves={[
-        ['G#/3', 'd4', 'e4', 'd4'],
-        ['a4', 'd4', 'e4', 'd4'],
-        ['a4', 'a4', 'b4', 'a4'],
-        ['d4', 'e4', ['g3', 2]],
-      ]} />
+  function randInt(from, to) {
+    return from + Math.floor(Math.random() * (to - from + 1))
+  }
+
+  function pick(array) {
+    return array[randInt(0, array.length - 1)]
+  }
+
+  const notes = [1, 2, 3, 4].map(_ => {
+    const note = pick(randomViolinNoteEasyScore())
+    const fingering = note.finger == '.½' ? 's' : note.finger
+    const render =
+      (note.base.render == note.target.render)
+        ? `(${note.string} ${note.target.render})/q[fingerings=",${fingering}"]`
+        : `(${note.string} ${note.base.render} ${note.target.render})/q[fingerings=",,${fingering}"]`
+    return render
+  }).join(', ')
+
+  return <Score width={300} height={300} notes={notes} timeSignature="4/4" />
+
 }
 
 const programs = {

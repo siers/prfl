@@ -9,16 +9,21 @@ export default class ToneLib {
   }
 
   renderNote({semi, name, alter}) {
+    const octave = Math.floor((semi - 4) / 12) + 1
+    var alt
+
     switch (alter) {
-      case 0: return this.names[name]
-      case 1: return `${this.names[name]}#`
-      case -1: return `${this.names[name]}b`
-      case 2: return `${this.names[name]}##`
-      case -2: return `${this.names[name]}bb`
+      case 0: alt = ''; break
+      case 1: alt = `#`; break
+      case -1: alt = `b`; break
+      case 2: alt = `##`; break
+      case -2: alt = `bb`; break
       default:
         console.log(`bad alter: ${alter}`)
-        return `${name}?`
+        alt = `${name}?`
     }
+
+    return this.names[name] + alt + octave
   }
 
   noteWithRender(note) {
@@ -51,8 +56,13 @@ export default class ToneLib {
     return this.addAccidental(note, this.flat)
   }
 
+  // property key(note, base) = key(note), only octave is changed
   rebase({semi, name, alter, render}, baseSemi) {
-    return {semi: baseSemi + ((12000 + semi - baseSemi) % 12), name, alter, render: render}
+    return this.noteWithRender({
+      semi: baseSemi + ((12000 + semi - baseSemi) % 12),
+      name,
+      alter,
+    })
   }
 
   major() {
