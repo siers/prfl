@@ -1,17 +1,17 @@
 import { randomViolinNoteEasyScore } from '../lib/ViolinNote'
 import { Score } from '../lib/Vexflow'
+import { pick, shuffleArray } from '../lib/Random'
 
-function Positions() {
-  function randInt(from, to) {
-    return from + Math.floor(Math.random() * (to - from + 1))
+function Positions({state, setState, advance}) {
+  function toggleShuffle() {
+    console.log(state)
+    setState({shuffle: !state.shuffle})
   }
 
-  function pick(array) {
-    return array[randInt(0, array.length - 1)]
-  }
+  const shuffleFun = state.shuffle ? shuffleArray : x => x
 
-  const notes = [1, 2, 3, 4].map(_ => {
-    const note = pick(randomViolinNoteEasyScore())
+  const notes = shuffleFun([0, 1, 2, 3]).map(string => {
+    const note = pick(randomViolinNoteEasyScore(string))
     const fingering = note.finger == '.½' ? 's' : note.finger
     const render =
       (note.base.render == note.target.render)
@@ -20,7 +20,17 @@ function Positions() {
     return render
   }).join(', ')
 
-  return <Score width={300} height={300} notes={notes} timeSignature="4/4" />
+  return <>
+    <div>
+      <div style={{marginBottom: '0.5em'}}>
+        <label>
+          <input type="checkbox" defaultChecked={state.shuffle} onChange={_ => toggleShuffle()} /> shuffle
+        </label>
+      </div>
+
+      <Score width={300} height={300} notes={notes} timeSignature="4/4" />
+    </div>
+  </>
 }
 
 export default Positions

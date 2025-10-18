@@ -35,8 +35,9 @@ function App() {
   const makeItem = (advance) => {
     const programState = window.structuredClone(state[program]) || {}
     const setProgramState = newState => {
-      state[program] = newState
-      setState(state)
+      setState(state => {
+        return {...state, [program]: newState}
+      })
     }
     const p = programs[program] || programs[Object.keys(programs)[0]]
     const result = p({state: programState, setState: setProgramState, advance})
