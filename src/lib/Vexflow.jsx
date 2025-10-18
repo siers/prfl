@@ -26,7 +26,8 @@ export function Score({
     factory.draw()
 
     return () => {
-      document.getElementById(id).innerHTML = ''
+      const el = document.getElementById(id)
+      el && (el.innerHTML = '')
     }
   }, [notes, clef, timeSignature, width, height])
 
