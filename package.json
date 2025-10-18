@@ -10,10 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stringsync/musicxml": "^0.2.1",
+    "opensheetmusicdisplay": "^1.9.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "vexflow": "^5.0.0",
-    "opensheetmusicdisplay": "^1.9.2"
+    "vexflow": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
