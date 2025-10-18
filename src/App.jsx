@@ -90,10 +90,11 @@ function App() {
     <>
       <div className="app">
         <select onChange={e => setProgram(e.target.value)} value={program} className="programs">
-          <option value="violin">violin</option>
-          <option value="keys">keys</option>
-          <option value="hash">hash</option>
-          <option value="sheet">sheet</option>
+          {
+            Object.keys(programs).map(p =>
+              <option value={p} key={p}>{p}</option>
+            )
+          }
         </select>
 
         <a className="next" onClick={() => setItem()}>➡️</a>
