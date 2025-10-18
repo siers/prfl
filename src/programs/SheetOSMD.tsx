@@ -118,7 +118,7 @@ function generateXml() {
     ]),
   ])
 
-  console.log(musicXml.serialize())
+  // console.log(musicXml.serialize())
 
   return musicXml.serialize()
 }

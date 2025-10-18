@@ -1,7 +1,7 @@
 import { randomViolinNoteEasyScore } from '../lib/ViolinNote'
 import { Score } from '../lib/Vexflow'
 
-function Sheet() {
+function Positions() {
   function randInt(from, to) {
     return from + Math.floor(Math.random() * (to - from + 1))
   }
@@ -23,4 +23,4 @@ function Sheet() {
   return <Score width={300} height={300} notes={notes} timeSignature="4/4" />
 }
 
-export default Sheet
+export default Positions

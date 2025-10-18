@@ -1,14 +1,14 @@
 import Violin from './programs/Violin'
 import Keys from './programs/Keys'
 import Hash from './programs/Hash'
-import Sheet from './programs/Sheet'
+import Positions from './programs/Positions'
 import SheetOSMD from './programs/SheetOSMD.tsx'
 
 const programs = {
   violin: Violin,
   keys: Keys,
   hash: Hash,
-  sheet: Sheet,
+  positions: Positions,
   sheetosmd: SheetOSMD,
 }
 

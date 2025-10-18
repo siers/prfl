@@ -38,7 +38,8 @@ function App() {
       state[program] = newState
       setState(state)
     }
-    const result = programs[program]({state: programState, setState: setProgramState, advance})
+    const p = programs[program] || programs[Object.keys(programs)[0]]
+    const result = p({state: programState, setState: setProgramState, advance})
     return result
   }
   const content = useRef()
@@ -99,7 +100,7 @@ function App() {
 
         <a className="next" onClick={() => setItem()}>➡️</a>
 
-        <div className="wrap" style={{ display: "block" }} data-mode={program}>
+        <div className="wrap" style={{display: "block"}} data-mode={program}>
           <div ref={content} className="content flash1">
             {makeItem()}
           </div>
