@@ -55,16 +55,16 @@ const stringSymbols = [
   </svg>
 ]
 
-var [s_, f_, n_] = ['♯', '♭', '♮']
+const [s_, f_, n_] = ['♯', '♭', '♮']
 
-var strings = [
+export const strings = [
   {name: 'G', number: 0},
   {name: 'D', number: 1},
   {name: 'A', number: 2},
   {name: 'E', number: 3},
 ]
 
-var positions = [
+export const positions = [
   {name: '.5', count: 0, semi: 1},
   {name: '1.', count: 1, semi: 2},
   {name: '2a', count: 2, semi: 3},
@@ -76,21 +76,21 @@ var positions = [
   {name: '5b', count: 9, semi: 9},
   {name: '6a', count: 10, semi: 10},
   {name: '6b', count: 11, semi: 11},
-  {name: '7.', count: 11, semi: 12},
+  {name: '7.', count: 12, semi: 12},
 ]
 
-var positionSemitones = [-1, 0, 1, 2, 3, 4, 5, 6]
+export const positionSemitones = [-1, 0, 1, 2, 3, 4, 5, 6]
 
 function calculate(string, pos, semi, slide, bowing) {
   string = string === undefined ? pick(strings) : string
   pos    = pos === undefined ? pick(positions) : pos
   semi   = semi === undefined ? pick(pos.count > 0 ? positionSemitones : positionSemitones.slice(1)) : semi
 
-  var semiBase = 35 + string.number * 7 + pos.semi
-  var semiTarget = semiBase + semi
+  const semiBase = 35 + string.number * 7 + pos.semi
+  const semiTarget = semiBase + semi
 
-  var slide  = slide === undefined ? pick('-↑↓'.split('')) : slide
-  var bowing = bowing === undefined ? pick('VΠ'.split('')) : bowing
+  slide = slide === undefined ? pick('-↑↓'.split('')) : slide
+  bowing = bowing === undefined ? pick('VΠ'.split('')) : bowing
 
   return {string, pos, semiFinger: semi, semiBase, semiTarget, slide, bowing}
 }
@@ -99,9 +99,9 @@ function calculate(string, pos, semi, slide, bowing) {
 // output: [[keyNr, string]]
 export function randomViolinNote(string, pos, semi, slide, bowing) {
   function render(input) {
-    var {string, pos, semiFinger, semiBase, semiTarget, slide, bowing} = input
+    const {string, pos, semiFinger, semiBase, semiTarget, slide, bowing} = input
 
-    var fingerMap = {
+    const fingerMap = {
       '-1': ['.½'],
       '0': ['1.'],
       '1': ['1+', '2-'],
@@ -114,8 +114,8 @@ export function randomViolinNote(string, pos, semi, slide, bowing) {
 
     const [key, [baseNote, targetNote]] = (new ToneLib).findCommonKey(semiBase, semiTarget)
     return fingerMap[semiFinger].map(finger => {
-      var rightPad = (s, n) => ('' + s).padEnd(n, ' ').replaceAll(' ', '&nbsp;')
-      var label = [
+      const rightPad = (s, n) => ('' + s).padEnd(n, ' ').replaceAll(' ', '&nbsp;')
+      const label = [
         ReactDOMServer.renderToStaticMarkup(stringSymbols[3 - string.number]),
         `${baseNote.render}<sub>${pos.name}</sub>`,
         `${targetNote.render}<sub>${finger}</sub>`
@@ -141,9 +141,9 @@ export function randomViolinNote(string, pos, semi, slide, bowing) {
 
 export function randomViolinNoteEasyScore(string, pos, semi, slide, bowing) {
   function render(input) {
-    var {string, pos, semiFinger, semiBase, semiTarget, slide, bowing} = input
+    const {string, pos, semiFinger, semiBase, semiTarget, slide, bowing} = input
 
-    var fingerMap = {
+    const fingerMap = {
       '-1': ['.½'],
       '0': ['1.'],
       '1': ['1+', '2-'],

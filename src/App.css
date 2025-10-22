@@ -27,6 +27,7 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=positions] .flash2 { animation: flash-light-bg2 0.3s ease; }
 @keyframes flash-light-bg1 { 0% { background-color: #bbb; } 100% { background-color: #ffffffff; } }
 @keyframes flash-light-bg2 { 0% { background-color: #bbb; } 100% { background-color: #ffffffff; } }
+.wrap[data-mode=positions] div,
 .wrap[data-mode=positions] label { color: #333; }
 
 .wrap[data-mode=sheetosmd] .content { width: 25%; background: #eee; font-family: inherit; font-size: inherit; }

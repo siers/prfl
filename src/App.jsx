@@ -29,7 +29,7 @@ function App() {
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
   const interval = useRef()
 
-  const [state, setState] = useState({})
+  const [state, setState] = useLocalStorage('programState', {})
   const [program, setProgram] = useLocalStorage('program', 'violin')
   const [command, setCommand] = useState('-')
   const makeItem = (advance) => {
