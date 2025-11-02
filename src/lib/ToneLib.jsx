@@ -8,7 +8,7 @@ export default class ToneLib {
     return arr
   }
 
-  renderNote({semi, name, alter}) {
+  renderNote({semi, name, alter}, renderOctave = true) {
     const octave = Math.floor((semi - 4) / 12) + 1
     var alt
 
@@ -23,9 +23,10 @@ export default class ToneLib {
         alt = `${name}?`
     }
 
-    return this.names[name] + alt + octave
+    return this.names[name] + alt + (renderOctave ? octave : '')
   }
 
+  // TODO: this should be the default
   noteWithRender(note) {
     return {...note, render: this.renderNote(note)}
   }
@@ -138,10 +139,53 @@ export default class ToneLib {
     // return this.keysDominantFlatNine().map(k => k[0].render + ": " + [this.third, this.fifth, this.seventh, this.second].map(n => k[n].render).join(' '))
   }
 
+  noteKeyAssociations(sort = true) {
+    const keys = {}
+    this.keysMajor().forEach(key =>
+      key.forEach(note => {
+        const r = this.renderNote(note, false)
+        keys[r] = (keys[r] || []).concat([this.renderNote(key[0], false)])
+      })
+    )
+    const sorted = Object.entries(keys).sort((a, b) => {
+      const cmp = tonic => {
+        const s = tonic.indexOf('#') != -1 && 100
+        const f = tonic.indexOf('b') != -1 && -100
+        const weights = "CDEFGAB".indexOf(tonic[0])
+        return s + f + weights
+      }
+      cmp(b) - cmp(a)
+    })
+    return sort ? sorted : Object.entries(keys).sort((a, b) => {
+      return "CDEFGAB".indexOf(a[0][0]) - "CDEFGAB".indexOf(b[0][0])
+    })
+  }
+
+  // ToneLib.noteKeyAssociations().map(kAndKs => console.log(`${kAndKs[0]}: ${kAndKs[1].join(',')}`))
+  // Cb: Gb
+  // E#: F#
+  // Gb: Db,Gb
+  // A#: B,F#
+  // Db: Ab,Db,Gb
+  // D#: E,B,F#
+  // Ab: Eb,Ab,Db,Gb
+  // G#: A,E,B,F#
+  // Eb: Bb,Eb,Ab,Db,Gb
+  // C#: D,A,E,B,F#
+  // Bb: F,Bb,Eb,Ab,Db,Gb
+  // F#: G,D,A,E,B,F#
+  // C: C,G,F,Bb,Eb,Ab,Db
+  // D: C,G,F,D,Bb,A,Eb
+  // E: C,G,F,D,A,E,B
+  // F: C,F,Bb,Eb,Ab,Db,Gb
+  // G: C,G,F,D,Bb,Eb,Ab
+  // A: C,G,F,D,Bb,A,E
+  // B: C,G,D,A,E,B,F#
+
   // modulateFifth(major, -1).map(n => log(JSON.stringify(n) + ' ' + renderNote(n)))
   // log()
   // modulateFifth(major, 1).map(n => log(JSON.stringify(n) + ' ' + renderNote(n)))
   // log(keysMajor.map(k => renderNote(k[0])).join())
 }
 
-window.ToneLib = ToneLib
+window.ToneLib = new ToneLib
