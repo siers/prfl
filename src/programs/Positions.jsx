@@ -2,8 +2,10 @@ import * as ViolinNote from '../lib/ViolinNote'
 import { Score } from '../lib/Vexflow'
 import { pick, shuffleArray } from '../lib/Random'
 
-function Positions({state, setState, advance}) {
+function Positions({initialState, setState, advance}) {
   const defaultPositions = ViolinNote.positions.map((_ , i) => i)
+
+  const state = initialState || {shuffle: false}
 
   function toggleShuffle() {
     setState({...state, shuffle: !state.shuffle})
@@ -19,7 +21,7 @@ function Positions({state, setState, advance}) {
     setState({...state, positions: positions})
   }
 
-  const shuffleFun = state.shuffle ? shuffleArray : x => x
+  const shuffleFun = state?.shuffle ? shuffleArray : x => x
 
   const notes = shuffleFun([0, 1, 2, 3]).map(string => {
     const note = pick(ViolinNote.randomViolinNoteEasyScore(string, pick(getPositions().filter(a => a !== null))))

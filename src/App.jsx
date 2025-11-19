@@ -27,21 +27,17 @@ function useLocalStorage(key, initialValue) {
 function App() {
   const [running, setRunning] = useLocalStorage('running', true)
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
-  const interval = useRef()
+  const timeout = useRef()
 
   const [state, setState] = useLocalStorage('programState', {})
   const [program, setProgram] = useLocalStorage('program', 'violin')
-  const [command, setCommand] = useState('-')
   const makeItem = (advance) => {
-    const programState = window.structuredClone(state[program]) || {}
-    const setProgramState = newState => {
-      setState(state => {
-        return {...state, [program]: newState}
-      })
-    }
-    const p = programs[program] || programs[Object.keys(programs)[0]]
-    const result = p({state: programState, setState: setProgramState, advance})
-    return result
+    // the program should advance itself, if the state is empty
+    const programName = program || Object.keys(programs)[0]
+    const setProgramState = nextProgramState => setState(state => ({...state, [programName]: nextProgramState(state[programName])}))
+    return programs[programName](
+      {state: state[programName], setState: setProgramState, advance}
+    )
   }
   const content = useRef()
 
@@ -52,14 +48,14 @@ function App() {
   }
 
   const setItem = () => {
-    setCommand(makeItem(true))
+    makeItem(true)
     flash()
   }
 
-  const postponeInterval = () => { clearInterval(interval.current); interval.current = setInterval(() => setItem(), speed) }
-  const startInterval = () => { setRunning(true); interval.current = setInterval(() => setItem(), speed) }
-  const stopInterval = () => { setRunning(false); clearInterval(interval.current); }
-  const toggleInterval = () => { if (running) stopInterval(); else startInterval() }
+  const postponeTimeout = () => { clearTimeout(timeout.current); timeout.current = setTimeout(() => setItem(), speed) }
+  const startTimeout = () => { setRunning(true); timeout.current = setTimeout(() => setItem(), speed) }
+  const stopTimeout = () => { setRunning(false); clearTimeout(timeout.current); }
+  const toggleTimeout = () => { if (running) stopTimeout(); else startTimeout() }
 
   function button(event, key) {
     if (key == 's' || key == 'Escape') toggleInterval()
@@ -82,11 +78,10 @@ function App() {
 
   useEffect(() => {
     if (running) {
-      setItem()
-      startInterval()
+      startTimeout()
     }
-    return () => stopInterval()
-  }, [running, speed, program])
+    return () => stopTimeout()
+  }, [running, speed, program, state])
 
   return (
     <>
