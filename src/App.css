@@ -5,6 +5,7 @@ a:hover { color: #52b8e3; }
 
 .knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
 .next { position: absolute; top: 50%; right: 1em; font-size: 5em; }
+.clear { position: absolute; bottom: 1em; font-size: 2em; margin-left: -2.1em; }
 .programs { font-size: 20px; padding: 0.3em; }
 
 .wrap { height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
