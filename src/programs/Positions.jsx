@@ -2,47 +2,53 @@ import * as ViolinNote from '../lib/ViolinNote'
 import { Score } from '../lib/Vexflow'
 import { pick, shuffleArray } from '../lib/Random'
 
-function Positions({initialState, setState, advance}) {
+function Positions({state, setState, advance}) {
   const defaultPositions = ViolinNote.positions.map((_ , i) => i)
 
-  let state = initialState || {shuffle: false}
+  const shuffleFun = state?.shuffle ? shuffleArray : x => x
 
-  if (advance)
-    setState(state => ({...state, random: Math.random}))
+  function generateNotes(shuffleFun) {
+    return shuffleFun([0, 1, 2, 3]).map(string => {
+      const note = pick(ViolinNote.randomViolinNoteEasyScore(string, pick(getPositions().filter(a => a !== null))))
+      const fingering = note.finger == '.½' ? 's' : note.finger
+      const render =
+        (note.base.render == note.target.render)
+          ? `(${note.string} ${note.target.render})/q[fingerings=",${fingering}"]`
+          : `(${note.string} ${note.base.render} ${note.target.render})/q[fingerings=",,${fingering}"]`
+      return render
+    }).join(', ')
+  }
 
   function toggleShuffle() {
     setState(state => ({...state, shuffle: !state.shuffle}))
+    doAdvance()
   }
 
   function getPositions() {
-    return state.positions || defaultPositions
+    return state?.positions || defaultPositions
   }
 
   function togglePosition(p) {
     const positions = getPositions()
     positions[p] = positions[p] === null ? p : null
-    setState(state => ({...state, positions: positions}))
+    setState(state => ({...state, positions}))
+    doAdvance()
   }
 
-  const shuffleFun = state?.shuffle ? shuffleArray : x => x
+  function doAdvance() {
+    const notes = generateNotes(shuffleFun)
+    setState(state => ({...state, notes}))
+  }
 
-  const notes = shuffleFun([0, 1, 2, 3]).map(string => {
-    const note = pick(ViolinNote.randomViolinNoteEasyScore(string, pick(getPositions().filter(a => a !== null))))
-    const fingering = note.finger == '.½' ? 's' : note.finger
-    const render =
-      (note.base.render == note.target.render)
-        ? `(${note.string} ${note.target.render})/q[fingerings=",${fingering}"]`
-        : `(${note.string} ${note.base.render} ${note.target.render})/q[fingerings=",,${fingering}"]`
-    return render
-  }).join(', ')
-
-  // console.log(getPositions().filter(a => a).map(a => `${a}, ${JSON.stringify(ViolinNote.positions[a])}`))
+  if (advance || !state?.notes) {
+    doAdvance()
+  }
 
   return <>
     <div>
-      <div style={{margin: '0 0 0.5em', textAlign: 'left'}} data-refresh={state.random}>
+      <div style={{margin: '0 0 0.5em', textAlign: 'left'}}>
         <label>
-          shuffle strings: <input type="checkbox" defaultChecked={state.shuffle} onChange={_ => toggleShuffle()} />
+          shuffle strings: <input type="checkbox" defaultChecked={state?.shuffle} onChange={_ => toggleShuffle()} />
         </label>
         <br />
         <div>
@@ -53,7 +59,7 @@ function Positions({initialState, setState, advance}) {
         </div>
       </div>
 
-      <Score width={300} height={300} notes={notes} timeSignature="4/4" />
+      {state?.notes && <Score width={300} height={300} notes={state.notes} timeSignature="4/4" />}
     </div>
   </>
 }
