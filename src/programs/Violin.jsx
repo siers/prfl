@@ -1,8 +1,12 @@
 import { randomViolinNote } from '../lib/ViolinNote'
 import { pick } from '../lib/Random'
 
-function Violin() {
-  return <div dangerouslySetInnerHTML={{__html: pick(randomViolinNote())[1]}} />
+function Violin({state, setState, advance}) {
+  if (advance || !state) {
+    setState(pick(randomViolinNote())[1])
+  }
+
+  return <div dangerouslySetInnerHTML={{__html: state}} />
 }
 
 export default Violin
