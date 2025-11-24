@@ -11,7 +11,7 @@ a:hover { color: #52b8e3; }
 .content { font-weight: 700; font-size: 30vmin; display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
 sub { font-size: xx-large; } /* weird name, but renders as small */
 ::selection { background: transparent; }
-.log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: white; font-family: monospace; pointer-events: none; z-index: -10; }
+.log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: #333; font-family: monospace; pointer-events: none; z-index: -10; }
 .log p { margin: 0; padding: 0; }
 
 .flash1 { animation: flash-bg1 0.3s ease; }
@@ -30,6 +30,6 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=positions] div,
 .wrap[data-mode=positions] label { color: #333; }
 
-.wrap[data-mode=sheetosmd] .content { width: 25%; background: #eee; font-family: inherit; font-size: inherit; }
+.wrap[data-mode=sheetosmd] .content { width: 25%; font-family: inherit; font-size: inherit; }
 .wrap[data-mode=sheetosmd] .flash1 { animation: flash-light-bg1 0.3s ease; }
 .wrap[data-mode=sheetosmd] .flash2 { animation: flash-light-bg2 0.3s ease; }

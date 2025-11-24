@@ -1,4 +1,4 @@
-:root { --bg: hsl(28 30% 13%); --fg: #efeae6; }
+:root { --bg: white; --fg: #333; }
 
 html,body {
   height: 100%;
