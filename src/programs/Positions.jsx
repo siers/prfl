@@ -5,10 +5,13 @@ import { pick, shuffleArray } from '../lib/Random'
 function Positions({initialState, setState, advance}) {
   const defaultPositions = ViolinNote.positions.map((_ , i) => i)
 
-  const state = initialState || {shuffle: false}
+  let state = initialState || {shuffle: false}
+
+  if (advance)
+    setState(state => ({...state, random: Math.random}))
 
   function toggleShuffle() {
-    setState({...state, shuffle: !state.shuffle})
+    setState(state => ({...state, shuffle: !state.shuffle}))
   }
 
   function getPositions() {
@@ -18,7 +21,7 @@ function Positions({initialState, setState, advance}) {
   function togglePosition(p) {
     const positions = getPositions()
     positions[p] = positions[p] === null ? p : null
-    setState({...state, positions: positions})
+    setState(state => ({...state, positions: positions}))
   }
 
   const shuffleFun = state?.shuffle ? shuffleArray : x => x
@@ -37,7 +40,7 @@ function Positions({initialState, setState, advance}) {
 
   return <>
     <div>
-      <div style={{margin: '0 0 0.5em', textAlign: 'left'}}>
+      <div style={{margin: '0 0 0.5em', textAlign: 'left'}} data-refresh={state.random}>
         <label>
           shuffle strings: <input type="checkbox" defaultChecked={state.shuffle} onChange={_ => toggleShuffle()} />
         </label>
