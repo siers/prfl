@@ -34,7 +34,10 @@ function App() {
   const makeItem = (advance) => {
     // the program should advance itself, if the state is empty
     const programName = program || Object.keys(programs)[0]
-    const setProgramState = nextProgramState => setState(state => ({...state, [programName]: nextProgramState(state[programName])}))
+    const setProgramState = nextProgramState => {
+      const newState = nextProgramState instanceof Function ? nextProgramState(state[programName]) : nextProgramState
+      setState(state => ({...state, [programName]: newState}))
+    }
     return programs[programName](
       {state: state[programName], setState: setProgramState, advance}
     )
