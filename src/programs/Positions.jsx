@@ -20,8 +20,7 @@ function Positions({state, setState, advance}) {
   }
 
   function toggleShuffle() {
-    setState(state => ({...state, shuffle: !state.shuffle}))
-    doAdvance()
+    setState(state => ({...state, shuffle: !state.shuffle, notes: null}))
   }
 
   function getPositions() {
@@ -31,8 +30,7 @@ function Positions({state, setState, advance}) {
   function togglePosition(p) {
     const positions = getPositions()
     positions[p] = positions[p] === null ? p : null
-    setState(state => ({...state, positions}))
-    doAdvance()
+    setState(state => ({...state, positions: positions, notes: null}))
   }
 
   function doAdvance() {
