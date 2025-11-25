@@ -79,7 +79,8 @@ export const positions = [
   {name: '7.', count: 12, semi: 12},
 ]
 
-export const positionSemitones = [-1, 0, 1, 2, 3, 4, 5, 6]
+export const positionSemitones = [0, 1, 2, 3, 4, 5, 6]
+// export const positionSemitones = [-1, 0, 1, 2, 3, 4, 5, 6]
 
 function calculate(string, pos, semi, slide, bowing) {
   string = string === undefined ? pick(strings) : string
