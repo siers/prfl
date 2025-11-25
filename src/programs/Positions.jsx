@@ -9,7 +9,11 @@ function Positions({state, setState, advance}) {
 
   function generateNotes(shuffleFun) {
     return shuffleFun([0, 1, 2, 3]).map(string => {
-      const note = pick(ViolinNote.randomViolinNoteEasyScore(string, pick(getPositions().filter(a => a !== null))))
+      const note = pick(ViolinNote.randomViolinNoteEasyScore(
+        string,
+        pick(getPositions().filter(a => a !== null)),
+        pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
+      ))
       const fingering = note.finger == '.½' ? 's' : note.finger
       const render =
         (note.base.render == note.target.render)
@@ -21,6 +25,10 @@ function Positions({state, setState, advance}) {
 
   function toggleShuffle() {
     setState(state => ({...state, shuffle: !state.shuffle, notes: null}))
+  }
+
+  function toggleWithoutTopNote() {
+    setState(state => ({...state, withoutTopNote: !state.withoutTopNote, notes: null}))
   }
 
   function getPositions() {
@@ -47,6 +55,8 @@ function Positions({state, setState, advance}) {
       <div style={{margin: '0 0 0.5em', textAlign: 'left'}}>
         <label>
           shuffle strings: <input type="checkbox" defaultChecked={state?.shuffle} onChange={_ => toggleShuffle()} />
+          <br />
+          without top note: <input type="checkbox" defaultChecked={state?.withoutTopNote} onChange={_ => toggleWithoutTopNote()} />
         </label>
         <br />
         <div>
