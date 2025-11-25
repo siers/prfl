@@ -54,15 +54,16 @@ function Positions({state, setState, advance}) {
     <div>
       <div style={{margin: '0 0 0.5em', textAlign: 'left'}}>
         <label>
-          shuffle strings: <input type="checkbox" defaultChecked={state?.shuffle} onChange={_ => toggleShuffle()} />
-          <br />
-          without top note: <input type="checkbox" defaultChecked={state?.withoutTopNote} onChange={_ => toggleWithoutTopNote()} />
+          shuffle strings: <input type="checkbox" checked={state?.shuffle || false} onChange={_ => toggleShuffle()} />
         </label>
         <br />
+        <label>
+          without top note: <input type="checkbox" checked={state?.withoutTopNote || false} onChange={_ => toggleWithoutTopNote()} />
+        </label>
         <div>
           positions ({getPositions().filter(a => a !== null).map(a => ViolinNote.positions[a].name.replace(/\.$/, '')).join(',')}): <br />
           {Array(12).fill(null).map((_, i) => {
-            return <input data-key={i} key={i} type="checkbox" defaultChecked={getPositions()[i] !== null} onChange={_ => togglePosition(i)} />
+            return <input data-key={i} key={i} type="checkbox" checked={getPositions()[i] !== null} onChange={_ => togglePosition(i)} />
           })}
         </div>
       </div>
