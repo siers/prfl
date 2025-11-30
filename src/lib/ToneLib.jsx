@@ -162,25 +162,33 @@ export default class ToneLib {
   }
 
   // ToneLib.noteKeyAssociations().map(kAndKs => console.log(`${kAndKs[0]}: ${kAndKs[1].join(',')}`))
-  // Cb: Gb
-  // E#: F#
-  // Gb: Db,Gb
-  // A#: B,F#
-  // Db: Ab,Db,Gb
-  // D#: E,B,F#
   // Ab: Eb,Ab,Db,Gb
   // G#: A,E,B,F#
-  // Eb: Bb,Eb,Ab,Db,Gb
-  // C#: D,A,E,B,F#
+  //
   // Bb: F,Bb,Eb,Ab,Db,Gb
+  // A#: B,F#
+  //
+  // Db: Ab,Db,Gb
+  // C#: D,A,E,B,F#
+  //
+  // Eb: Bb,Eb,Ab,Db,Gb
+  // D#: E,B,F#
+  //
   // F#: G,D,A,E,B,F#
+  // Gb: Db,Gb
+  //
   // C: C,G,F,Bb,Eb,Ab,Db
   // D: C,G,F,D,Bb,A,Eb
   // E: C,G,F,D,A,E,B
+  //
   // F: C,F,Bb,Eb,Ab,Db,Gb
+  // E#: F#
+  //
   // G: C,G,F,D,Bb,Eb,Ab
   // A: C,G,F,D,Bb,A,E
+  //
   // B: C,G,D,A,E,B,F#
+  // Cb: Gb
 
   // modulateFifth(major, -1).map(n => log(JSON.stringify(n) + ' ' + renderNote(n)))
   // log()
