@@ -9,8 +9,9 @@ export default function SheetOSMD() {
   const xml = notesToMusic(
     [
       [
-        note(p('d'), 2),
-        note(p('a'), 2),
+        note(p('e'), 2),
+        note(p('f5'), 2, true),
+        note(p('b'), 2),
       ],
       [
         note(p('e'), 2),

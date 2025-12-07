@@ -13,17 +13,21 @@ function Positions({state, setState, advance}) {
   function generateNotes(shuffleFun) {
     const notes =
       shuffleFun([0, 1, 2, 3]).map(string => {
-        const n = pick(ViolinNote.randomViolinNoteEasyScore(
+        return pick(ViolinNote.randomViolinNoteEasyScore(
           string,
           pick(getPositions().filter(a => a !== null)),
           pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
         ))
-        console.log(n)
-        return n
       })
 
-    console.log(notes)
-    return [notes.map(n => note(n.target, 1))]
+    return [
+      notes.flatMap(n => {
+        return [
+          note(n.target, 1),
+          note(n.base, 1, {tied: true, color: '#999999'})
+        ]
+      })
+    ]
   }
 
   function toggleShuffle() {

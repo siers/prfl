@@ -40,11 +40,15 @@ function attributes() {
   })
 }
 
-export function note(note, duration) {
+export function note(note, duration, opts) {
+  const o = opts || {}
+  const tie = o.tied && new elements.Chord || null
+  const notehead = o.color && new elements.Notehead({attributes: {color: o.color}}) || null
+
   return new elements.Note({
     contents: [
       [
-        null, // elements.TiedNote
+        tie, // elements.TiedNote
         new elements.Pitch({
           contents: [
             new elements.Step({
@@ -70,7 +74,7 @@ export function note(note, duration) {
       null, // elements.Accidental
       null, // elements.TimeModification
       null, // elements.Stem
-      null, // elements.Notehead
+      notehead, // elements.Notehead
       null, // elements.NoteheadText
       null, // elements.Staff
       [], // elements.Beam
