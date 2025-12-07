@@ -1,22 +1,29 @@
 import ToneLib from '../lib/ToneLib'
 import { shuffleArray } from '../lib/Random'
 
-function Keys({state, setState, advance}) {
+function prepareNext(controls, makeData) {
+  const {state, setState, advance} = controls
+
   if ((state?.next?.length || 0) < 1) {
-    const newKeys = shuffleArray((new ToneLib).keysMajor().map(k => k[0].render))
-    setState(state => ({...state, next: newKeys}))
+    setState(state => ({...state, next: makeData()}))
   }
 
   if (advance && state?.next) {
     const [, ...remaining] = state?.next
     setState(state => ({...state, next: remaining}))
   }
+}
+
+function Keys(controls) {
+  prepareNext(controls, () => shuffleArray((new ToneLib).keysMajor().map(k => k[0].render)))
+
+  const next = controls.state?.next
 
   return (
     <>
-      {state?.next?.at(0)}
+      {next?.at(0)}
       <br />
-      queued: {state?.next?.length ? state.next.length - 1 : 'n/a'}
+      queued: {next?.length ? next.length - 1 : 'n/a'}
     </>
   )
 }
