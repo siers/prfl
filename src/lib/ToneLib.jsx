@@ -223,5 +223,6 @@ class ToneLib {
 
 // https://en.wikipedia.org/wiki/Piano_key_frequencies
 
+window.ToneLib = new ToneLib
 export default ToneLib = new ToneLib
 ToneLib.testParseAndRender()

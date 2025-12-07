@@ -33,7 +33,7 @@ function App() {
   const [program, setProgram] = useLocalStorage('program', 'violin')
   const makeItem = (advance) => {
     // the program should advance itself, if the state is empty
-    const programName = program || Object.keys(programs)[0]
+    const programName = (programs[program] && program) || Object.keys(programs)[0]
     const setProgramState = nextProgramState => {
       const newState = nextProgramState instanceof Function ? nextProgramState(state[programName]) : nextProgramState
       setState(state => ({...state, [programName]: newState}))
@@ -90,11 +90,7 @@ function App() {
     <>
       <div className="app">
         <select onChange={e => setProgram(e.target.value)} value={program} className="programs">
-          {
-            Object.keys(programs).map(p =>
-              <option value={p} key={p}>{p}</option>
-            )
-          }
+          {Object.keys(programs).map(p => <option value={p} key={p}>{p}</option>)}
         </select>
 
         <a className="next" onClick={() => setItem()}>➡️</a>
