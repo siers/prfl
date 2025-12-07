@@ -1,6 +1,12 @@
 import ToneLib from '../lib/ToneLib'
 import { shuffleArray } from '../lib/Random'
 
+function chunks(arr, len) {
+  var chunks = [], i = 0, n = arr.length;
+  while (i < n) chunks.push(arr.slice(i, i += len))
+  return chunks
+}
+
 function prepareNext(controls, makeData) {
   const {state, setState, advance} = controls
 
@@ -15,15 +21,16 @@ function prepareNext(controls, makeData) {
 }
 
 function Keys(controls) {
-  prepareNext(controls, () => shuffleArray((new ToneLib).keysMajor().map(k => k[0].render)))
+  const makeData = () => chunks(shuffleArray((new ToneLib).keysMajor().map(k => k[0].render)), 3)
+  prepareNext(controls, makeData)
 
   const next = controls.state?.next
 
   return (
     <>
-      {next?.at(0)}
+      {(next && next.at(0) && next.at(0).join) && next?.at(0)?.join(', ')}
       <br />
-      queued: {next?.length ? next.length - 1 : 'n/a'}
+      queued: {next?.length ? next?.flat().length - 1 : 'n/a'}
     </>
   )
 }
