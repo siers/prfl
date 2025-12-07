@@ -1,4 +1,4 @@
-export default class ToneLib {
+class ToneLib {
   names = 'CDEFGAB'.split('')
   namesMap = {c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6}
 
@@ -48,7 +48,7 @@ export default class ToneLib {
   octave = 7
   ninth = 8
 
-  parseNoteUnsafe(note) {
+  parseNote(note) {
     const match = note.toLowerCase().match(/^(?<note>[abcdefg])(?<accds>[b#]{0,2})?(?<octave>[0-9])?$/)
 
     if (!match) return null
@@ -180,7 +180,7 @@ export default class ToneLib {
   testParseAndRender() {
     this.keysMajor().forEach(key => {
       key.forEach(note => {
-        const renders = [note.render, this.parseNoteUnsafe(note.render).render]
+        const renders = [note.render, this.parseNote(note.render).render]
         if (renders[0] != renders[1]) console.log(`failed parse/render cycle: ${renders}`)
       })
     })
@@ -223,7 +223,5 @@ export default class ToneLib {
 
 // https://en.wikipedia.org/wiki/Piano_key_frequencies
 
-window.ToneLib = new ToneLib
-
-ToneLib = new ToneLib
+export default ToneLib = new ToneLib
 ToneLib.testParseAndRender()

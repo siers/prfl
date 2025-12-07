@@ -113,7 +113,7 @@ export function randomViolinNote(string, pos, semi, slide, bowing) {
       '6': ['4+'],
     }
 
-    const [key, [baseNote, targetNote]] = (new ToneLib).findCommonKey(semiBase, semiTarget)
+    const [key, [baseNote, targetNote]] = ToneLib.findCommonKey(semiBase, semiTarget)
     return fingerMap[semiFinger].map(finger => {
       const rightPad = (s, n) => ('' + s).padEnd(n, ' ').replaceAll(' ', '&nbsp;')
       const label = [
@@ -156,10 +156,9 @@ export function randomViolinNoteEasyScore(string, pos, semi, slide, bowing) {
     }
 
     const strings = ['G3', 'D4', 'A4', 'E5']
-    const t = new ToneLib
-    var [key, [baseNote, targetNote]] = t.findCommonKey(semiBase, semiTarget)
-    baseNote = t.rebase(baseNote, semiBase)
-    targetNote = t.rebase(targetNote, semiTarget)
+    var [key, [baseNote, targetNote]] = ToneLib.findCommonKey(semiBase, semiTarget)
+    baseNote = ToneLib.rebase(baseNote, semiBase)
+    targetNote = ToneLib.rebase(targetNote, semiTarget)
 
     return fingerMap[semiFinger].map(finger => {
       return {

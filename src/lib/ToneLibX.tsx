@@ -46,7 +46,7 @@ export default class ToneLibX {
   octave = 7
   ninth = 8
 
-  parseNoteUnsafe(note) {
+  parseNote(note) {
     const match = note.toLowerCase().match(/^(?<note>[abcdefg])(?<accds>[b#]{0,2})?(?<octave>[0-9])?$/)
 
     if (!match) return null
@@ -178,7 +178,7 @@ export default class ToneLibX {
   testParseAndRender() {
     this.keysMajor().forEach(key => {
       key.forEach(note => {
-        const renders = [note.render, this.parseNoteUnsafe(note.render).render]
+        const renders = [note.render, this.parseNote(note.render).render]
         if (renders[0] != renders[1]) console.log(`failed parse/render cycle: ${renders}`)
       })
     })

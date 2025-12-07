@@ -3,7 +3,7 @@ import { asserts, elements, MusicXML } from '@stringsync/musicxml'
 import ToneLib from '../lib/ToneLib'
 import { note, notesToMusic } from '../lib/MusicXML'
 
-const p = ToneLib.parseNoteUnsafe.bind(ToneLib)
+const p = ToneLib.parseNote.bind(ToneLib)
 
 export default function SheetOSMD() {
   const xml = notesToMusic(

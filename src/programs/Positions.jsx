@@ -1,6 +1,9 @@
 import * as ViolinNote from '../lib/ViolinNote'
 import { Score } from '../lib/Vexflow'
 import { pick, shuffleArray } from '../lib/Random'
+import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
+import { note, notesToMusic } from '../lib/MusicXML'
+import ToneLib from '../lib/ToneLib'
 
 function Positions({state, setState, advance}) {
   const defaultPositions = ViolinNote.positions.map((_ , i) => i)
@@ -8,19 +11,19 @@ function Positions({state, setState, advance}) {
   const shuffleFun = state?.shuffle ? shuffleArray : x => x
 
   function generateNotes(shuffleFun) {
-    return shuffleFun([0, 1, 2, 3]).map(string => {
-      const note = pick(ViolinNote.randomViolinNoteEasyScore(
-        string,
-        pick(getPositions().filter(a => a !== null)),
-        pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
-      ))
-      const fingering = note.finger == '.½' ? 's' : note.finger
-      const render =
-        (note.base.render == note.target.render)
-          ? `(${note.string} ${note.target.render})/q[fingerings=",${fingering}"]`
-          : `(${note.string} ${note.base.render} ${note.target.render})/q[fingerings=",,${fingering}"]`
-      return render
-    }).join(', ')
+    const notes =
+      shuffleFun([0, 1, 2, 3]).map(string => {
+        const n = pick(ViolinNote.randomViolinNoteEasyScore(
+          string,
+          pick(getPositions().filter(a => a !== null)),
+          pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
+        ))
+        console.log(n)
+        return n
+      })
+
+    console.log(notes)
+    return [notes.map(n => note(n.target, 1))]
   }
 
   function toggleShuffle() {
@@ -68,7 +71,8 @@ function Positions({state, setState, advance}) {
         </div>
       </div>
 
-      {state?.notes && <Score width={300} height={300} notes={state.notes} timeSignature="4/4" />}
+      {state?.notes && <OpenSheetMusicDisplay file={notesToMusic(generateNotes(x=>x))} />}
+      {/*state?.notes && <OpenSheetMusicDisplay file={notesToMusic(state.notes)} />*/}
     </div>
   </>
 }

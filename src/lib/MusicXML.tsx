@@ -82,8 +82,6 @@ export function note(note, duration) {
   })
 }
 
-const p = ToneLib.parseNoteUnsafe.bind(ToneLib)
-
 export function measure(attr, ...notes) {
   return new elements.MeasurePartwise({
     attributes: { number: '1' },
