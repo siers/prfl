@@ -1,5 +1,99 @@
 import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
 import { asserts, elements, MusicXML } from '@stringsync/musicxml'
+import ToneLib from '../lib/ToneLib'
+import ToneLibX from '../lib/ToneLibX'
+
+function attributes() {
+  return new elements.Attributes({
+    attributes: { divisions: 1 },
+    contents: [
+      null, // elements.Footnote
+      null, // elements.Level
+      new elements.Divisions(1), // elements.Divisions
+      new Array<elements.Key>(),
+      new Array<elements.Time>(
+        new elements.Time({
+          contents: [
+            [
+              [
+                [
+                  new elements.Beats({
+                    contents: ['4'],
+                  }),
+                  new elements.BeatType({
+                    contents: ['4'],
+                  }),
+                ],
+              ],
+              null,
+            ],
+          ],
+        })
+      ),
+      null, // elements.Staves
+      null, // elements.PartSymbol
+      null, // elements.Instruments
+      new Array<elements.Clef>(),
+      new Array<elements.StaffDetails>(),
+      new Array<elements.Transpose>(),
+      new Array<elements.Directive>(),
+      new Array<elements.MeasureStyle>(),
+    ],
+  })
+}
+
+function note(note, duration) {
+  return new elements.Note({
+    contents: [
+      [
+        null, // elements.TiedNote
+        new elements.Pitch({
+          contents: [
+            new elements.Step({
+              contents: [ToneLib.getName(note)],
+            }),
+            null, // elements.Alter
+            new elements.Octave({
+              contents: [ToneLib.getOctave(note)],
+            }),
+          ],
+        }),
+        new elements.Duration({
+          contents: [duration],
+        }),
+        [], // elements.Tie,
+      ],
+      new Array<elements.Instrument>(),
+      null, // elements.Footnote
+      null, // elements.Level
+      null, // elements.Voice
+      null, // elements.Type
+      new Array<elements.Dot>(),
+      null, // elements.Accidental
+      null, // elements.TimeModification
+      null, // elements.Stem
+      null, // elements.Notehead
+      null, // elements.NoteheadText
+      null, // elements.Staff
+      [], // elements.Beam
+      new Array<elements.Notations>(),
+      new Array<elements.Lyric>(),
+      null, // elements.Play
+      null, // elements.Listen
+    ],
+  })
+}
+
+const p = ToneLib.parseNoteUnsafe.bind(ToneLib)
+
+function measure(attr, ...notes) {
+  return new elements.MeasurePartwise({
+    attributes: { number: '1' },
+    contents: [
+      (attr ? [attributes()] : []).concat(...notes)
+    ],
+  })
+}
 
 function generateXml() {
   const musicXml = MusicXML.createPartwise()
@@ -33,88 +127,16 @@ function generateXml() {
     new elements.PartPartwise({
       attributes: { id: 'P1' },
     }).setMeasures([
-      new elements.MeasurePartwise({
-        attributes: { number: '1' },
-        contents: [
-          [
-            new elements.Attributes({
-              attributes: { divisions: 1 },
-              contents: [
-                null, // elements.Footnote
-                null, // elements.Level
-                new elements.Divisions(1), // elements.Divisions
-                new Array<elements.Key>(),
-                new Array<elements.Time>(
-                  new elements.Time({
-                    contents: [
-                      [
-                        [
-                          [
-                            new elements.Beats({
-                              contents: ['4'],
-                            }),
-                            new elements.BeatType({
-                              contents: ['4'],
-                            }),
-                          ],
-                        ],
-                        null,
-                      ],
-                    ],
-                  })
-                ),
-                null, // elements.Staves
-                null, // elements.PartSymbol
-                null, // elements.Instruments
-                new Array<elements.Clef>(),
-                new Array<elements.StaffDetails>(),
-                new Array<elements.Transpose>(),
-                new Array<elements.Directive>(),
-                new Array<elements.MeasureStyle>(),
-              ],
-            }),
-            new elements.Note({
-              contents: [
-                [
-                  null, // elements.TiedNote
-                  new elements.Pitch({
-                    contents: [
-                      new elements.Step({
-                        contents: ['D'],
-                      }),
-                      null, // elements.Alter
-                      new elements.Octave({
-                        contents: [4],
-                      }),
-                    ],
-                  }),
-                  new elements.Duration({
-                    contents: [4],
-                  }),
-                  [], // elements.Tie,
-                ],
-                new Array<elements.Instrument>(),
-                null, // elements.Footnote
-                null, // elements.Level
-                null, // elements.Voice
-                null, // elements.Type
-                new Array<elements.Dot>(),
-                null, // elements.Accidental
-                null, // elements.TimeModification
-                null, // elements.Stem
-                null, // elements.Notehead
-                null, // elements.NoteheadText
-                null, // elements.Staff
-                [], // elements.Beam
-                new Array<elements.Notations>(),
-                new Array<elements.Lyric>(),
-                null, // elements.Play
-                null, // elements.Listen
-              ],
-            }),
-          ],
-        ],
-      }),
+      measure(
+        true,
+        note(p('d'), 2),
+        note(p('a'), 2),
+      ),
+      measure(
+        false,
+        note(p('e'), 2),
+        note(p('g'), 2),
+      ),
     ]),
   ])
 
@@ -153,10 +175,12 @@ function gx() {
   `
 }
 
-const r = await fetch('/flash-command/music-min.xml')
-const b = await r.text()
-const cr = await fetch('/flash-command/custom.xml')
-const cb = await cr.text()
+// const r = await fetch('/flash-command/music-min.xml')
+// const b = await r.text()
+// const cr = await fetch('/flash-command/custom.xml')
+// const cb = await cr.text()
+
+console.log((new ToneLibX).keysMajor())
 
 export default function SheetOSMD() {
   return <OpenSheetMusicDisplay file={generateXml()} />

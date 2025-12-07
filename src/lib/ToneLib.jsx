@@ -12,6 +12,14 @@ export default class ToneLib {
     return arr
   }
 
+  getName(note) {
+    return this.names[note.name]
+  }
+
+  getOctave(note) {
+    return Math.floor((note.semi - 4) / 12) + 1
+  }
+
   renderNote({semi, name, alter}, renderOctave = true) {
     const octave = Math.floor((semi - 4) / 12) + 1
     const alt = this.alters[alter] === undefined ? '?' : this.alters[alter]

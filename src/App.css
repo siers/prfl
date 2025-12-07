@@ -31,6 +31,6 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=positions] div,
 .wrap[data-mode=positions] label { color: #333; }
 
-.wrap[data-mode=sheetosmd] .content { width: 25%; font-family: inherit; font-size: inherit; }
+.wrap[data-mode=sheetosmd] .content { width: 50%; font-family: inherit; font-size: inherit; }
 .wrap[data-mode=sheetosmd] .flash1 { animation: flash-light-bg1 0.3s ease; }
 .wrap[data-mode=sheetosmd] .flash2 { animation: flash-light-bg2 0.3s ease; }
