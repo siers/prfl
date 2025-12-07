@@ -1,5 +1,9 @@
 export default class ToneLib {
   names = 'CDEFGAB'.split('')
+  namesMap = {c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6}
+
+  alters = {0: '', 1: '#', '-1': 'b', 2: '##', '-2': 'bb'} // todo: use
+  altersMap = {'': 0, '#': 1, 'b': -1, '##': 2, 'bb': -2}
 
   arrayShift(arr, count) {
     const len = arr.length
@@ -10,23 +14,14 @@ export default class ToneLib {
 
   renderNote({semi, name, alter}, renderOctave = true) {
     const octave = Math.floor((semi - 4) / 12) + 1
-    var alt
+    const alt = this.alters[alter] === undefined ? '?' : this.alters[alter]
 
-    switch (alter) {
-      case 0: alt = ''; break
-      case 1: alt = `#`; break
-      case -1: alt = `b`; break
-      case 2: alt = `##`; break
-      case -2: alt = `bb`; break
-      default:
-        console.log(`bad alter: ${alter}`)
-        alt = `${name}?`
-    }
+    if (alt == '?') console.log(`bad alter: ${alter}`)
 
     return this.names[name] + alt + (renderOctave ? octave : '')
   }
 
-  // TODO: this should be the default
+  // TODO: this should be a computed property of a Note object
   noteWithRender(note) {
     return {...note, render: this.renderNote(note)}
   }
@@ -44,6 +39,19 @@ export default class ToneLib {
   seventh = 6
   octave = 7
   ninth = 8
+
+  parseNoteUnsafe(note) {
+    const match = note.toLowerCase().match(/^(?<note>[abcdefg])(?<accds>[b#]{0,2})?(?<octave>[0-9])?$/)
+
+    if (!match) return null
+    if (!match.groups.note === undefined) return null
+
+    const semi = parseInt(match.groups.octave || 4, 10) * 12
+    const name = this.namesMap[match.groups.note]
+    const alter = this.altersMap[match.groups.accds || '']
+
+    return this.noteWithRender({semi, name, alter})
+  }
 
   addAccidental({semi, name, alter}, accidental) {
     return this.noteWithRender({semi: semi + accidental, name, alter: alter + accidental})
@@ -161,6 +169,15 @@ export default class ToneLib {
     })
   }
 
+  testParseAndRender() {
+    this.keysMajor().forEach(key => {
+      key.forEach(note => {
+        const renders = [note.render, this.parseNoteUnsafe(note.render).render]
+        if (renders[0] != renders[1]) console.log(`failed parse/render cycle: ${renders}`)
+      })
+    })
+  }
+
   // ToneLib.noteKeyAssociations().map(kAndKs => console.log(`${kAndKs[0]}: ${kAndKs[1].join(',')}`))
   // Ab: Eb,Ab,Db,Gb
   // G#: A,E,B,F#
@@ -196,4 +213,9 @@ export default class ToneLib {
   // log(keysMajor.map(k => renderNote(k[0])).join())
 }
 
+// https://en.wikipedia.org/wiki/Piano_key_frequencies
+
 window.ToneLib = new ToneLib
+
+ToneLib = new ToneLib
+ToneLib.testParseAndRender()
