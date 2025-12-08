@@ -1,10 +1,8 @@
-:root{ --size:200px; }
-
 .knob-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
 
 .knob{
-  width:var(--size);
-  height:var(--size);
+  width: 15vmin;
+  height: 15vmin;
   border-radius:50%;
   position:relative;
   user-select:none;
@@ -26,10 +24,10 @@
 }
 
 .knob-power {
-  width: calc(var(--size) / 5);
-  height: calc(var(--size) / 5);
+  width: calc(15vmin / 5);
+  height: calc(15vmin / 5);
   position: relative;
-  border-radius: calc(var(--size) / 5 / 2);
+  border-radius: calc(15vmin / 5 / 2);
 }
 
 .knob:active{ cursor:grabbing; box-shadow: 0 6px 12px rgba(0,0,0,.14), inset -6px -6px 12px rgba(255,255,255,.55), inset 6px 6px 12px rgba(0,0,0,.07); }
