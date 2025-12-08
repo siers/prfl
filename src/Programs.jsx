@@ -6,12 +6,11 @@ import Missing from './programs/Missing.tsx'
 import Solfege from './programs/Solfege.tsx'
 
 const programs = {
-  violin: Violin,
-  keys: Keys,
-  hash: Hash,
   positions: Positions,
+  'random keys': Keys,
   'missing-key': Missing,
   'solfege-ambiguity': Solfege,
+  hash: Hash,
 }
 
 export default programs

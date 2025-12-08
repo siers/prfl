@@ -59,7 +59,7 @@ function Positions({state, setState, advance}) {
 
   return <>
     <div>
-      <div style={{margin: '0 0 0.5em', textAlign: 'left'}}>
+      <div className="controls">
         <label>
           shuffle strings: <input type="checkbox" checked={state?.shuffle || false} onChange={_ => toggleShuffle()} />
         </label>
