@@ -37,6 +37,4 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=sheetosmd] .flash1 { animation: flash-light-bg1 0.3s ease; }
 .wrap[data-mode=sheetosmd] .flash2 { animation: flash-light-bg2 0.3s ease; }
 
-.wrap[data-mode=missing-key] .content { font-size: 30px; }
-
 .wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: 15px; }
