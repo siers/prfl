@@ -8,5 +8,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <script>
+      setTimeout(() => {
+        if (document.getElementById('root').children.length == 0) {
+          localStorage.clear()
+          console.log('cleared local storage')
+        }
+      }, 5000)
+    </script>
   </body>
 </html>
