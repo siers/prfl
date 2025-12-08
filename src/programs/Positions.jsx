@@ -11,23 +11,31 @@ function Positions({state, setState, advance}) {
   const shuffleFun = state?.shuffle ? shuffleArray : x => x
 
   function generateNotes(shuffleFun) {
-    const notes =
-      shuffleFun([0, 1, 2, 3]).map(string => {
-        return pick(ViolinNote.randomViolinNoteEasyScore(
-          string,
-          pick(getPositions().filter(a => a !== null)),
-          pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
-        ))
-      })
+    return shuffleFun([0, 1, 2, 3]).map(string =>
+      pick(ViolinNote.randomViolinNoteEasyScore(
+        string,
+        pick(getPositions().filter(a => a !== null)),
+        pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
+      ))
+    )
+  }
 
-    return [
+  function positionsToMusic(notes) {
+    return notesToMusic([
       notes.flatMap(n => {
-        return [
-          note(n.target, 1),
-          note(n.base, 1, {tied: true, color: '#999999'})
-        ]
+        if (state?.withoutTopNote)
+          return [
+            note(n.base, 1, {color: '#000000'}),
+            note(ToneLib.parseNote(n.string), 1, {tied: true, color: '#CCCCCC'}),
+          ]
+        else
+          return [
+            note(n.target, 1),
+            note(n.base, 1, {tied: true, color: '#999999'}),
+            note(ToneLib.parseNote(n.string), 1, {tied: true, color: '#CCCCCC'}),
+          ]
       })
-    ]
+    ])
   }
 
   function toggleShuffle() {
@@ -75,8 +83,7 @@ function Positions({state, setState, advance}) {
         </div>
       </div>
 
-      {state?.notes && <OpenSheetMusicDisplay file={notesToMusic(generateNotes(x=>x))} />}
-      {/*state?.notes && <OpenSheetMusicDisplay file={notesToMusic(state.notes)} />*/}
+      {state?.notes && <OpenSheetMusicDisplay file={positionsToMusic(state.notes)} />}
     </div>
   </>
 }
