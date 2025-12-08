@@ -4,12 +4,12 @@ a:hover { color: #52b8e3; }
 .app { padding: 1em; text-align: center; }
 
 .knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
-.next { position: absolute; top: 50%; right: 1em; font-size: 5em; }
+.next { position: absolute; bottom: 1em; right: 1em; font-size: 1.9em; }
 .clear { position: absolute; bottom: 1em; font-size: 2em; margin-left: -2.1em; }
 .programs { font-size: 20px; padding: 0.3em; }
 
 .wrap { height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.content { font-weight: 700; font-size: 5vmin; display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
+.content { font-weight: 700; font-size: calc(0.75em + 4vmin); display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
 sub { font-size: xx-large; } /* weird name, but renders as small */
 ::selection { background: transparent; }
 .log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: #333; font-family: monospace; pointer-events: none; z-index: -10; }
@@ -37,4 +37,4 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=sheetosmd] .flash1 { animation: flash-light-bg1 0.3s ease; }
 .wrap[data-mode=sheetosmd] .flash2 { animation: flash-light-bg2 0.3s ease; }
 
-.wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: 15px; }
+.wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: calc(4vmin); }
