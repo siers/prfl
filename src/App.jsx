@@ -29,11 +29,12 @@ function App() {
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
   const timeout = useRef()
 
+  const defaultProgram = Object.keys(programs)[0]
   const [state, setState] = useLocalStorage('programState', {})
-  const [program, setProgram] = useLocalStorage('program', 'violin')
+  const [program, setProgram] = useLocalStorage('program', defaultProgram)
   const makeItem = (advance) => {
     // the program should advance itself, if the state is empty
-    const programName = (programs[program] && program) || Object.keys(programs)[0]
+    const programName = (programs[program] && program) || defaultProgram
     const setProgramState = nextProgramState => {
       const newState = nextProgramState instanceof Function ? nextProgramState(state[programName]) : nextProgramState
       setState(state => ({...state, [programName]: newState}))
