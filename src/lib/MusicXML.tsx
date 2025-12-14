@@ -40,10 +40,26 @@ function attributes() {
   })
 }
 
+export function slurMarkers(n) {
+  return [
+    new elements.Slur({attributes: {type: 'start', number: n}}),
+    new elements.Slur({attributes: {type: 'stop', number: n}}),
+  ]
+}
+
 export function note(note, duration, opts) {
   const o = opts || {}
   const tie = o.tied && new elements.Chord || null
   const notehead = o.color && new elements.Notehead({attributes: {color: o.color}}) || null
+  const down = o.down ? new elements.Technical({contents: [[new elements.DownBow()]]}) : null
+  const notations =
+    new elements.Notations({
+      contents: [
+        null, // Footnote
+        null, // Label
+        [o.slur, down].filter(x => x),
+      ]
+    })
 
   return new elements.Note({
     contents: [
@@ -78,7 +94,7 @@ export function note(note, duration, opts) {
       null, // elements.NoteheadText
       null, // elements.Staff
       [], // elements.Beam
-      new Array<elements.Notations>(),
+      new Array<elements.Notations>(notations), // elements.Notations,
       new Array<elements.Lyric>(),
       null, // elements.Play
       null, // elements.Listen

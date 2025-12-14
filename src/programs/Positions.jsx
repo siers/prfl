@@ -22,7 +22,7 @@ function Positions({state, setState, advance}) {
 
   function positionsToMusic(notes) {
     return notesToMusic([
-      notes.flatMap(n => {
+      notes.flatMap((n, idx) => {
         if (state?.withoutTopNote)
           return [
             note(n.base, 1, {color: '#000000'}),
