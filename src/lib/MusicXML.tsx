@@ -51,7 +51,8 @@ export function note(note, duration, opts) {
   const o = opts || {}
   const tie = o.tied && new elements.Chord || null
   const notehead = o.color && new elements.Notehead({attributes: {color: o.color}}) || null
-  const down = o.down ? new elements.Technical({contents: [[new elements.DownBow()]]}) : null
+  const bow = {down: new elements.DownBow(), up: new elements.UpBow()}[o.bow]
+  const down = o.bow ? new elements.Technical({contents: [[bow]]}) : null
   const notations =
     new elements.Notations({
       contents: [

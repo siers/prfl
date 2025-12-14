@@ -17,11 +17,11 @@ export default function SheetOSMD() {
     [
       [
         note(p('e'), 2),
-        note(p('f5'), 2, {tied: true}),
+        note(p('f5'), 2, {bow: 'up', tied: true}),
         note(p('b'), 2),
       ],
       [
-        note(p('e'), 2, {down: true}),
+        note(p('e'), 2, {bow: 'down'}),
         // note(p('f'), 2),
         note(p('e'), 2, {slur: slurBegin}),
         note(p('f'), 2, {slur: slurEnd}),
