@@ -140,7 +140,7 @@ export function randomViolinNote(string, pos, semi, slide, bowing) {
   )
 }
 
-export function randomViolinNoteEasyScore(string, pos, semi, slide, bowing) {
+export function randomViolinNotePlain(string, pos, semi, slide, bowing) {
   function render(input) {
     const {string, pos, semiFinger, semiBase, semiTarget, slide, bowing} = input
 

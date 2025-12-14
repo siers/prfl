@@ -26,6 +26,7 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=keys] .content { font-family: monospace; font-size: 60px; }
 
 .wrap[data-mode=positions] .content { background: #fff; padding: 1em 1em 0 1em; font-family: inherit; font-size: inherit; }
+.wrap[data-mode=positions] .content .position { display: inline-box; margin-left: 0.3em; }
 .wrap[data-mode=positions] .flash1 { animation: flash-light-bg1 0.3s ease; }
 .wrap[data-mode=positions] .flash2 { animation: flash-light-bg2 0.3s ease; }
 @keyframes flash-light-bg1 { 0% { background-color: #bbb; } 100% { background-color: #ffffffff; } }

@@ -12,10 +12,10 @@ function Positions({state, setState, advance}) {
 
   function generateNotes(shuffleFun) {
     return shuffleFun([0, 1, 2, 3]).map(string =>
-      pick(ViolinNote.randomViolinNoteEasyScore(
+      pick(ViolinNote.randomViolinNotePlain(
         string,
         pick(getPositions().filter(a => a !== null)),
-        pick(state?.withoutTopNote ? [0] : ViolinNote.positionSemitones)
+        pick(ViolinNote.positionSemitones)
       ))
     )
   }
@@ -23,17 +23,12 @@ function Positions({state, setState, advance}) {
   function positionsToMusic(notes) {
     return notesToMusic([
       notes.flatMap((n, idx) => {
-        if (state?.withoutTopNote)
-          return [
-            note(n.base, 1, {color: '#000000'}),
-            note(ToneLib.parseNote(n.string), 1, {tied: true, color: '#CCCCCC'}),
-          ]
-        else
-          return [
-            note(n.target, 1),
-            note(n.base, 1, {tied: true, color: '#999999'}),
-            note(ToneLib.parseNote(n.string), 1, {tied: true, color: '#CCCCCC'}),
-          ]
+        console.log(n.target, n.base)
+        return [
+          note(ToneLib.parseNote(n.string), 1, {color: '#CCCCCC'}),
+          ...(state?.withoutTopNote ? [] : [note(n.target, 1, {tied: true})]),
+          ...(state?.withoutBottomNote ? [] : [note(n.base, 1, {tied: true, color: state.withoutTopNote ? '#000000' : '#999999'})]),
+        ]
       })
     ])
   }
@@ -43,7 +38,11 @@ function Positions({state, setState, advance}) {
   }
 
   function toggleWithoutTopNote() {
-    setState(state => ({...state, withoutTopNote: !state.withoutTopNote, notes: null}))
+    setState(state => ({...state, withoutTopNote: !state.withoutTopNote}))
+  }
+
+  function toggleWithoutBottomNote() {
+    setState(state => ({...state, withoutBottomNote: !state.withoutBottomNote}))
   }
 
   function getPositions() {
@@ -72,13 +71,21 @@ function Positions({state, setState, advance}) {
           shuffle strings: <input type="checkbox" checked={state?.shuffle || false} onChange={_ => toggleShuffle()} />
         </label>
         <br />
+
         <label>
           without top note: <input type="checkbox" checked={state?.withoutTopNote || false} onChange={_ => toggleWithoutTopNote()} />
+        <label>
+        <br />
+
         </label>
+          without bottom note: <input type="checkbox" checked={state?.withoutBottomNote || false} onChange={_ => toggleWithoutBottomNote()} />
+        </label>
+
         <div>
-          positions ({getPositions().filter(a => a !== null).map(a => ViolinNote.positions[a].name.replace(/\.$/, '')).join(',')}): <br />
-          {Array(12).fill(null).map((_, i) => {
-            return <input data-key={i} key={i} type="checkbox" checked={getPositions()[i] !== null} onChange={_ => togglePosition(i)} />
+          positions
+          {getPositions().map((_, i) => {
+            const name = ViolinNote.positions[i].name.replace(/\.$/, '')
+            return <span className="position" data-key={i} key={i} style={{'color': getPositions()[i] !== null ? '#000' : '#bbb'}} onClick={_ => togglePosition(i)}>{name}</span>
           })}
         </div>
       </div>
