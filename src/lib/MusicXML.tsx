@@ -49,10 +49,14 @@ export function slurMarkers(n) {
 
 export function note(note, duration, opts) {
   const o = opts || {}
+
   const tie = o.tied && new elements.Chord || null
+
   const notehead = o.color && new elements.Notehead({attributes: {color: o.color}}) || null
+
   const bow = {down: new elements.DownBow(), up: new elements.UpBow()}[o.bow]
   const down = o.bow ? new elements.Technical({contents: [[bow]]}) : null
+
   const notations =
     new elements.Notations({
       contents: [
@@ -61,6 +65,9 @@ export function note(note, duration, opts) {
         [o.slur, down].filter(x => x),
       ]
     })
+
+  const alter = ToneLib.getAlter(note)
+  const accidental = alter == 0 ? null : new elements.Alter({contents: [alter]})
 
   return new elements.Note({
     contents: [
@@ -71,7 +78,7 @@ export function note(note, duration, opts) {
             new elements.Step({
               contents: [ToneLib.getName(note)],
             }),
-            null, // elements.Alter
+            accidental,
             new elements.Octave({
               contents: [ToneLib.getOctave(note)],
             }),

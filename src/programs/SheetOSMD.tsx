@@ -9,6 +9,7 @@ const p = ToneLib.parseNote.bind(ToneLib)
 // const rb = await r.text()
 // window.rb = rb
 // window.m=MusicXML.parse(rb)
+// // m.root.contents.at(-1)[0].contents[0][0].contents[0][5].contents[14][0].contents[2][0].contents
 
 export default function SheetOSMD() {
   const [slurBegin, slurEnd] = slurMarkers(1)
@@ -16,7 +17,7 @@ export default function SheetOSMD() {
   const xml = notesToMusic(
     [
       [
-        note(p('e'), 2),
+        note(p('eb'), 2),
         note(p('f5'), 2, {bow: 'up', tied: true}),
         note(p('b'), 2),
       ],

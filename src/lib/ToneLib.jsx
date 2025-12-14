@@ -16,6 +16,10 @@ class ToneLib {
     return this.names[note.name]
   }
 
+  getAlter(note) {
+    return note.alter
+  }
+
   getOctave(note) {
     return Math.floor((note.semi - 4) / 12) + 1
   }
