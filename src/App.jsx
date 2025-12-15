@@ -106,7 +106,7 @@ function App() {
         </div>
 
         <div className="knob-wrapwrap">
-          <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s`} />
+          <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
         </div>
 
         <a className="clear" onClick={() => setState({})}>clear state</a>
