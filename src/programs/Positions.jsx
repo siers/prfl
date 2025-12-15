@@ -67,8 +67,9 @@ function Positions({state, setState, advance}) {
   }
 
   function doAdvance() {
-    const notes = generateNotes(shuffleFun)
-    setState(state => ({...state, notes: [...(state?.notes || []), notes].reverse().slice(0, 2).reverse()}))
+    const length = 2
+    const notes = range(1, length).map(_ => generateNotes(shuffleFun))
+    setState(state => ({...state, notes: [...(state?.notes || []), ...notes].reverse().slice(0, length).reverse()}))
   }
 
   if (advance || !state?.notes) {
