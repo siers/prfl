@@ -32,7 +32,8 @@ function Positions({state, setState, advance}) {
           [ToneLib.parseNote(n.string), 1, {color: '#000000'}],
         ]
 
-        notes[1] && (notes[1][2] = {...notes[1][2], color: '#000000', bowing: state.withBowings ? bowing : null})
+        notes[0][2] = {...notes[0][2], bowing: state.withBowings ? bowing : null}
+        notes[1] && (notes[1][2] = {...notes[1][2], color: '#000000'})
         range(1, notes.length - 1).map(idx => notes[idx][2] = ({...notes[idx][2], tied: true}))
 
         return notes.map(args => note(...args))
