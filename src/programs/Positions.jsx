@@ -28,12 +28,11 @@ function Positions({state, setState, advance}) {
         const bowing = {'V': 'up', 'Π': 'down'}[n.bowing]
         const notes = [
           ...(state?.withoutTopNote ? [] : [[n.target, 1, {color: '#000000'}]]),
-          ...(state?.withoutBottomNote ? [] : [[n.base, 1, {color: state.withoutTopNote ? '#000000' : '#999999'}]]),
-          [ToneLib.parseNote(n.string), 1, {color: '#000000'}],
+          ...(state?.withoutBottomNote ? [] : [[n.base, 1, {color: '#999999'}]]),
+          [ToneLib.parseNote(n.string), 1, {color: '#000000', notehead: 'x'}],
         ]
 
-        notes[0][2] = {...notes[0][2], bowing: state.withBowings ? bowing : null}
-        notes[1] && (notes[1][2] = {...notes[1][2], color: '#000000'})
+        notes[0][2] = {...notes[0][2], bowing: state.withBowings ? bowing : null, color: '#000000'}
         range(1, notes.length - 1).map(idx => notes[idx][2] = ({...notes[idx][2], tied: true}))
 
         return notes.map(args => note(...args))

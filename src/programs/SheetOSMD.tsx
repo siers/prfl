@@ -18,11 +18,12 @@ export default function SheetOSMD() {
     [
       [
         note(p('eb'), 2),
-        note(p('f5'), 2, {bowing: 'up', tied: true}),
-        note(p('b'), 2),
+        note(p('f5'), 2, {bowing: 'up', tied: true, filled: 'no'}),
+        note(p('c5'), 1, {notehead: 'x'}),
+        note(p('a'), 1),
       ],
       [
-        note(p('e'), 2, {bowing: 'down'}),
+        note(p('e'), 2, {bowing: 'down', color: '#FF0000'}),
         // note(p('f'), 2),
         note(p('e'), 2, {slur: slurBegin}),
         note(p('f'), 2, {slur: slurEnd}),
