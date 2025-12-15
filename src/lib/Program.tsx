@@ -1,11 +1,21 @@
+import { shuffleArray } from '../lib/Random'
+
+function avoidLastFirstMatch(lastLast, list) {
+  if (lastLast && list.length > 1 && lastLast == list[0]) {
+    const [head, next, ...rest] = list
+    return [next, ...(shuffleArray([head, ...rest]))]
+  } else {
+    return list
+  }
+}
+
 export function prepareNext(controls, makeData) {
   const {state, setState, advance} = controls
 
   if ((state?.next?.length || 0) < 1) {
-    setState(state => ({...state, next: makeData(state)}))
-  }
-
-  if (advance && state?.next) {
+    const newData = avoidLastFirstMatch(state?.lastLast, makeData(state))
+    setState(state => ({...state, next: newData, lastLast: newData.at(-1)}))
+  } else if (advance && state?.next) {
     const [, ...remaining] = state?.next
     setState(state => ({...state, next: remaining}))
   }

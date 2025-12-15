@@ -6,6 +6,7 @@ import Missing from './programs/Missing.tsx'
 import Solfege from './programs/Solfege.tsx'
 import SheetOSMD from './programs/SheetOSMD.tsx'
 import Jcuken from './programs/Jcuken.tsx'
+import Flash from './programs/Flash.tsx'
 
 const programs = {
   positions: Positions,
@@ -14,6 +15,7 @@ const programs = {
   'solfege-ambiguity': Solfege,
   hash: Hash,
   jcuken: Jcuken,
+  flash: Flash,
   ...(window.location.host.match(/localhost/) ? {sheetosmd: SheetOSMD} : {}),
 }
 
