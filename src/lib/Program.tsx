@@ -18,7 +18,7 @@ export function renderNext(state, opts) {
   return (
     <>
       {
-        (next?.slice(0, opts.count || 1) || []).map((nextContent, idx) =>
+        (next?.slice(0, opts?.count || 1) || []).map((nextContent, idx) =>
           <div key={idx}>
             { html ? <div dangerouslySetInnerHTML={{__html: nextContent}} /> : nextContent}
           </div>
