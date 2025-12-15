@@ -26,24 +26,36 @@ function useLocalStorage(key, initialValue) {
 
 function App() {
   const [running, setRunning] = useLocalStorage('running', true)
+
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
   const timeout = useRef()
+  const content = useRef()
 
   const defaultProgram = Object.keys(programs)[0]
   const [state, setState] = useLocalStorage('programState', {})
   const [program, setProgram] = useLocalStorage('program', defaultProgram)
-  const makeItem = (advance) => {
-    // the program should advance itself, if the state is empty
-    const programName = (programs[program] && program) || defaultProgram
-    const setProgramState = nextProgramState => {
-      const newState = nextProgramState instanceof Function ? nextProgramState(state[programName]) : nextProgramState
-      setState(state => ({...state, [programName]: newState}))
-    }
-    return programs[programName](
-      {state: state[programName], setState: setProgramState, advance}
-    )
+  const setProgramState = programName => nextProgramState => {
+    setState(state => ({
+      ...state,
+      [programName]: nextProgramState instanceof Function ? nextProgramState(state[programName]) : nextProgramState
+    }))
   }
-  const content = useRef()
+  const programName = (programs[program] && program) || defaultProgram
+
+  // the program should advance itself, if the state is empty
+  const makeItem = (advance, event) => {
+    return programs[programName]({
+      state: state[programName],
+      setState: setProgramState(programName),
+      advance,
+      event,
+    })
+  }
+
+  const setItem = (advance, event) => {
+    makeItem(advance == undefined ? true : advance, event)
+    flash()
+  }
 
   const flash = () => {
     const el = content.current
@@ -51,21 +63,18 @@ function App() {
     el.classList.toggle("flash2")
   }
 
-  const setItem = () => {
-    makeItem(true)
-    flash()
-  }
-
-  const postponeTimeout = () => { clearTimeout(timeout.current); timeout.current = setTimeout(() => setItem(), speed) }
-  const startTimeout = () => { setRunning(true); timeout.current = setTimeout(() => setItem(), speed) }
+  const postponeTimeout = () => { clearTimeout(timeout.current); timeout.current = setTimeout(() => setItem('timeout'), speed) }
+  const startTimeout = () => { setRunning(true); timeout.current = setTimeout(() => setItem('timeout'), speed) }
   const stopTimeout = () => { setRunning(false); clearTimeout(timeout.current); }
   const toggleTimeout = () => { if (running) stopTimeout(); else startTimeout() }
 
   function button(event, key) {
     if (key == 's' || key == 'p' || key == 'Escape') toggleTimeout()
-    if (key == 'ArrowRight' || key == 'PageUp' || key == 'ArrowDown' || key == 'Enter' || key == ' ') {
-      setItem()
+    else if (key == 'ArrowRight' || key == 'PageUp' || key == 'ArrowDown' || key == 'Enter' || key == ' ') {
+      setItem(true, event)
       postponeTimeout()
+    } else {
+      setItem(false, event)
     }
   }
 
@@ -94,7 +103,7 @@ function App() {
           {Object.keys(programs).map(p => <option value={p} key={p}>{p}</option>)}
         </select>
 
-        <a className="next" onClick={() => setItem()}>➡️</a>
+        <a className="next" onClick={event => setItem(event)}>➡️</a>
 
         <div className="wrap" style={{display: "block"}} data-mode={program}>
           <div ref={content} className="content flash1">

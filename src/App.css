@@ -27,15 +27,23 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 
 .wrap[data-mode=positions] .content { background: #fff; padding: 1em 1em 0 1em; font-family: inherit; font-size: inherit; }
 .wrap[data-mode=positions] .content .position { display: inline-box; margin-left: 0.3em; }
-.wrap[data-mode=positions] .flash1 { animation: flash-light-bg1 0.3s ease; }
-.wrap[data-mode=positions] .flash2 { animation: flash-light-bg2 0.3s ease; }
-@keyframes flash-light-bg1 { 0% { background-color: #bbb; } 100% { background-color: #ffffffff; } }
-@keyframes flash-light-bg2 { 0% { background-color: #bbb; } 100% { background-color: #ffffffff; } }
 .wrap[data-mode=positions] div,
 .wrap[data-mode=positions] label { color: #333; }
+.wrap[data-mode=positions] .flash1 { animation: flash-light-bg1 0.3s ease; }
+.wrap[data-mode=positions] .flash2 { animation: flash-light-bg2 0.3s ease; }
+@keyframes flash-light-bg1 { 0% { background-color: #f0f0f0; } 100% { background-color: #ffffffff; } }
+@keyframes flash-light-bg2 { 0% { background-color: #f0f0f0; } 100% { background-color: #ffffffff; } }
 
 .wrap[data-mode=sheetosmd] .content { width: 50%; font-family: inherit; font-size: inherit; }
 .wrap[data-mode=sheetosmd] .flash1 { animation: flash-light-bg1 0.3s ease; }
 .wrap[data-mode=sheetosmd] .flash2 { animation: flash-light-bg2 0.3s ease; }
+
+.wrap[data-mode=jcuken] .letter { opacity: 0; }
+.wrap[data-mode=jcuken] .letter.correct { color: green; }
+.wrap[data-mode=jcuken] .letter.incorrect { color: red; }
+.wrap[data-mode=jcuken] .letter-flash1 { animation: flash-letter-bg1 0.1s ease; }
+.wrap[data-mode=jcuken] .letter-flash2 { animation: flash-letter-bg2 0.1s ease; }
+@keyframes flash-letter-bg1 { 0% { opacity: 100%; } 100% { opacity: 0%; } }
+@keyframes flash-letter-bg2 { 0% { opacity: 100%; } 100% { opacity: 0%; } }
 
 .wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: calc(4vmin); }

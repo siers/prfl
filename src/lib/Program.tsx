@@ -15,11 +15,15 @@ export function renderNext(state, opts) {
   const next = state?.next
   const html = opts?.html || false
 
-  const nextContent = next?.at(0)
-
   return (
     <>
-      {html ? <div dangerouslySetInnerHTML={{__html: nextContent}} /> : nextContent}
+      {
+        (next?.slice(0, opts.count || 1) || []).map((nextContent, idx) =>
+          <div key={idx}>
+            { html ? <div dangerouslySetInnerHTML={{__html: nextContent}} /> : nextContent}
+          </div>
+        )
+      }
       <br />
       queued: {next?.length ? next?.flat().length - 1 : 'n/a'}
     </>

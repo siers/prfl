@@ -5,6 +5,7 @@ import Positions from './programs/Positions'
 import Missing from './programs/Missing.tsx'
 import Solfege from './programs/Solfege.tsx'
 import SheetOSMD from './programs/SheetOSMD.tsx'
+import Jcuken from './programs/Jcuken.tsx'
 
 const programs = {
   positions: Positions,
@@ -12,6 +13,7 @@ const programs = {
   'missing-key': Missing,
   'solfege-ambiguity': Solfege,
   hash: Hash,
+  jcuken: Jcuken,
   ...(window.location.host.match(/localhost/) ? {sheetosmd: SheetOSMD} : {}),
 }
 
