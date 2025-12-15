@@ -14,7 +14,7 @@ export function prepareNext(controls, makeData) {
 
   if ((state?.next?.length || 0) < 1) {
     const newData = avoidLastFirstMatch(state?.lastLast, makeData(state))
-    setState(state => ({...state, next: newData, lastLast: newData.at(-1)}))
+    setState(state => ({...state, next: newData, lastLast: newData?.at(-1)}))
   } else if (advance && state?.next) {
     const [, ...remaining] = state?.next
     setState(state => ({...state, next: remaining}))
