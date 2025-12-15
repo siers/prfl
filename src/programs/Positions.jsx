@@ -5,6 +5,8 @@ import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
 import { note, notesToMusic } from '../lib/MusicXML'
 import ToneLib from '../lib/ToneLib'
 
+const range = (start, stop) => Array(stop - start + 1).fill(start).map((x, y) => x + y)
+
 function Positions({state, setState, advance}) {
   const defaultPositions = ViolinNote.positions.map((_ , i) => i)
 
@@ -23,12 +25,17 @@ function Positions({state, setState, advance}) {
   function positionsToMusic(notes) {
     return notesToMusic([
       notes.flatMap((n, idx) => {
-        console.log(n.target, n.base)
-        return [
-          note(ToneLib.parseNote(n.string), 1, {color: '#CCCCCC'}),
-          ...(state?.withoutTopNote ? [] : [note(n.target, 1, {tied: true})]),
-          ...(state?.withoutBottomNote ? [] : [note(n.base, 1, {tied: true, color: state.withoutTopNote ? '#000000' : '#999999'})]),
+        const bowing = {'V': 'up', 'Π': 'down'}[n.bowing]
+        const notes = [
+          ...(state?.withoutTopNote ? [] : [[n.target, 1, {color: '#000000'}]]),
+          ...(state?.withoutBottomNote ? [] : [[n.base, 1, {color: state.withoutTopNote ? '#000000' : '#999999'}]]),
+          [ToneLib.parseNote(n.string), 1, {color: '#000000'}],
         ]
+
+        notes[1] && (notes[1][2] = {...notes[1][2], color: '#000000', bowing: state.withBowings ? bowing : null})
+        range(1, notes.length - 1).map(idx => notes[idx][2] = ({...notes[idx][2], tied: true}))
+
+        return notes.map(args => note(...args))
       })
     ])
   }
@@ -43,6 +50,10 @@ function Positions({state, setState, advance}) {
 
   function toggleWithoutBottomNote() {
     setState(state => ({...state, withoutBottomNote: !state.withoutBottomNote}))
+  }
+
+  function toggleBowings() {
+    setState(state => ({...state, withBowings: !state.withBowings}))
   }
 
   function getPositions() {
@@ -79,6 +90,11 @@ function Positions({state, setState, advance}) {
 
         </label>
           without bottom note: <input type="checkbox" checked={state?.withoutBottomNote || false} onChange={_ => toggleWithoutBottomNote()} />
+        </label>
+        <br />
+
+        <label>
+          with bowings: <input type="checkbox" checked={state?.withBowings || false} onChange={_ => toggleBowings()} />
         </label>
 
         <div>

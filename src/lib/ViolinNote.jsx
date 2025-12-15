@@ -168,6 +168,7 @@ export function randomViolinNotePlain(string, pos, semi, slide, bowing) {
         target: targetNote,
         finger: finger,
         position: pos.name,
+        bowing: bowing,
       }
     })
   }
