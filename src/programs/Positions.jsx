@@ -22,8 +22,8 @@ function Positions({state, setState, advance}) {
     )
   }
 
-  function positionsToMusic(notes) {
-    return notesToMusic([
+  function positionsToMusic(measures) {
+    return notesToMusic(measures.map(notes =>
       notes.flatMap((n, idx) => {
         const bowing = {'V': 'up', 'Π': 'down'}[n.bowing]
         const notes = [
@@ -37,7 +37,7 @@ function Positions({state, setState, advance}) {
 
         return notes.map(args => note(...args))
       })
-    ])
+    ))
   }
 
   function toggleShuffle() {
@@ -68,7 +68,7 @@ function Positions({state, setState, advance}) {
 
   function doAdvance() {
     const notes = generateNotes(shuffleFun)
-    setState(state => ({...state, notes}))
+    setState(state => ({...state, notes: [...(state?.notes || []), notes].reverse().slice(0, 2).reverse()}))
   }
 
   if (advance || !state?.notes) {
