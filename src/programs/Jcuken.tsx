@@ -3,9 +3,9 @@ import { shuffleArray } from '../lib/Random'
 
 // frequency control functions would be useful here
 export default function Jcuken(controls) {
-  const row1 = 'яшертыуиопюж'
-  const row2 = 'асдфгчйклэ'
-  const row3 = 'зхцвбнм'
+  const row1 = 'йцукенгшщзхъ'
+  const row2 = 'фывапролджэ'
+  const row3 = 'ёячсмитьбю'
   const alphabet = (row1 + row2 + row3).split('')
 
   const makeData = () => shuffleArray(alphabet)
@@ -15,10 +15,23 @@ export default function Jcuken(controls) {
 
     // useRef complains about false ordering, can't imagine how to fix it right now
     const el = document.querySelector('.wrap[data-mode=jcuken] .letter')
+
     el.innerText = letter
     el.classList.remove("correct", "incorrect")
     el.classList.add(subclass)
-    el.classList.toggle("letter-flash1")
+
+    const thisKey = parseInt(el.dataset.animationKey || 0) + 1
+    el.dataset.animationKey = thisKey
+    const timeout = 20
+
+    const nextFrame = (key, opacity) => {
+      console.log(el.dataset.animationKey == key && opacity > 0.1, el.dataset.animationKey, key, opacity)
+      if (el.dataset.animationKey == key && opacity >= 0) {
+        el.style.opacity = `${Math.round(opacity * 100)}%`
+        setTimeout(() => nextFrame(key, Math.max(0, opacity - 0.1)), timeout)
+      }
+    }
+    setTimeout(() => nextFrame(thisKey, 1), timeout)
   }
 
   function onEvent(e) {

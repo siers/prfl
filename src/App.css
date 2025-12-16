@@ -41,10 +41,6 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=jcuken] .letter { opacity: 0; }
 .wrap[data-mode=jcuken] .letter.correct { color: green; }
 .wrap[data-mode=jcuken] .letter.incorrect { color: red; }
-.wrap[data-mode=jcuken] .letter-flash1 { animation: flash-letter-bg1 0.1s ease; }
-.wrap[data-mode=jcuken] .letter-flash2 { animation: flash-letter-bg2 0.1s ease; }
-@keyframes flash-letter-bg1 { 0% { opacity: 100%; } 100% { opacity: 0%; } }
-@keyframes flash-letter-bg2 { 0% { opacity: 100%; } 100% { opacity: 0%; } }
 
 .wrap[data-mode=flash] { display: block; }
 .wrap[data-mode=flash] .content { display: block; width: 100%; height: 100%; position: relative; margin: auto; top: inherit; left: inherit; margin-top: .3em; transform: none; }
