@@ -99,11 +99,9 @@ function App() {
   return (
     <>
       <div className="app">
-        <select onChange={e => setProgram(e.target.value)} value={program} className="programs">
+        <select onChange={e => setProgram(e.target.value)} value={program} className="programs border border-default-medium">
           {Object.keys(programs).map(p => <option value={p} key={p}>{p}</option>)}
         </select>
-
-        <a className="next" onClick={event => setItem(event)}>➡️</a>
 
         <div className="wrap" style={{display: "block"}} data-mode={program}>
           <div ref={content} className="content flash1">
@@ -118,7 +116,8 @@ function App() {
           <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
         </div>
 
-        <a className="clear" onClick={() => setState({})}>clear state</a>
+        <a className="next" onClick={event => setItem(event)}>➡️</a>
+        <a className="clear-state" onClick={() => setState({})}>🔄</a>
       </div>
     </>
   )

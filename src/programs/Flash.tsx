@@ -15,13 +15,16 @@ function Flash(controls) {
   const next = controls?.state?.next?.at(0)
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="directory">
         directory: {select(controls, 'directory', Object.keys(directories))}
       </div>
 
-      {next && <img src={next} />}
-    </>
+      {next &&
+        <div className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{backgroundImage: `url(${next})`}}>
+        </div>
+      }
+    </div>
   )
 }
 
