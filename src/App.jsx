@@ -25,7 +25,7 @@ function useLocalStorage(key, initialValue) {
 }
 
 function App() {
-  const [running, setRunning] = useLocalStorage('running', true)
+  const [running, setRunning] = useLocalStorage('running', false)
 
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
   const timeout = useRef()
