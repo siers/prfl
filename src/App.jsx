@@ -97,29 +97,42 @@ function App() {
   }, [running, speed, program, state])
 
   return (
-    <>
-      <div className="app">
-        <select onChange={e => setProgram(e.target.value)} value={program} className="programs border border-default-medium">
-          {Object.keys(programs).map(p => <option value={p} key={p}>{p}</option>)}
-        </select>
-
-        <div className="wrap" style={{display: "block"}} data-mode={program}>
-          <div ref={content} className="content flash1">
-            {makeItem()}
-          </div>
+    <div className="app text-center p-1em">
+      <div className="flex flex-col h-screen">
+        <div className="block w-full m-[1em] mr-auto ml-auto grow-0">
+          <select onChange={e => setProgram(e.target.value)} value={program} className="programs inline-block m-auto grow-0 border">
+            {Object.keys(programs).map(p => <option value={p} key={p}>{p}</option>)}
+          </select>
         </div>
 
-        <div className="log">
+        <div className="wrap flex-1 flex flex-row items-center" data-mode={program}>
+          {
+            (program == "flash")
+            ? (
+              <div ref={content} className="content flash1">
+                {makeItem()}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center grow">
+                <div ref={content} className="content flash1">
+                  {makeItem()}
+                </div>
+              </div>
+            )
+          }
         </div>
-
-        <div className="knob-wrapwrap">
-          <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
-        </div>
-
-        <a className="next" onClick={event => setItem(event)}>➡️</a>
-        <a className="clear-state" onClick={() => setState({})}>🔄</a>
       </div>
-    </>
+
+      <div className="log">
+      </div>
+
+      <div className="knob-wrapwrap">
+        <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
+      </div>
+
+      <a className="next" onClick={event => setItem(event)}>➡️</a>
+      <a className="clear-state" onClick={() => setState({})}>🔄</a>
+    </div>
   )
 }
 

@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
+html, body { width: 100vw; height: 100vh; overflow: hidden; }
+
+* { touch-action: manipulation; } /* disable double-click zoom on tablet */
+
 a { color: #4796e6; }
 a:hover { color: #52b8e3; }
 
-.app { padding: 1em; text-align: center; }
-
 .knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
-.next { position: absolute; bottom: 1em; right: 1em; font-size: 2em; }
-.clear-state { position: absolute; bottom: 1em; font-size: 2em; right: 2.1em; }
+.next { position: absolute; bottom: 0.5em; right: 0.5em; font-size: 2em; }
+.clear-state { position: absolute; bottom: 0.5em; font-size: 2em; right: 1.8em; }
 .programs { font-size: 20px; padding: 0.3em; }
 
-.wrap { height: calc(100vh - 5em); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.content { font-weight: 700; font-size: calc(0.75em + 2.5vmin); display: inline-block; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: transform 450ms ease; text-wrap: nowrap; }
+/* .wrap { display: flex; align-items: center; justify-content: center; overflow: hidden; } */
+.content { font-weight: 700; font-size: calc(0.75em + 2.5vmin); text-wrap: nowrap; }
 sub { font-size: xx-large; } /* weird name, but renders as small */
 ::selection { background: transparent; }
 .log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: #333; font-family: monospace; pointer-events: none; z-index: -10; }
@@ -45,7 +47,7 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=jcuken] .letter.incorrect { color: red; }
 
 .wrap[data-mode=flash] { display: block; }
-.wrap[data-mode=flash] .content { display: block; width: 100%; height: 100%; position: relative; margin: auto; top: inherit; left: inherit; margin-top: .3em; transform: none; }
+.wrap[data-mode=flash] .content { display: block; height: 100%;  transform: none; }
 .wrap[data-mode=flash] .content .directory { margin-bottom: 5px; }
 
 .wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: calc(4vmin); }
