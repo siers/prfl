@@ -23,7 +23,7 @@ function Flash(controls) {
   const next = controls?.state?.next?.at(0)
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full text-center">
       <div className="directory w-full">
         directory: {select(controls, 'directory', Object.keys(directories))}
         <span className="mx-[1em]">/</span>

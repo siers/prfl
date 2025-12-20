@@ -6,6 +6,7 @@ import Solfege from './programs/Solfege.tsx'
 import SheetOSMD from './programs/SheetOSMD.tsx'
 import Jcuken from './programs/Jcuken.tsx'
 import Flash from './programs/Flash.tsx'
+import Randomize from './programs/Randomize.tsx'
 
 const programs = {
   positions: Positions,
@@ -14,6 +15,7 @@ const programs = {
   'solfege-ambiguity': Solfege,
   jcuken: Jcuken,
   flash: Flash,
+  randomize: Randomize,
   ...(window.location.host.match(/localhost/) ? {sheetosmd: SheetOSMD} : {}),
 }
 

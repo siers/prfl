@@ -97,9 +97,9 @@ function App() {
   }, [running, speed, program, state])
 
   return (
-    <div className="app text-center p-1em">
+    <div className="app p-1em">
       <div className="flex flex-col h-dvh">
-        <div className="block w-full m-[1em] mr-auto ml-auto grow-0">
+        <div className="block w-full m-[1em] mr-auto ml-auto grow-0 text-center" >
           <select onChange={e => setProgram(e.target.value)} value={program} className="programs inline-block m-auto grow-0 border">
             {Object.keys(programs).map(p => <option value={p} key={p}>{p}</option>)}
           </select>

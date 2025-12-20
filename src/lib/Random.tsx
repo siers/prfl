@@ -15,3 +15,30 @@ export function shuffleArray(array) {
   }
   return array
 }
+
+// vibe-implemented, but is valid.
+// design constraints: nondeterministic calculation.
+// features missing: the distances in first/last element aren't considered
+// fails at min = 6
+export function shuffleMinDistance(array, min) {
+  const maxAttempts = 100000
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const shuffled = shuffleArray([...array])
+
+    let isValid = true
+    for (let i = 0; i < array.length; i++) {
+      const originalIndex = array.indexOf(shuffled[i])
+      if (Math.abs(originalIndex - i) < min) {
+        isValid = false
+        break
+      }
+    }
+
+    if (isValid) {
+      return shuffled
+    }
+  }
+
+  return array.map(_ => 'x') // to make it clear that it gave up
+}
