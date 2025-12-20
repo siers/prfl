@@ -1,17 +1,15 @@
 #! /usr/bin/env bash
 
 flashListUpdate() {
-    (
-      jq -R -n -c '[inputs]' <(find public/ -type f | sed 's:^public/::') |
-        sed 's/^/export default /; s:^:/* automatically generated, don'\''t touch */ :' \
-          > src/programs/FlashList.js
-    )
+  jq -R -n -c '[inputs]' <(find public/ -type f | sed 's:^public/::' | grep -v DS_Store) |
+    sed 's/^/export default /; s:^:/* automatically generated, don'\''t touch */ :' \
+      > src/programs/FlashList.js
 }
 
 deploy() {
   npm run build &&
     (
-      /Users/raitisveinbahs/raitis/code/haskell/blag/perflab
+      cd /Users/raitisveinbahs/raitis/code/haskell/blag/perflab
       rsync -r --delete ~/raitis/code/js/perflab/dist/ /Users/raitisveinbahs/raitis/code/haskell/blag/perflab &&
         git add . &&
         git commit -am 'flash-command: deploy' &&
@@ -23,5 +21,12 @@ if ! pwd | grep -q perflab$; then
   return 1
 fi
 
-flashListUpdate
-deploy
+for v in "$@"; do
+  if [ "$v" = "refresh" ]; then
+    flashListUpdate
+  fi
+
+  if [ "$v" = "deploy" ]; then
+    deploy
+  fi
+done
