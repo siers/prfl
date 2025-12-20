@@ -1,0 +1,27 @@
+#! /usr/bin/env bash
+
+flashListUpdate() {
+    (
+      jq -R -n -c '[inputs]' <(find public/ -type f | sed 's:^public/::') |
+        sed 's/^/export default /; s:^:/* automatically generated, don'\''t touch */ :' \
+          > src/programs/FlashList.js
+    )
+}
+
+deploy() {
+  npm run build &&
+    (
+      /Users/raitisveinbahs/raitis/code/haskell/blag/perflab
+      rsync -r --delete ~/raitis/code/js/perflab/dist/ /Users/raitisveinbahs/raitis/code/haskell/blag/perflab &&
+        git add . &&
+        git commit -am 'flash-command: deploy' &&
+        git push --force-with-lease
+    )
+}
+
+if ! pwd | grep -q perflab$; then
+  return 1
+fi
+
+flashListUpdate
+deploy
