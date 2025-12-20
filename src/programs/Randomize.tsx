@@ -37,7 +37,7 @@ function Randomize(controls) {
         </div>
 
         <div className="grow p-[10px]">
-          <textarea className="p-[5px]" rows="20" cols="50" className="border" value={state?.output}></textarea>
+          <textarea className="p-[5px]" rows="20" cols="50" className="border" value={state?.output} readOnly></textarea>
         </div>
       </div>
 

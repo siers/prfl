@@ -16,29 +16,31 @@ export function shuffleArray(array) {
   return array
 }
 
-// vibe-implemented, but is valid.
-// design constraints: nondeterministic calculation.
+function zipWithIndex(as) {
+  return as.map((x, i) => [i, x])
+}
+
+// non-deterministic on purpose to make the constraints easier to verify
 // features missing: the distances in first/last element aren't considered
 // fails at min = 6
 export function shuffleMinDistance(array, min) {
   const maxAttempts = 100000
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const shuffled = shuffleArray([...array])
+    const shuffled = shuffleArray(zipWithIndex(array))
 
-    let isValid = true
-    for (let i = 0; i < array.length; i++) {
-      const originalIndex = array.indexOf(shuffled[i])
-      if (Math.abs(originalIndex - i) < min) {
+    var isValid = true
+    for (let i = 0; i < array.length - 1; i++) {
+      if (Math.abs(shuffled[i][0] - shuffled[i + 1][0]) < min) {
         isValid = false
         break
       }
     }
 
     if (isValid) {
-      return shuffled
+      return shuffled.map(([_i, x]) => x)
     }
   }
 
-  return array.map(_ => 'x') // to make it clear that it gave up
+  return array.map(_ => 'x') // make failure clearly visible
 }
