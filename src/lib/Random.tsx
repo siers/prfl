@@ -1,3 +1,5 @@
+import { directRangeClamp } from './Array'
+
 function randInt(from, to) {
   return from + Math.floor(Math.random() * (to - from + 1))
 }
@@ -20,9 +22,15 @@ function zipWithIndex(as) {
   return as.map((x, i) => [i, x])
 }
 
-// non-deterministic on purpose to make the constraints easier to verify
-// features missing: the distances in first/last element aren't considered
-// fails at min = 6
+function surroundingIndices(array, index, distance) {
+  return [
+    directRangeClamp(0, array.length - 1, index - distance, index - 1),
+    directRangeClamp(0, array.length - 1, index + 1, index + distance),
+  ].flat()
+}
+
+// for 100 items, it can't find a solution with min = 3...
+// pretty weak, perhaps the problem is too hard as such
 export function shuffleMinDistance(array, min) {
   const maxAttempts = 100000
 
@@ -30,11 +38,16 @@ export function shuffleMinDistance(array, min) {
     const shuffled = shuffleArray(zipWithIndex(array))
 
     var isValid = true
-    for (let i = 0; i < array.length - 1; i++) {
-      if (Math.abs(shuffled[i][0] - shuffled[i + 1][0]) < min) {
-        isValid = false
-        break
+    for (let i = 0; i < shuffled.length - 1; i++) {
+      const indices = surroundingIndices(shuffled, i, min)
+      for (let jj = 0; jj < indices.length - 1; jj++) {
+        const j = indices[jj]
+        isValid = isValid && Math.abs(shuffled[i][0] - shuffled[j][0]) > min
+
+        if (!isValid) break
       }
+
+      if (!isValid) break
     }
 
     if (isValid) {
