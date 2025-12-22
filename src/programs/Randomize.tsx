@@ -2,6 +2,21 @@ import ToneLib from '../lib/ToneLib'
 import { shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { prepareNext, select } from '../lib/Program'
 import { chunk } from '../lib/Array'
+import { times } from '../lib/Array'
+
+// multiplies lines if they have "3x" in front of them
+// bug: breaks the shuffler, perhaps something's ill defined
+// function parseContents(lines) {
+//   return lines.flatMap((line, index) => {
+//     const match = line.match(/^(\d+)x (.*)$/)
+
+//     if (match) {
+//       const [_, n, title] = match
+//       return times(parseInt(n)).map(_ => [index, title])
+//     } else
+//       return [[index, line]]
+//   })
+// }
 
 function Randomize(controls) {
   const {state, setState, advance} = controls
@@ -12,18 +27,12 @@ function Randomize(controls) {
     setState(s => {
       const contentsOr = newContents === '' ? newContents : (newContents || state?.text || '')
       const distanceOr = parseInt(newDistance || distance)
-      const textLines = contentsOr.split('\n').filter(x => !x.match(/^ *$/))
-      const output = shuffleMinDistance(textLines, distanceOr).join('\n')
+      const textLinesIndexed = contentsOr.split('\n').filter(x => !x.match(/^ *$/))
+      const output = shuffleMinDistance(textLinesIndexed, distanceOr).join('\n')
 
       return {...s, text: contentsOr, distance: distanceOr, output: output}
     })
   }
-
-  // function toClipboard(event) {
-  //     var target = event.target;
-  //     var copyText = target.nextElementSibling;
-  //     navigator.clipboard.writeText(copyText.value);
-  // }
 
   return (
     <div className="">
@@ -33,11 +42,11 @@ function Randomize(controls) {
 
       <div className="flex flex-row selection:red text-sm">
         <div className="grow p-[10px]">
-          <textarea className="p-[5px]" rows="20" cols="50" className="border" onChange={e => newAndRecalculate(e.target.value, null)} value={state?.text}></textarea>
+          <textarea className="p-[5px] border" rows="20" cols="50" onChange={e => newAndRecalculate(e.target.value, null)} value={state?.text}></textarea>
         </div>
 
         <div className="grow p-[10px]">
-          <textarea className="p-[5px]" rows="20" cols="50" className="border" value={state?.output} readOnly></textarea>
+          <textarea className="p-[5px] border" rows="20" cols="50" value={state?.output} readOnly></textarea>
         </div>
       </div>
 

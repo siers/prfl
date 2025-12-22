@@ -15,3 +15,7 @@ export function directRange(start, stop) {
 export function directRangeClamp(min, max, start, stop) {
   return directRange(Math.max(min, start), Math.min(max, stop))
 }
+
+export function times(n) {
+  return directRange(1, n)
+}

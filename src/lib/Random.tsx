@@ -31,16 +31,17 @@ function surroundingIndices(array, index, distance) {
 
 // for 100 items, it can't find a solution with min = 3...
 // pretty weak, perhaps the problem is too hard as such
-export function shuffleMinDistance(array, min) {
+// input: array: [(index, item)]
+export function shuffleMinDistanceIndexed(array, min) {
   const maxAttempts = 100000
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const shuffled = shuffleArray(zipWithIndex(array))
+    const shuffled = shuffleArray(array)
 
     var isValid = true
-    for (let i = 0; i < shuffled.length - 1; i++) {
+    for (let i = 0; i < shuffled.length; i++) {
       const indices = surroundingIndices(shuffled, i, min)
-      for (let jj = 0; jj < indices.length - 1; jj++) {
+      for (let jj = 0; jj < indices.length; jj++) {
         const j = indices[jj]
         isValid = isValid && Math.abs(shuffled[i][0] - shuffled[j][0]) > min
 
@@ -56,4 +57,8 @@ export function shuffleMinDistance(array, min) {
   }
 
   return array.map(_ => 'x') // make failure clearly visible
+}
+
+export function shuffleMinDistance(array, min) {
+  return shuffleMinDistanceIndexed(zipWithIndex(array), min)
 }
