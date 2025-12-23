@@ -10,11 +10,12 @@ function avoidLastFirstMatch(lastLast, list) {
 }
 
 export function prepareNext(controls, makeData) {
-  const {state, setState, advance} = controls
+  const {state, setState, advance, restart} = controls
 
-  if ((state?.next?.length || 0) < 1) {
-    const newData = avoidLastFirstMatch(state?.lastLast, makeData(state))
-    setState(state => ({...state, next: newData, lastLast: newData?.at(-1)}))
+  if (restart || (state?.next?.length || 0) < 1) {
+    const last = state?.next?.at(0) || state?.lastLast
+    const newData = avoidLastFirstMatch(last, makeData(state))
+    setState(state => ({...state, next: newData, size: newData.length, lastLast: newData?.at(-1)}))
   } else if (advance && state?.next) {
     const [, ...remaining] = state?.next
     setState(state => ({...state, next: remaining}))

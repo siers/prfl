@@ -4,8 +4,6 @@ import './main.css'
 import App from './App.jsx'
 import { isDev } from './debug.js'
 
-import './experiments/exp_20251223_vibe_shuffle.jsx'
-
 setTimeout(() => {
   if (!isDev && document.getElementById('root').children.length == 0) {
     localStorage.clear()

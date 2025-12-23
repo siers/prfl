@@ -1,6 +1,6 @@
 import ToneLib from '../lib/ToneLib'
 import { shuffleArray } from '../lib/Random'
-import { prepareNext, select } from '../lib/Program'
+import { prepareNext, select, restart } from '../lib/Program'
 import { chunk } from '../lib/Array'
 import FlashList from './FlashList.js'
 
@@ -29,11 +29,16 @@ function preloadCached(list) {
 function Flash(controls) {
   const directories = Object.groupBy(FlashList, f => f.match(/^[^\/]+/)[0])
   const directory = controls.state?.directory || Object.keys(directories)[0]
+  const current = directories[directory]
 
-  preloadCached(directories[directory])
-  prepareNext(controls, () => directory ? shuffleArray(directories[directory]) : [''])
+  const prepare = (opts) => prepareNext({...controls, ...opts}, () => directory ? shuffleArray(current) : [''])
 
-  const next = controls?.state?.next?.at(0)
+  preloadCached(current)
+  prepare()
+
+  const queue = controls?.state?.next
+  const next = queue?.at(0)
+  const perc = queue ? 100 - ((queue.length - 1) / current.length * 100) : 0
 
   return (
     <div className="flex flex-col w-full h-full text-center">
@@ -41,7 +46,11 @@ function Flash(controls) {
         directory: {select(controls, 'directory', Object.keys(directories))}
         <span className="mx-[1em]">/</span>
         <span onClick={e => { toggleFullScreen(document.getElementById('root')); e.preventDefault() }}>
-          toggle full
+          full
+        </span>
+        <span className="mx-[1em]">/</span>
+        <span onClick={e => { prepare({restart: true}); e.preventDefault() }}>
+          restart
         </span>
       </div>
 
@@ -49,6 +58,10 @@ function Flash(controls) {
         <div id="card" className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{backgroundImage: `url(${encodeURI(next)})`}}>
         </div>
       }
+
+      <div className="h-[3px] mb-[5px]">
+        <div className="h-full bg-[#ccf]" style={({width: `${perc.toFixed(2)}%`})} />
+      </div>
     </div>
   )
 }
