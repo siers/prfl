@@ -14,10 +14,23 @@ function toggleFullScreen(video) {
 
 // % pwd | grep -q perflab$ && (jq -R -n -c '[inputs]' <(find public/ -type f | sed 's:^public/::') | sed 's/^/export default /; s:^:/* automatically generated, don'\''t touch */ :' > src/programs/FlashList.js)
 
+var preloadCache = {}
+
+function preloadCached(list) {
+  list.forEach(url => {
+    if (preloadCache[url]) return
+    var img = new Image()
+    img.src = url
+
+    preloadCache[url] = 1
+  })
+}
+
 function Flash(controls) {
   const directories = Object.groupBy(FlashList, f => f.match(/^[^\/]+/)[0])
   const directory = controls.state?.directory || Object.keys(directories)[0]
 
+  preloadCached(directories[directory])
   prepareNext(controls, () => directory ? shuffleArray(directories[directory]) : [''])
 
   const next = controls?.state?.next?.at(0)
@@ -33,7 +46,7 @@ function Flash(controls) {
       </div>
 
       {next &&
-        <div id="card" className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{backgroundImage: `url(${next})`}}>
+        <div id="card" className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{backgroundImage: `url(${encodeURI(next)})`}}>
         </div>
       }
     </div>
