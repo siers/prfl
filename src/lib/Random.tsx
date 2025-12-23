@@ -1,4 +1,4 @@
-import { directRangeClamp } from './Array'
+import { directRangeClamp, zipWithIndex } from './Array'
 
 function randInt(from, to) {
   return from + Math.floor(Math.random() * (to - from + 1))
@@ -18,10 +18,6 @@ export function shuffleArray(array) {
   return array
 }
 
-function zipWithIndex(as) {
-  return as.map((x, i) => [i, x])
-}
-
 function surroundingIndices(array, index, distance) {
   return [
     directRangeClamp(0, array.length - 1, index - distance, index - 1),
@@ -32,6 +28,7 @@ function surroundingIndices(array, index, distance) {
 // for 100 items, it can't find a solution with min = 3...
 // pretty weak, perhaps the problem is too hard as such
 // input: array: [(index, item)]
+// design idea: generate N solutions, count violations, pick best ones, attempt to repair
 export function shuffleMinDistanceIndexed(array, min) {
   const maxAttempts = 100000
 

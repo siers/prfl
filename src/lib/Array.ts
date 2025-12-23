@@ -19,3 +19,15 @@ export function directRangeClamp(min, max, start, stop) {
 export function times(n) {
   return directRange(1, n)
 }
+
+export function zipWithIndex(as) {
+  return as.map((x, i) => [i, x])
+}
+
+export function indices(as) {
+  return as.map((_, i) => i)
+}
+
+export function reorderIndices(lines, indices) {
+  return indices.map(i => lines[i])
+}

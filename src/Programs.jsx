@@ -7,6 +7,7 @@ import SheetOSMD from './programs/SheetOSMD.tsx'
 import Jcuken from './programs/Jcuken.tsx'
 import Flash from './programs/Flash.tsx'
 import Randomize from './programs/Randomize.tsx'
+import { isDev } from './debug.js'
 
 const programs = {
   positions: Positions,
@@ -16,7 +17,7 @@ const programs = {
   jcuken: Jcuken,
   flash: Flash,
   randomize: Randomize,
-  ...(window.location.host.match(/localhost/) ? {sheetosmd: SheetOSMD} : {}),
+  ...(isDev ? {sheetosmd: SheetOSMD} : {}),
 }
 
 export default programs
