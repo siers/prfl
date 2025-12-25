@@ -14,6 +14,7 @@
   "dependencies": {
     "@stringsync/musicxml": "^0.2.1",
     "@tailwindcss/vite": "^4.1.18",
+    "immutable": "^5.1.4",
     "opensheetmusicdisplay": "^1.9.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

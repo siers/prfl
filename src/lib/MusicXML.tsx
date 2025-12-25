@@ -1,5 +1,5 @@
 import { asserts, elements, MusicXML } from '@stringsync/musicxml'
-import ToneLib from '../lib/ToneLib'
+import * as ToneLib from '../lib/ToneLib'
 
 function attributes() {
   return new elements.Attributes({

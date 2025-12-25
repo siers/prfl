@@ -1,10 +1,6 @@
-// # note interface
-// - dat: name (mby enum), alter, octave
-//   derived: semi = c1 + octave * 12 + letter offset
-//   derived: render
-//   derived spelling = (name, alter)
-
 // https://en.wikipedia.org/wiki/Piano_key_frequencies
+
+import { Set } from 'immutable'
 
 type Name = 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
 
@@ -15,13 +11,15 @@ const namesSemiMap = { c: 0, d: 2, e: 3, f: 5, g: 7, a: 9, b: 11 }
 const alters: Record<number, string> = { 0: '', 1: '#', '-1': 'b', 2: '##', '-2': 'bb' }
 const altersMap: Record<string, number> = { '': 0, '#': 1, 'b': -1, '##': 2, 'bb': -2 }
 
-interface Note {
+export interface Note {
   name: Name,
   alter: number,
   octave: number,
 }
 
-type Key = Note[]
+type Key = Note[] // semantic distinction only, unfortunately
+type Notes = Note[]
+type NoteSet = Set<Note>
 
 function arrayShift<A>(arr: A[], count: number): A[] {
   const len = arr.length
@@ -30,25 +28,11 @@ function arrayShift<A>(arr: A[], count: number): A[] {
   return arr
 }
 
-function tupleLexSort<T extends any[]>(tuples: T[]): T[] {
-  return tuples.sort((a, b) => {
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-      if (a[i] < b[i]) return -1;
-      if (a[i] > b[i]) return 1;
-    }
-    return a.length - b.length;
-  });
-}
-
 function semi(n: Note): number {
   return 4 + n.octave * 12 + namesSemiMap[n.name] + n.alter
 }
 
-function spelling(n: Note): [Name, number] {
-  return [n.name, n.alter]
-}
-
-export function render(n: Note, octave: Boolean = true) {
+export function render(n: Note, octave: Boolean = true): string {
   const alt = alters[n.alter] ?? '?'
   return n.name.toUpperCase() + alt + (octave ? n.octave : '')
 }
@@ -57,12 +41,12 @@ const sharp = 1
 const flat = -1
 
 // steps in key
-const unison = 0
+// const unison = 0
 const second = 1
 const third = 2
 const fourth = 3
 const fifth = 4
-const sixth = 5
+// const sixth = 5
 const seventh = 6
 const octave = 7
 const ninth = 8
@@ -94,9 +78,11 @@ export function rebase(note: Note, base: Note): Note {
   return { name: note.name, alter: note.alter, octave: base.octave + (before ? 1 : 0) }
 }
 
-export function major(): Key {
-  return 'cdefgab'.split('').map(n => parseNote(n)!)
+export function normalize(n: Note): Note {
+  return rebase(n, c4)
 }
+
+// === Keys
 
 function keyAddAccidental(key_: Key, n: number, sign: number): Key {
   const key = structuredClone(key_)
@@ -106,6 +92,10 @@ function keyAddAccidental(key_: Key, n: number, sign: number): Key {
 
 function keyRebase(key: Key, base: Note): Key {
   return key.map(n => rebase(n, base))
+}
+
+export function major(): Key {
+  return 'cdefgab'.split('').map(n => parseNote(n)!)
 }
 
 function modulateFifth(key: Key, direction: number) {
@@ -127,6 +117,8 @@ export function keysMajor() {
     return modulateFifth(major(), d)
   })
 }
+
+// === Utilities & Computations
 
 export function findCommonKey(a: number, b: number) {
   var af, bf
@@ -182,7 +174,14 @@ export function nameLeadingDim7(): string[] {
 //   })
 // }
 
-// function allNotes() {
-//   const c4 = parseNote('C4')
-//   return keysMajor().flat().map(n => rebase(n, c4.semi))
-// }
+export function allNotes(): Set<string> {
+  return normalizedNotes(keysMajor().flat())
+}
+
+export function normalizedNotes(k: Notes): Set<string> {
+  return Set(k.map(n => render(normalize(n), false)))
+}
+
+export function notesMissing(k: Key, l: Key): Set<string> {
+  return allNotes().subtract(normalizedNotes(k).union(normalizedNotes(l)))
+}

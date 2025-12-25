@@ -1,4 +1,4 @@
-import ToneLib from './ToneLib'
+import * as ToneLib from './ToneLib'
 import ReactDOMServer from 'react-dom/server'
 
 const logWindow = document.querySelector('.log')

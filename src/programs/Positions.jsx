@@ -3,7 +3,7 @@ import { Score } from '../lib/Vexflow'
 import { pick, shuffleArray } from '../lib/Random'
 import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
 import { note, notesToMusic } from '../lib/MusicXML'
-import ToneLib from '../lib/ToneLib'
+import * as ToneLib from '../lib/ToneLib'
 
 const range = (start, stop) => Array(stop - start + 1).fill(start).map((x, y) => x + y)
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { keysMajor, nameLeadingDim7, render } from './ToneLib.ts'
+import { allNotes, keysMajor, majorKey, nameLeadingDim7, normalizedNotes, notesMissing, parseNote, render } from './ToneLib.ts'
+import Immutable from 'immutable'
 
 function pad(str: string, size: number, with_: string): string {
   var s = str
@@ -46,6 +47,12 @@ describe('ToneLib computations', () => {
         "Bb4 Db5 Fb5 Abb4",
       ]
     )
+  })
+
+  test('missing from Bb and D', () => {
+    const bb = majorKey(parseNote('bb')!)!
+    const d = majorKey(parseNote('d')!)!
+    expect(Immutable.Set.of("Ab", "A#", "Gb", "G#", "E#", "Db", "D#", "Cb").equals(notesMissing(bb, d))).equal(true)
   })
 })
 

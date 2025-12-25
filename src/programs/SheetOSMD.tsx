@@ -1,6 +1,6 @@
 import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
 import { asserts, elements, MusicXML } from '@stringsync/musicxml'
-import ToneLib from '../lib/ToneLib'
+import * as ToneLib from '../lib/ToneLib'
 import { note, notesToMusic, slurMarkers } from '../lib/MusicXML'
 
 const p = ToneLib.parseNote.bind(ToneLib)

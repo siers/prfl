@@ -1,4 +1,4 @@
-import ToneLib from '../lib/ToneLib'
+import * as ToneLib from '../lib/ToneLib'
 import { shuffleArray } from '../lib/Random'
 import { prepareNext, select, restart } from '../lib/Program'
 import { chunk } from '../lib/Array'

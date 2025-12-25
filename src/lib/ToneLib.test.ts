@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { parseNote, render, rebase, Note, major, keysMajor, majorKey } from './ToneLib.ts'
 
-// const objectUniq = objects => [...new Set(objects.map(JSON.stringify))].map(JSON.parse)
-
 describe('ToneLib', () => {
   test('parse static', () => {
     expect(parseNote('c')).toStrictEqual({ "alter": 0, "name": 'c', "octave": 4 })
