@@ -1,39 +1,42 @@
-import * as ViolinNote from '../lib/ViolinNote'
-import { Score } from '../lib/Vexflow'
+import * as ViolinNote from '../lib/ViolinNote.jsx'
 import { pick, shuffleArray } from '../lib/Random'
-import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
+import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay.jsx'
 import { note, notesToMusic } from '../lib/MusicXML'
 import * as ToneLib from '../lib/ToneLib'
 
 const range = (start, stop) => Array(stop - start + 1).fill(start).map((x, y) => x + y)
 
-function Positions({state, setState, advance}) {
-  const defaultPositions = ViolinNote.positions.map((_ , i) => i)
+function Positions({ state, setState, advance }) {
+  const defaultPositions = ViolinNote.positions.map((_, i) => i)
 
   const shuffleFun = state?.shuffle ? shuffleArray : x => x
 
   function generateNotes(shuffleFun) {
-    return shuffleFun([0, 1, 2, 3]).map(string =>
-      pick(ViolinNote.randomViolinNotePlain(
+    return shuffleFun([0, 1, 2, 3]).map(string => {
+      return pick(ViolinNote.randomViolinNotePlain(
         string,
         pick(getPositions().filter(a => a !== null)),
         pick(ViolinNote.positionSemitones)
       ))
-    )
+    })
   }
 
   function positionsToMusic(measures) {
     return notesToMusic(measures.map(notes =>
-      notes.flatMap((n, idx) => {
-        const bowing = {'V': 'up', 'Π': 'down'}[n.bowing]
+      notes.flatMap((n, _) => {
+        const bowing = { 'V': 'up', 'Π': 'down' }[n.bowing]
         const notes = [
-          ...(state?.withoutTopNote ? [] : [[n.target, 1, {color: '#000000'}]]),
-          ...(state?.withoutBottomNote ? [] : [[n.base, 1, {color: '#999999'}]]),
-          [ToneLib.parseNote(n.string), 1, {color: '#000000', notehead: 'x'}],
+          ...(state?.withoutTopNote ? [] : [[n.target, 1, { color: '#000000' }]]),
+          ...(state?.withoutBottomNote ? [] : [[n.base, 1, { color: '#999999' }]]),
+          [ToneLib.parseNote(n.string), 1, { color: '#000000', notehead: 'x' }],
         ]
 
-        notes[0][2] = {...notes[0][2], bowing: state.withBowings ? bowing : null, color: '#000000'}
-        range(1, notes.length - 1).map(idx => notes[idx][2] = ({...notes[idx][2], tied: true}))
+        // console.log(ToneLib.parseNote(n.string), 1, { color: '#000000', notehead: 'x' },)
+        // console.log('target', n.target)
+        // console.log('base', n.base)
+
+        notes[0][2] = { ...notes[0][2], bowing: state.withBowings ? bowing : null, color: '#000000' }
+        range(1, notes.length - 1).map(idx => notes[idx][2] = ({ ...notes[idx][2], tied: true }))
 
         return notes.map(args => note(...args))
       })
@@ -41,19 +44,19 @@ function Positions({state, setState, advance}) {
   }
 
   function toggleShuffle() {
-    setState(state => ({...state, shuffle: !state.shuffle, notes: null}))
+    setState(state => ({ ...state, shuffle: !state.shuffle, notes: null }))
   }
 
   function toggleWithoutTopNote() {
-    setState(state => ({...state, withoutTopNote: !state.withoutTopNote}))
+    setState(state => ({ ...state, withoutTopNote: !state.withoutTopNote }))
   }
 
   function toggleWithoutBottomNote() {
-    setState(state => ({...state, withoutBottomNote: !state.withoutBottomNote}))
+    setState(state => ({ ...state, withoutBottomNote: !state.withoutBottomNote }))
   }
 
   function toggleBowings() {
-    setState(state => ({...state, withBowings: !state.withBowings}))
+    setState(state => ({ ...state, withBowings: !state.withBowings }))
   }
 
   function getPositions() {
@@ -63,13 +66,13 @@ function Positions({state, setState, advance}) {
   function togglePosition(p) {
     const positions = getPositions()
     positions[p] = positions[p] === null ? p : null
-    setState(state => ({...state, positions: positions, notes: null}))
+    setState(state => ({ ...state, positions: positions, notes: null }))
   }
 
   function doAdvance() {
     const length = 2
     const notes = range(0, length * 2 - (state?.notes?.length || 0)).map(_ => generateNotes(shuffleFun))
-    setState(state => ({...state, notes: [...(state?.notes || []), ...notes].slice(1, length + 1)}))
+    setState(state => ({ ...state, notes: [...(state?.notes || []), ...notes].slice(1, length + 1) }))
   }
 
   if (advance || !state?.notes) {
@@ -86,10 +89,10 @@ function Positions({state, setState, advance}) {
 
         <label>
           without top note: <input type="checkbox" checked={state?.withoutTopNote || false} onChange={_ => toggleWithoutTopNote()} />
-        <label>
-        <br />
+          <label>
+            <br />
 
-        </label>
+          </label>
           without bottom note: <input type="checkbox" checked={state?.withoutBottomNote || false} onChange={_ => toggleWithoutBottomNote()} />
         </label>
         <br />
@@ -102,7 +105,7 @@ function Positions({state, setState, advance}) {
           positions
           {getPositions().map((_, i) => {
             const name = ViolinNote.positions[i].name.replace(/\.$/, '')
-            return <span className="position" data-key={i} key={i} style={{'color': getPositions()[i] !== null ? '#000' : '#bbb'}} onClick={_ => togglePosition(i)}>{name}</span>
+            return <span className="position" data-key={i} key={i} style={{ 'color': getPositions()[i] !== null ? '#000' : '#bbb' }} onClick={_ => togglePosition(i)}>{name}</span>
           })}
         </div>
       </div>

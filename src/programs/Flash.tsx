@@ -31,7 +31,7 @@ function Flash(controls) {
   const directory = controls.state?.directory || Object.keys(directories)[0]
   const current = directories[directory]
 
-  const prepare = (opts) => prepareNext({...controls, ...opts}, () => directory ? shuffleArray(current) : [''])
+  const prepare = (opts) => prepareNext({ ...controls, ...opts }, () => directory ? shuffleArray(current) : [''])
 
   preloadCached(current)
   prepare()
@@ -45,25 +45,27 @@ function Flash(controls) {
       <div className="directory w-full">
         directory: {select(controls, 'directory', Object.keys(directories))}
         <span className="mx-[1em]">/</span>
-        <span onClick={e => { toggleFullScreen(document.getElementById('root')); e.preventDefault() }}>
+        <span onClick={e => { toggleFullScreen(document.getElementById('card')); e.preventDefault() }}>
           full
         </span>
         <span className="mx-[1em]">/</span>
-        <span onClick={e => { prepare({restart: true}); e.preventDefault() }}>
+        <span onClick={e => { prepare({ restart: true }); e.preventDefault() }}>
           restart
         </span>
       </div>
 
       {next &&
-        <div id="card" className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{backgroundImage: `url(${encodeURI(next)})`}}>
+        <div id="card" className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{ backgroundImage: `url(${encodeURI(next)})` }}>
         </div>
       }
 
       <div className="h-[3px] mb-[5px]">
-        <div className="h-full bg-[#ccf]" style={({width: `${perc.toFixed(2)}%`})} />
+        <div className="h-full bg-[#ccf]" style={({ width: `${perc.toFixed(2)}%` })} />
       </div>
     </div>
   )
 }
+
+// Note for cleaning up scans: convert $i -colorspace Gray -normalize -brightness-contrast 5x40 -sharpen 0x1.5 clean-$i
 
 export default Flash

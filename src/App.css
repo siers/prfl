@@ -16,8 +16,6 @@ a:hover { color: #52b8e3; }
 .content { font-weight: 700; font-size: calc(0.75em + 2.5vmin); text-wrap: nowrap; }
 sub { font-size: xx-large; } /* weird name, but renders as small */
 ::selection { background: transparent; }
-.log { position: absolute; bottom: 0; display: flex; flex-direction: column-reverse; width: 100vw; height: 100vh; margin: 10px; overflow: hidden; opacity: 0.3; color: #333; font-family: monospace; pointer-events: none; z-index: -10; }
-.log p { margin: 0; padding: 0; }
 
 .flash1 { animation: flash-bg1 0.3s ease; }
 .flash2 { animation: flash-bg2 0.3s ease; }

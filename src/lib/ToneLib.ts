@@ -6,7 +6,7 @@ type Name = 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
 
 const names: Name[] = ['c', 'd', 'e', 'f', 'g', 'a', 'b']
 // const namesMap: Record<Name, number> = { c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6 }
-const namesSemiMap = { c: 0, d: 2, e: 3, f: 5, g: 7, a: 9, b: 11 }
+const namesSemiMap = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }
 
 const alters: Record<number, string> = { 0: '', 1: '#', '-1': 'b', 2: '##', '-2': 'bb' }
 const altersMap: Record<string, number> = { '': 0, '#': 1, 'b': -1, '##': 2, 'bb': -2 }
@@ -19,7 +19,6 @@ export interface Note {
 
 type Key = Note[] // semantic distinction only, unfortunately
 type Notes = Note[]
-type NoteSet = Set<Note>
 
 function arrayShift<A>(arr: A[], count: number): A[] {
   const len = arr.length
@@ -28,8 +27,8 @@ function arrayShift<A>(arr: A[], count: number): A[] {
   return arr
 }
 
-function semi(n: Note): number {
-  return 4 + n.octave * 12 + namesSemiMap[n.name] + n.alter
+export function semi(n: Note): number {
+  return 4 + (n.octave - 1) * 12 + namesSemiMap[n.name] + n.alter
 }
 
 export function render(n: Note, octave: Boolean = true): string {
@@ -52,6 +51,7 @@ const octave = 7
 const ninth = 8
 
 const c4: Note = parseNote('c')!
+const c1: Note = parseNote('c1')!
 
 export function parseNote(note: string): Note | null {
   const match = note.toLowerCase().match(/^(?<note>[abcdefg])(?<accds>[b#]{0,2})?(?<octave>[0-9])?$/)
@@ -64,6 +64,30 @@ export function parseNote(note: string): Note | null {
   const alter = altersMap[match.groups.accds || ''] as number
 
   return { name, alter, octave }
+}
+
+function hashNote(n: Note): number {
+  return n.name.charCodeAt(0) * 2 + n.alter * 3 + n.octave * 5
+}
+
+// I hate javascript
+function uniqueNotes(n: Notes): Notes {
+  const uniq: Record<number, Note> = {}
+  n.forEach(n => uniq[hashNote(n)] = n)
+  return Object.values(uniq)
+}
+
+const allNotesGenerated: Note[] = allNotes()
+
+export function enharmonics(semiTarget: number): Note[] {
+  const spectrum = uniqueNotes([...allNotesGenerated].map(normalize))
+  const found = spectrum.filter(n => semi(n) % 12 == semiTarget % 12)
+
+  return found.map(n => ({ ...n, octave: semiOctaves(semiTarget) }))
+}
+
+function semiOctaves(semiIn: number): number {
+  return Math.floor((semiIn - semi(c1)) / 12) + 1
 }
 
 function addAccidental(note: Note, accidental: number): Note {
@@ -80,6 +104,10 @@ export function rebase(note: Note, base: Note): Note {
 
 export function normalize(n: Note): Note {
   return rebase(n, c4)
+}
+
+export function rebaseSemi(note: Note, semiBase: number): Note {
+  return rebase(note, enharmonics(semiBase)[0])
 }
 
 // === Keys
@@ -120,7 +148,7 @@ export function keysMajor() {
 
 // === Utilities & Computations
 
-export function findCommonKey(a: number, b: number) {
+export function findCommonKey(a: number, b: number): [Key, [Note, Note]] | undefined {
   var af, bf
   var key = keysMajor().find(k => {
     af = k.find((note: Note) => semi(note) % 12 == a % 12)
@@ -130,7 +158,7 @@ export function findCommonKey(a: number, b: number) {
   })
 
   if (key) {
-    return [key, [af, bf]]
+    return [key, [af!, bf!]]
   } else {
     console.log(`finding common key failed for ${a}/${b}`)
   }
@@ -174,14 +202,18 @@ export function nameLeadingDim7(): string[] {
 //   })
 // }
 
-export function allNotes(): Set<string> {
-  return normalizedNotes(keysMajor().flat())
+export function allNotes(): Notes {
+  return keysMajor().flat()
 }
 
-export function normalizedNotes(k: Notes): Set<string> {
+export function allNotesRendered(): Set<string> {
+  return normalizedNotesRendered(keysMajor().flat())
+}
+
+export function normalizedNotesRendered(k: Notes): Set<string> {
   return Set(k.map(n => render(normalize(n), false)))
 }
 
 export function notesMissing(k: Key, l: Key): Set<string> {
-  return allNotes().subtract(normalizedNotes(k).union(normalizedNotes(l)))
+  return allNotesRendered().subtract(normalizedNotesRendered(k).union(normalizedNotesRendered(l)))
 }

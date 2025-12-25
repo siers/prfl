@@ -5,7 +5,7 @@ import { chunk } from '../lib/Array'
 
 function Missing(controls) {
   return fromProducer(controls, () => {
-    const keys = shuffleArray(ToneLib.keysMajor().map(k => ToneLib.renderNote(k[0], false)))
+    const keys = shuffleArray(ToneLib.keysMajor().map(k => ToneLib.render(k[0], false)))
     const [missing, ...remaining] = keys
     const presents = chunk(remaining, 4).map(c => c.join(' ')).join('<br>')
     return [presents, presents + '<br><br>' + missing]

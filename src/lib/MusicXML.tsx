@@ -42,8 +42,8 @@ function attributes() {
 
 export function slurMarkers(n) {
   return [
-    new elements.Slur({attributes: {type: 'start', number: n}}),
-    new elements.Slur({attributes: {type: 'stop', number: n}}),
+    new elements.Slur({ attributes: { type: 'start', number: n } }),
+    new elements.Slur({ attributes: { type: 'stop', number: n } }),
   ]
 }
 
@@ -54,11 +54,11 @@ export function note(note, duration, opts) {
 
   const noteheadContents = o.notehead ? [o.notehead] : null
   const notehead = (o.color || o.filled || noteheadContents)
-    && new elements.Notehead({attributes: {color: o.color, filled: o.filled}, contents: noteheadContents})
+    && new elements.Notehead({ attributes: { color: o.color, filled: o.filled }, contents: noteheadContents })
     || null
 
-  const bowing = {down: new elements.DownBow(), up: new elements.UpBow()}[o.bowing]
-  const down = o.bowing ? new elements.Technical({contents: [[bowing]]}) : null
+  const bowing = { down: new elements.DownBow(), up: new elements.UpBow() }[o.bowing]
+  const down = o.bowing ? new elements.Technical({ contents: [[bowing]] }) : null
 
   const notations =
     new elements.Notations({
@@ -69,8 +69,7 @@ export function note(note, duration, opts) {
       ]
     })
 
-  const alter = ToneLib.getAlter(note)
-  const accidental = alter == 0 ? null : new elements.Alter({contents: [alter]})
+  const accidental = note.alter == 0 ? null : new elements.Alter({ contents: [note.alter] })
 
   return new elements.Note({
     contents: [
@@ -79,11 +78,11 @@ export function note(note, duration, opts) {
         new elements.Pitch({
           contents: [
             new elements.Step({
-              contents: [ToneLib.getName(note)],
+              contents: [note.name.toUpperCase()],
             }),
             accidental,
             new elements.Octave({
-              contents: [ToneLib.getOctave(note)],
+              contents: [note.octave],
             }),
           ],
         }),
@@ -131,37 +130,37 @@ export function notesToMusic(measures) {
     )
 
   musicXml
-  .getRoot()
-  .setPartList(
-    new elements.PartList({
-      contents: [
-        new Array<elements.PartGroup>(),
-        new elements.ScorePart({
-          attributes: { id: 'P1' },
-          contents: [
-            null, // elements.Identification
-            new Array<elements.PartLink>(),
-            new elements.PartName({ contents: ['Part 1'] }),
-            null, // elements.PartNameDisplay
-            null, // elements.PartAbbreviation
-            null, // elements.PartAbbreviationDisplay
-            new Array<elements.Group>(),
-            new Array<elements.ScoreInstrument>(),
-            new Array<elements.Player>(),
-            new Array<elements.MidiDevice | elements.MidiInstrument>(),
-          ],
-        }),
-        new Array<elements.PartGroup | elements.ScorePart>(),
-      ],
-    })
-  )
-  .setParts([
-    new elements.PartPartwise({
-      attributes: { id: 'P1' },
-    }).setMeasures([
-      ...measuresWithAttributes
-    ]),
-  ])
+    .getRoot()
+    .setPartList(
+      new elements.PartList({
+        contents: [
+          new Array<elements.PartGroup>(),
+          new elements.ScorePart({
+            attributes: { id: 'P1' },
+            contents: [
+              null, // elements.Identification
+              new Array<elements.PartLink>(),
+              new elements.PartName({ contents: ['Part 1'] }),
+              null, // elements.PartNameDisplay
+              null, // elements.PartAbbreviation
+              null, // elements.PartAbbreviationDisplay
+              new Array<elements.Group>(),
+              new Array<elements.ScoreInstrument>(),
+              new Array<elements.Player>(),
+              new Array<elements.MidiDevice | elements.MidiInstrument>(),
+            ],
+          }),
+          new Array<elements.PartGroup | elements.ScorePart>(),
+        ],
+      })
+    )
+    .setParts([
+      new elements.PartPartwise({
+        attributes: { id: 'P1' },
+      }).setMeasures([
+        ...measuresWithAttributes
+      ]),
+    ])
 
   return musicXml.serialize()
 }

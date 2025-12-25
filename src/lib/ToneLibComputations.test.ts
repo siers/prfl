@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { allNotes, keysMajor, majorKey, nameLeadingDim7, normalizedNotes, notesMissing, parseNote, render } from './ToneLib.ts'
+import { allNotesRendered, keysMajor, majorKey, nameLeadingDim7, notesMissing, parseNote, render } from './ToneLib.ts'
 import Immutable from 'immutable'
 
 function pad(str: string, size: number, with_: string): string {
@@ -9,6 +9,11 @@ function pad(str: string, size: number, with_: string): string {
 }
 
 describe('ToneLib computations', () => {
+  test('allNotes', () => {
+    expect([...allNotesRendered()]).toStrictEqual(
+      ["C#", "Bb", "A", "Ab", "A#", "B", "C", "D", "E", "F", "G", "Gb", "G#", "F#", "Eb", "E#", "Db", "D#", "Cb"])
+  })
+
   test('keysMajor', () => {
     expect(keysMajor().map(k => k.map(n => pad(render(n), 4, ' ')).join(' '))).toStrictEqual(
       [

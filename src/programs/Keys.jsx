@@ -11,7 +11,7 @@ function Keys(controls) {
       </div>
 
       {fromProducer(controls, () => {
-        const keys = ToneLib.keysMajor().map(k => k[0].render)
+        const keys = ToneLib.keysMajor().map(k => ToneLib.render(k[0]))
         const chunkSize = parseInt(controls.state?.chunks || 1)
         return chunk(shuffleArray(keys), chunkSize).map(ks => ks.join(', '))
       })}
