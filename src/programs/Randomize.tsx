@@ -48,3 +48,10 @@ function Randomize(controls) {
 }
 
 export default Randomize
+
+// TODO: chunk the whole per 10
+// TODO: turing complete templating with predefined combo functions
+// Lang: chunking per piece
+// Lang: {} shouldn't be parsed within [], add parser combinators
+// TODO: make programmable scales
+// TODO: make the list loadable on a splitscreen
