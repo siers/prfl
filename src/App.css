@@ -47,6 +47,7 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=flash] { display: block; }
 .wrap[data-mode=flash] .content { display: block; height: 100%;  transform: none; }
 .wrap[data-mode=flash] .content .directory { margin-bottom: 5px; }
+.wrap[data-mode=flash] #card:not(:fullscreen) .progress { display: none; }
 
 .wrap[data-mode=randomize] ::selection { background: #eeeeff; }
 

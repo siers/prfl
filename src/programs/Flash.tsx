@@ -55,11 +55,14 @@ function Flash(controls) {
       </div>
 
       {next &&
-        <div id="card" className="block flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full" style={{ backgroundImage: `url(${encodeURI(next)})` }}>
+        <div id="card" className="flex-1 m-auto bg-contain bg-center bg-no-repeat w-full h-full flex flex-col justify-end" style={{ backgroundImage: `url(${encodeURI(next)})` }}>
+          <div className="progress w-full h-[4px] mb-[5px]">
+            <div className="h-full bg-[#ccf]" style={({ width: `${perc.toFixed(2)}%` })} />
+          </div>
         </div>
       }
 
-      <div className="h-[3px] mb-[5px]">
+      <div className="w-full h-[4px] mb-[5px]">
         <div className="h-full bg-[#ccf]" style={({ width: `${perc.toFixed(2)}%` })} />
       </div>
     </div>
