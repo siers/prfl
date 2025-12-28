@@ -55,3 +55,4 @@ export default Randomize
 // Lang: {} shouldn't be parsed within [], add parser combinators
 // TODO: make programmable scales
 // TODO: make the list loadable on a splitscreen
+// TODO: 2x = (1/2) + (2/2)
