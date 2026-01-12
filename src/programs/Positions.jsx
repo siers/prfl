@@ -35,7 +35,7 @@ function Positions({ state, setState, advance }) {
         // console.log('target', n.target)
         // console.log('base', n.base)
 
-        notes[0][2] = { ...notes[0][2], bowing: state.withBowings ? bowing : null, color: '#000000' }
+        notes[0][2] = { ...notes[0][2], bowing: state.withBowings ? pick(['up', 'down']) : null, color: '#000000' }
         range(1, notes.length - 1).map(idx => notes[idx][2] = ({ ...notes[idx][2], tied: true }))
 
         return notes.map(args => note(...args))
