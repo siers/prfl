@@ -22,20 +22,19 @@ function Positions({ state, setState, advance }) {
   }
 
   function positionsToMusic(measures) {
-    return notesToMusic(measures.map(notes =>
-      notes.flatMap((n, _) => {
-        const bowing = { 'V': 'up', 'Π': 'down' }[n.bowing]
+    const notes = measures.map(m => m.length).reduce((a, b) => a + b)
+    const bowingTemplate = s => new Array(notes / 2).fill(s)
+    const bowings = shuffleArray(bowingTemplate('up').concat(bowingTemplate('down')))
+
+    return notesToMusic(measures.map((notes, mIdx) =>
+      notes.flatMap((n, idx) => {
         const notes = [
           ...(state?.withoutTopNote ? [] : [[n.target, 1, { color: '#000000' }]]),
           ...(state?.withoutBottomNote ? [] : [[n.base, 1, { color: '#999999' }]]),
           [ToneLib.parseNote(n.string), 1, { color: '#000000', notehead: 'x' }],
         ]
 
-        // console.log(ToneLib.parseNote(n.string), 1, { color: '#000000', notehead: 'x' },)
-        // console.log('target', n.target)
-        // console.log('base', n.base)
-
-        notes[0][2] = { ...notes[0][2], bowing: state.withBowings ? pick(['up', 'down']) : null, color: '#000000' }
+        notes[0][2] = { ...notes[0][2], bowing: state.withBowings ? bowings[mIdx * 4 + idx] : null, color: '#000000' }
         range(1, notes.length - 1).map(idx => notes[idx][2] = ({ ...notes[idx][2], tied: true }))
 
         return notes.map(args => note(...args))
