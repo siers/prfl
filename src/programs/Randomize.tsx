@@ -1,26 +1,21 @@
 import { shuffleArray, shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random'
 import { times } from '../lib/Array'
-import { parseContents } from './RandomizeLang.js'
+import { parseAndShuffle } from './RandomizeLang.js'
 
 
 function Randomize(controls) {
-  const {state, setState, advance} = controls
+  const { state, setState, advance } = controls
 
   const distance = state?.distance || 0
-
-  function theShuffle(lines, distance) {
-    return shuffleMinDistanceIndexed(lines, distance)
-  }
 
   function newAndRecalculate(newContents, newDistance) {
     setState(s => {
       const contentsOr = newContents === '' ? newContents : (newContents || state?.text || '')
       const distanceOr = parseInt(newDistance || distance)
 
-      const parsed = parseContents(contentsOr)
-      const output = theShuffle(parsed, distanceOr).join('\n')
+      const output = parseAndShuffle(contentsOr, distanceOr)
 
-      return {...s, text: contentsOr, distance: distanceOr, output: output}
+      return { ...s, text: contentsOr, distance: distanceOr, output: output }
     })
   }
 
@@ -56,3 +51,5 @@ export default Randomize
 // TODO: make programmable scales
 // TODO: make the list loadable on a splitscreen
 // TODO: 2x = (1/2) + (2/2)
+
+// TODO: make brackets evaluate actual javascript, enable combinatorial functions (mirrors, repetitions, splits)

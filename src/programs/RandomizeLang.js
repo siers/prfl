@@ -1,4 +1,4 @@
-import { shuffleArray } from '../lib/Random'
+import { shuffleArray, shuffleMinDistanceIndexed } from '../lib/Random'
 import { times } from '../lib/Array'
 
 const marker = 'XZYZX'
@@ -39,9 +39,15 @@ export function localCombinations(line) {
 }
 
 export function parseContents(text) {
-  const lines = text.split('\n').filter(x => !x.match(/^ *$/))
+  return text.split(/\n---\n/).map(text => {
+    const lines = text.split('\n').filter(x => !x.match(/^ *$/))
+    return multiplyLines(lines.flatMap(generateCombinations)).map(([i, l]) => [i, localCombinations(l)])
+  })
+}
 
-  return multiplyLines(lines.flatMap(generateCombinations)).map(([i, l]) => [i, localCombinations(l)])
+export function parseAndShuffle(text, distance) {
+  const indexedLineBlocks = parseContents(text)
+  return indexedLineBlocks.map(ls => shuffleMinDistanceIndexed(ls, distance).join('\n')).join('\n---\n')
 }
 
 // multiplies lines if they have "3x" in front of them

@@ -53,7 +53,8 @@ export function shuffleMinDistanceIndexed(array, min) {
     }
   }
 
-  return array.map(_ => 'x') // make failure clearly visible
+  // playing with fire here
+  return shuffleMinDistanceIndexed(array, min - 1)
 }
 
 export function shuffleMinDistance(array, min) {

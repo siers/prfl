@@ -3,8 +3,8 @@ import { parseContents, generateCombinations, localCombinations } from './Random
 
 describe('parseContents', () => {
   test('basic', () => {
-    expect(parseContents('')).toStrictEqual([])
-    expect(parseContents('a')).toStrictEqual([[0, 'a']])
+    expect(parseContents('')).toStrictEqual([[]])
+    expect(parseContents('a')).toStrictEqual([[[0, 'a']]])
   })
 
   test('copies', () => {
@@ -13,31 +13,49 @@ describe('parseContents', () => {
       2x b
     `.replaceAll(/^ */mg, '')
 
-    expect(parseContents(text)).toStrictEqual([
+    expect(parseContents(text)).toStrictEqual([[
       [0, 'a'],
       [1, 'b'],
       [1, 'b'],
-    ])
+    ]])
   })
 
   test('groups', () => {
-    expect(parseContents('{a,b}')).toStrictEqual([
+    expect(parseContents('{a,b}')).toStrictEqual([[
       [0, 'a'],
       [1, 'b'],
-    ])
+    ]])
   })
 
   test('groups multiplied', () => {
-    expect(parseContents('1x {a,b}')).toStrictEqual([
+    expect(parseContents('1x {a,b}')).toStrictEqual([[
       [0, 'a'],
       [1, 'b'],
-    ])
+    ]])
 
-    expect(parseContents('2x {a,b}')).toStrictEqual([
+    expect(parseContents('2x {a,b}')).toStrictEqual([[
       [0, 'a'],
       [0, 'a'],
       [1, 'b'],
       [1, 'b'],
+    ]])
+  })
+
+  test('chunks', () => {
+    const text = `
+      a
+      ---
+      2x b
+    `.replaceAll(/^ */mg, '')
+
+    expect(parseContents(text)).toStrictEqual([
+      [
+        [0, 'a'],
+      ],
+      [
+        [0, 'b'],
+        [0, 'b'],
+      ],
     ])
   })
 })
