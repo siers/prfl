@@ -15,6 +15,7 @@
     "@stringsync/musicxml": "^0.2.1",
     "@tailwindcss/vite": "^4.1.18",
     "immutable": "^5.1.4",
+    "lodash": "^4.17.21",
     "opensheetmusicdisplay": "^1.9.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@types/lodash": "^4.17.23",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",

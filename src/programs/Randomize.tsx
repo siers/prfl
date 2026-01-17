@@ -52,4 +52,8 @@ export default Randomize
 // TODO: make the list loadable on a splitscreen
 // TODO: 2x = (1/2) + (2/2)
 
-// TODO: make brackets evaluate actual javascript, enable combinatorial functions (mirrors, repetitions, splits)
+// TODO: make brackets evaluate actual javascript, [] is inline list, {} is jq style '.[] inversion'
+// TODO: brackets: enable combinatorial functions (mirrors, repetitions, splits)
+// TODO: named lists
+// TODO: feed into flash
+// TODO: repetition, interleaving functions
