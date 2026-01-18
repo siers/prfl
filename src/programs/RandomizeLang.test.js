@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContents } from './RandomizeLang.js'
+import { initSequences, evalContents, parseContents } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -30,6 +30,18 @@ describe('evalContents', () => {
       'c',
       'd',
     ])
+  })
+
+  test('block context', () => {
+    const text = `
+      -=- a
+      a
+      b
+      -=-
+      [context.get('a')]
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual(['[a b]'])
   })
 
   test('copies', () => {
