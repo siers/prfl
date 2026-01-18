@@ -30,6 +30,17 @@ function isStringArray(value: any): value is string[] {
   return true;
 }
 
+function isArrayStringArray(value: any): value is string[][] {
+  if (!Array.isArray(value)) return false;
+  if (!value.every(value => Array.isArray(value))) return false;
+  for (const array of value) {
+    for (const item of array) {
+      if (typeof item !== 'string') return false;
+    }
+  }
+  return true;
+}
+
 // abac => ab ac
 export const initSequences = <A>(lines: A[], finder: (_: A) => boolean): A[][] => {
   const groups = []
@@ -175,7 +186,7 @@ export function evalEvals(line: string, marker: string, e: Eval, context: Contex
     let out
 
     try {
-      if (typeof repl === 'object' && repl['every'] && repl['every'](a => typeof a === 'string')) {
+      if (typeof repl === 'object' && repl['every'] && repl['every']((a: any) => typeof a === 'string')) {
         out = repl.join(' ')
       }
       else {
@@ -191,7 +202,14 @@ export function evalEvals(line: string, marker: string, e: Eval, context: Contex
   }
 
   if (e.kind == 'explode') {
-    if (isStringArray(repl)) return (repl as string[]).map(r => line.replace(marker, `[${r}]`))
+    if (isStringArray(repl)) {
+      return (repl as string[]).map(r => line.replace(marker, `[${r}]`))
+    }
+
+    if (isArrayStringArray(repl)) {
+      return (repl.map(c => c.join(' '))).map(r => line.replace(marker, `[${r}]`))
+    }
+
     else return [`explode requires string[], got ${typeof repl}`]
   }
 

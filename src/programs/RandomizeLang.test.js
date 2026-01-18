@@ -54,5 +54,7 @@ describe('evalContents', () => {
 
   test('eval explode', () => {
     expect(evalContents('-=-\nitem {s("abc")}')).toStrictEqual(['item [a]', 'item [b]', 'item [c]'])
+    expect(evalContents('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])
+    expect(evalContents('-=-\nitem {divide(s("abcd"), 2)}')).toStrictEqual(['item [a b]', 'item [c d]'])
   })
 })
