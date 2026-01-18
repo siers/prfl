@@ -1,5 +1,5 @@
 export const randomizeLangUtils = {
-  times: <A>(a: A, n: number): A[] => {
+  times: <A>(n: number, a: A): A[] => {
     return Array(n).fill(a)
   }
 }

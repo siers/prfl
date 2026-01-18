@@ -31,3 +31,5 @@ export function indices<A>(as: A[]): number[] {
 export function reorderIndices<A>(lines: A[], indices: number[]) {
   return indices.map(i => lines[i])
 }
+
+export const intersperse = <A>(arr: A[], sep: A) => arr.reduce((a, v) => [...a, v, sep], [] as A[]).slice(0, -1)

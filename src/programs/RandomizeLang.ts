@@ -1,19 +1,33 @@
-// import { shuffleArray, shuffleMinDistanceIndexed } from '../lib/Random'
-import { times, zipWithIndex } from '../lib/Array'
+// import { shuffleMinDistanceIndexed } from '../lib/ShuffleVibe.js'
+import { shuffleMinDistanceIndexed } from '../lib/Random.js'
+import { times, intersperse } from '../lib/Array'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
 
 // lib
 
-function executeInContext<A>(context: Object, f: string): A {
+function executeInContext<A>(context: Object, f: string): A | { kind: 'error', contents: string } | null {
   const keys = Object.keys(context);
   const values = Object.values(context);
-  const fn = new Function(...keys, `return ${f.toString()};`);
-  return fn(...values);
+  try {
+    const fn = new Function(...keys, `return ${f.toString()};`);
+    return fn(...values);
+  } catch (e) {
+    console.error(e)
+    return { kind: 'error', contents: `error: ${e?.toString()}` }
+  }
 }
 
 function pipe<A>(a: A, ...fns: ((a: A) => A)[]): A {
   return fns.reduce((a, f) => f(a), a)
+}
+
+function isStringArray(value: any): value is string[] {
+  if (!Array.isArray(value)) return false;
+  for (const item of value) {
+    if (typeof item !== 'string') return false;
+  }
+  return true;
 }
 
 // abac => ab ac
@@ -153,50 +167,52 @@ export function parseContents(text: string): Parsed {
   return { named, main }
 }
 
-export function evalExplodes(line: string, marker: string, e: Explode): string[] {
-  const replacements: [string] = executeInContext(randomizeLangUtils, e.command)
-  return replacements.map(r => line.replace(marker, r))
+export function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
+  const replacements: any = executeInContext({ context, ...randomizeLangUtils }, e.command)
+  if (replacements?.kind === 'error') return [`failed to compile: ${replacements?.contents}}`]
+
+  if (e.kind == 'interpolate') {
+    if (typeof replacements === 'string') return [line.replace(marker, replacements as string)]
+    else return [`interpolate requires string, got ${typeof replacements}`]
+  }
+
+  if (e.kind == 'explode') {
+    if (isStringArray(replacements)) return (replacements as string[]).map(r => line.replace(marker, r))
+    else return [`explode requires string[], got ${typeof replacements}`]
+  }
+
+  return [] // e.kind is never and both if branches are full, so this shouldn't be possible
 }
 
-export function evalInterpolate(line: string, marker: string, i: Interpolate): string {
-  const replacement: string = executeInContext(randomizeLangUtils, i.command)
-  return line.replace(marker, replacement)
-}
-
-export function evalItem(item: Item, _context: Context): string[] {
+export function evalItem(item: Item, context: Context): string[] {
   if (item.kind == 'header') return []
   if (item.kind == 'line') {
-    const [interpolates, explodes] = _.partition(item.evals, ([_m, e]) => e.kind == 'interpolate')
+    const [is, es] = _.partition(item.evals, ([_m, e]) => e.kind == 'interpolate')
 
     return pipe(
       times(item.times).map(_ => item.contents),
-      lines => explodes.reduce((lines, [m, e]) => lines.flatMap(l => evalExplodes(l, m, e as Explode)), lines),
-      lines => interpolates.reduce((lines, [m, i]) => lines.map(l => evalInterpolate(l, m, i as Interpolate)), lines),
+      lines => es.reduce((lines, [m, e]) => lines.flatMap(l => evalEvals(l, m, e, context)), lines),
+      lines => is.reduce((lines, [m, i]) => lines.flatMap(l => evalEvals(l, m, i, context)), lines),
     )
   }
   return []
 }
 
 function evalBlock(block: Block, context: Context): string[] {
-  return block.items.flatMap(item => evalItem(item, context))
+  const lines: [number, string][] =
+    block.items.flatMap((item, index) => {
+      return evalItem(item, context).map<[number, string]>(l => [index, l])
+    })
+
+  return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 2) : lines.map(([_i, l]) => l)
 }
 
-export function evalContentsIndexless(text: string): string[] {
+export function evalContents(text: string): string[] {
   const { named, main } = parseContents(text)
 
   const namedBlocks = named.map<[string, string[]]>(b => [b.header.name || '', evalBlock(b, new Map())])
   const namedMap: Context = new Map<string, string[]>(namedBlocks)
   const mainBlocks = main.map(b => evalBlock(b, namedMap))
 
-  return mainBlocks.flat()
+  return intersperse(mainBlocks, ['---']).flat()
 }
-
-// compat
-export function evalContents(text: string): [number, string][] {
-  return zipWithIndex(evalContentsIndexless(text))
-}
-
-// export function parseAndShuffle(text, distance) {
-//   const indexedLineBlocks = parseContents(text)
-//   return indexedLineBlocks.map(ls => shuffleMinDistanceIndexed(ls, distance).join('\n')).join('\n---\n')
-// }

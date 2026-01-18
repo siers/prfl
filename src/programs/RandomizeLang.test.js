@@ -10,19 +10,20 @@ test('initSequences', () => {
 describe('evalContents', () => {
   test('basic', () => {
     expect(evalContents('')).toStrictEqual([])
-    expect(evalContents('a')).toStrictEqual([[0, 'a']])
+    expect(evalContents('a')).toStrictEqual(['a'])
   })
 
   test('copies', () => {
     const text = `
+      -=-
       a
       2x b
     `.replaceAll(/^ */mg, '')
 
     expect(evalContents(text)).toStrictEqual([
-      [0, 'a'],
-      [1, 'b'],
-      [2, 'b'],
+      'a',
+      'b',
+      'b',
     ])
   })
 
