@@ -13,6 +13,25 @@ describe('evalContents', () => {
     expect(evalContents('a')).toStrictEqual(['a'])
   })
 
+  test('blocks', () => {
+    const text = `
+      -=-
+      a
+      b
+      -=-
+      c
+      d
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual([
+      'a',
+      'b',
+      '---',
+      'c',
+      'd',
+    ])
+  })
+
   test('copies', () => {
     const text = `
       -=-
@@ -27,15 +46,13 @@ describe('evalContents', () => {
     ])
   })
 
-  // test('blocks', () => {
-  //   expect(evalContents('1x a')).toStrictEqual([
-  //     [0, 'a'],
-  //     [1, 'a'],
-  //   ])
+  test('eval interpolate', () => {
+    expect(evalContents('item [1]')).toStrictEqual(['item [1]'])
+    expect(evalContents('item ["a"]')).toStrictEqual(['item [a]'])
+    expect(evalContents('item [s("a b")]')).toStrictEqual(['item [a b]'])
+  })
 
-  //   expect(evalContents('2x a')).toStrictEqual([
-  //     [0, 'a'],
-  //     [1, 'a'],
-  //   ])
-  // })
+  test('eval explode', () => {
+    expect(evalContents('-=-\nitem {s("abc")}')).toStrictEqual(['item [a]', 'item [b]', 'item [c]'])
+  })
 })

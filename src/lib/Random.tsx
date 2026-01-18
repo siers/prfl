@@ -1,14 +1,14 @@
 import { directRangeClamp, zipWithIndex } from './Array'
 
-function randInt(from, to) {
+function randInt(from: number, to: number) {
   return from + Math.floor(Math.random() * (to - from + 1))
 }
 
-export function pick(array) {
+export function pick<A>(array: A[]) {
   return array[randInt(0, array.length - 1)]
 }
 
-export function shuffleArray(array) {
+export function shuffleArray<A>(array: A[]) {
   for (var i = array.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1))
     var temp = array[i]
@@ -18,7 +18,7 @@ export function shuffleArray(array) {
   return array
 }
 
-function surroundingIndices(array, index, distance) {
+function surroundingIndices<A>(array: A[], index: number, distance: number) {
   return [
     directRangeClamp(0, array.length - 1, index - distance, index - 1),
     directRangeClamp(0, array.length - 1, index + 1, index + distance),
@@ -29,7 +29,7 @@ function surroundingIndices(array, index, distance) {
 // pretty weak, perhaps the problem is too hard as such
 // input: array: [(index, item)]
 // design idea: generate N solutions, count violations, pick best ones, attempt to repair
-export function shuffleMinDistanceIndexed(array, min) {
+export function shuffleMinDistanceIndexed<A>(array: [number, A][], min: number) {
   const maxAttempts = 100000
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -57,6 +57,6 @@ export function shuffleMinDistanceIndexed(array, min) {
   return shuffleMinDistanceIndexed(array, min - 1)
 }
 
-export function shuffleMinDistance(array, min) {
+export function shuffleMinDistance<A>(array: A[], min: number) {
   return shuffleMinDistanceIndexed(zipWithIndex(array), min)
 }

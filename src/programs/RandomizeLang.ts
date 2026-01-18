@@ -168,17 +168,31 @@ export function parseContents(text: string): Parsed {
 }
 
 export function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
-  const replacements: any = executeInContext({ context, ...randomizeLangUtils }, e.command)
-  if (replacements?.kind === 'error') return [`failed to compile: ${replacements?.contents}}`]
+  const repl: any = executeInContext({ context, ...randomizeLangUtils() }, e.command)
+  if (repl?.kind === 'error') return [`failed to compile: ${repl?.contents}}`]
 
   if (e.kind == 'interpolate') {
-    if (typeof replacements === 'string') return [line.replace(marker, replacements as string)]
-    else return [`interpolate requires string, got ${typeof replacements}`]
+    let out
+
+    try {
+      if (typeof repl === 'object' && repl['every'] && repl['every'](a => typeof a === 'string')) {
+        out = repl.join(' ')
+      }
+      else {
+        out = repl.toString()
+      }
+    } catch (e) {
+      out = 'x'
+    }
+
+    return [line.replace(marker, `[${out}]`)]
+    // if (typeof repl === 'string')
+    // else return [`interpolate requires string, got ${typeof repl}`]
   }
 
   if (e.kind == 'explode') {
-    if (isStringArray(replacements)) return (replacements as string[]).map(r => line.replace(marker, r))
-    else return [`explode requires string[], got ${typeof replacements}`]
+    if (isStringArray(repl)) return (repl as string[]).map(r => line.replace(marker, `[${r}]`))
+    else return [`explode requires string[], got ${typeof repl}`]
   }
 
   return [] // e.kind is never and both if branches are full, so this shouldn't be possible
@@ -204,7 +218,7 @@ function evalBlock(block: Block, context: Context): string[] {
       return evalItem(item, context).map<[number, string]>(l => [index, l])
     })
 
-  return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 2) : lines.map(([_i, l]) => l)
+  return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
 export function evalContents(text: string): string[] {
