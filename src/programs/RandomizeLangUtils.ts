@@ -1,10 +1,11 @@
 import { pick, shuffleMinDistance } from "../lib/Random"
+import { intersperse, interspersing, interleavingEvery } from '../lib/Array'
 
 export type Interface = {
   s: (s: string) => string[],
   ss: (s: string) => string[],
   cross: (sentence: string) => string[],
-  times: <A>(n: number, a: A) => A[],
+  times: <A>(a: A[], n: number) => A[],
   parts: (n: number, m?: number) => string[],
   divide: <A>(as: A[], parts: number) => A[][],
   partChunks: (part: number, chunk: number, offset?: number) => string[][],
@@ -13,14 +14,21 @@ export type Interface = {
   j: <A>(as: A[]) => string,
   jj: <A>(as: A[][]) => string,
   zip: (...as: string[][]) => string[],
+  intersperse: <A>(arr: A[], sep: A) => A[],
+  interspersing: <A>(arr: A[], sep: A[]) => A[],
+  interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
   shuffle: <A>(a: A[]) => A[],
   pick: <A>(array: A[]) => A,
+  context: Map<string, string[]> | null,
+  block: ((name: string) => string[] | undefined) | null,
+  aba: (as: string[], bs: string[]) => string[],
 }
 
-export function randomizeLangUtils(): Interface {
+export function randomizeLangUtils(context: Map<string, string[]>): Interface {
   function s(s: string): string[] {
-    if (s.indexOf(' ') === -1) return s.split('')
-    else return s.split(' ')
+    if (s.indexOf(',') !== -1) return s.split(/ *, */)
+    if (s.indexOf(' ') !== -1) return s.split(' ')
+    else return s.split('')
   }
 
   function ss(sentence: string): string[] {
@@ -37,7 +45,7 @@ export function randomizeLangUtils(): Interface {
     }
   }
 
-  function times<A>(n: number, a: A): A[] {
+  function times<A>(a: A[], n: number): A[] {
     return Array(n).fill(a)
   }
 
@@ -71,10 +79,6 @@ export function randomizeLangUtils(): Interface {
     return as.map(a => a.join(' ')).join(', ')
   }
 
-  // function zipT<A>(as: A[], bs: A[]): [A, A][] {
-  //   return as.flatMap((_, i) => bs[i] ? [[as[i], bs[i]]] : [])
-  // }
-
   function zip(...ass: string[][]): string[] {
     const minLength = ass.map(as => as.length).reduce((prev, next) => Math.min(prev, next), 100000)
     const width = Array(ass.length).fill(null).map((_, idx) => idx)
@@ -83,6 +87,15 @@ export function randomizeLangUtils(): Interface {
 
   function shuffle<A>(a: A[]): A[] {
     return shuffleMinDistance(a, 1)
+  }
+
+  function block(name: string): string[] | undefined {
+    return context.get(name)
+  }
+
+  function aba(as: string[], bs: string[]): string[] {
+    const [a1, a2] = divide(as, 2)
+    return [...a1, '---', ...bs, '---', ...a2]
   }
 
   return {
@@ -96,9 +109,15 @@ export function randomizeLangUtils(): Interface {
     partChunksJS,
     shuffle,
     zip,
+    intersperse,
+    interspersing,
+    interleavingEvery,
     pick,
     mj,
     j,
     jj,
+    context,
+    block,
+    aba,
   }
 }

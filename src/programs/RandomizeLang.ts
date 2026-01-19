@@ -7,11 +7,13 @@ import { randomizeLangUtils } from './RandomizeLangUtils'
 // lib
 
 function executeInContext<A>(context: Object, f: string): A | { kind: 'error', contents: string } | null {
-  const keys = Object.keys(context);
-  const values = Object.values(context);
+  const keys = Object.keys(context)
+  const values = Object.values(context)
   try {
-    const fn = new Function(...keys, `return ${f.toString()};`);
-    return fn(...values);
+    const code = f.toString()
+    const body = code.indexOf(';') !== -1 ? code : `return ${f.toString()};`
+    const fn = new Function(...keys, body)
+    return fn(...values)
   } catch (e) {
     console.error(e)
     return { kind: 'error', contents: `error: ${e?.toString()}` }
@@ -52,7 +54,7 @@ export const initSequences = <A>(lines: A[], finder: (_: A) => boolean): A[][] =
     groups.push(lines.slice(0, index))
     lines = lines.slice(index)
 
-    if (!found || found == -1) break
+    if (found == -1) break
   } while (true)
 
   return groups
@@ -212,7 +214,7 @@ function substituteExplode(line: string, marker: string, subst: any) {
 }
 
 function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
-  const subst: any = executeInContext({ context, ...randomizeLangUtils() }, e.command)
+  const subst: any = executeInContext(randomizeLangUtils(context), e.command)
   if (subst?.kind === 'error') return [`failed to compile: ${subst?.contents}}`]
 
   if (e.kind == 'interpolate') return substituteInterpolate(line, marker, subst)

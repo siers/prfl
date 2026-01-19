@@ -1,5 +1,8 @@
-import { shuffleArray, shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random'
 import { evalContents } from './RandomizeLang.js'
+
+function hm(m: number): string {
+  return `${Math.floor(m / 60)}h${m % 60}`
+}
 
 function Randomize(controls: any) {
   const { state, setState } = controls
@@ -12,8 +15,10 @@ function Randomize(controls: any) {
       const distanceOr = parseInt(newDistance || distance)
 
       const output = evalContents(contentsOr).join('\n')
+      const outLineCount = output.split('\n').filter(a => a !== '---').length
 
-      return { ...s, text: contentsOr, distance: distanceOr, output: output }
+      return {
+        ...s, text: contentsOr, distance: distanceOr, output: output, outLineCount }
     })
   }
 
@@ -34,7 +39,9 @@ function Randomize(controls: any) {
       </div>
 
       <div className="pl-[10px]">
-        <a onClick={() => newAndRecalculate()}>🔄</a> <a onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
+        <a className="pr-3" onClick={() => newAndRecalculate()}>🔄</a>
+        <a className="pr-3" onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
+        <span className="pr-3">{state.outLineCount} * 4min = {hm(state.outLineCount * 4)}</span>
       </div>
     </div>
   )
@@ -43,15 +50,14 @@ function Randomize(controls: any) {
 export default Randomize
 
 // TODO: chunk the whole per 10
-// TODO: turing complete templating with predefined combo functions
-// Lang: chunking per piece
-// Lang: {} shouldn't be parsed within [], add parser combinators
+// TODO: allow escaping brackets inside brackets
 // TODO: make programmable scales
-// TODO: make the list loadable on a splitscreen
-// TODO: 2x = (1/2) + (2/2)
+// TODO: execution view for the rendered program
+// TODO: time tracker & adding comments to update the original item
+// TODO: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
+// TODO: s split on comma
 
-// TODO: make brackets evaluate actual javascript, [] is inline list, {} is jq style '.[] inversion'
-// TODO: brackets: enable combinatorial functions (mirrors, repetitions, splits)
-// TODO: named lists
-// TODO: feed into flash
-// TODO: repetition, interleaving functions
+// TODO: brackets: enable combinatorial functions (remove mirror copies)
+
+// TODO content: figure out content (and/or utils) for interleave situps
+// TODO content: pieces into their own lists, extract portions into the main

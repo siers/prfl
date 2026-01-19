@@ -13,12 +13,13 @@ const {
   jj,
   zip,
   shuffle,
-} = randomizeLangUtils()
+} = randomizeLangUtils(new Map())
 
 test('s', () => {
   expect(s('')).toStrictEqual([])
   expect(s('GDAE')).toStrictEqual(['G', 'D', 'A', 'E'])
   expect(s('one two three')).toStrictEqual(['one', 'two', 'three'])
+  expect(s('one two, three four')).toStrictEqual(['one two', 'three four'])
 })
 
 test('cross', () => {
@@ -26,7 +27,7 @@ test('cross', () => {
 })
 
 test('times', () => {
-  expect(times(3, 'f')).toStrictEqual(['f', 'f', 'f'])
+  expect(times('f', 3)).toStrictEqual(['f', 'f', 'f'])
 })
 
 test('parts', () => {

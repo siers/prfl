@@ -1,9 +1,17 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContents } from './RandomizeLang.js'
+import { initSequences, evalContents, parseContents } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
     "abb|acc|adddd".split('|').map(c => c.split(''))
+  )
+
+  expect(initSequences('bbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
+    "bb|acc|adddd".split('|').map(c => c.split(''))
+  )
+
+  expect(initSequences('baccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
+    "b|acc|adddd".split('|').map(c => c.split(''))
   )
 })
 
@@ -11,6 +19,22 @@ describe('evalContents', () => {
   test('basic', () => {
     expect(evalContents('')).toStrictEqual([])
     expect(evalContents('a')).toStrictEqual(['a'])
+  })
+
+  test('blocks without initial header', () => {
+    const text = `
+      a
+      -=-
+      b
+      c
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual([
+      'a',
+      '---',
+      'b',
+      'c',
+    ])
   })
 
   test('blocks', () => {
@@ -51,9 +75,11 @@ describe('evalContents', () => {
       b
       -=-
       {context.get('a')}
+      -
+      {block('a')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual(['a', 'b'])
+    expect(evalContents(text)).toStrictEqual(['a', 'b', '-', 'a', 'b'])
   })
 
   test('copies', () => {
@@ -80,5 +106,22 @@ describe('evalContents', () => {
     expect(evalContents('-=-\nitem {s("abc")}')).toStrictEqual(['item a', 'item b', 'item c'])
     expect(evalContents('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])
     expect(evalContents('-=-\nitem {divide(s("abcd"), 2)}')).toStrictEqual(['item [a b]', 'item [c d]'])
+  })
+})
+
+describe('integration', () => {
+  test('aba split', () => {
+    const text = `
+      -=- a
+      1
+      2
+      -=- b
+      3
+      4
+      -=-
+      {[a1,a2]=divide(block('a'), 2); return [...a1, ...block('b'), ...a2]}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual(['1', '3', '4', '2'])
   })
 })

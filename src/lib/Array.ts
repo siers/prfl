@@ -33,3 +33,15 @@ export function reorderIndices<A>(lines: A[], indices: number[]) {
 }
 
 export const intersperse = <A>(arr: A[], sep: A) => arr.reduce((a, v) => [...a, v, sep], [] as A[]).slice(0, -1)
+export const interspersing = <A>(arr: A[], sep: A[]) => arr.reduce((a, v) => [...a, v, ...sep], [] as A[]).slice(0, -(sep.length))
+
+function zipT<A>(as: A[], bs: A[]): [A, A][] {
+  return as.flatMap((_, i) => bs[i] ? [[as[i], bs[i]]] : [])
+}
+
+export function interleavingEvery<A>(into: A[], what: A[], every: number): A[] {
+  const chunks = chunk(into, every)
+  return zipT(chunks, times(chunks.length).map(_ => what)).flatMap(([as, bs]) => {
+    return (as.length == every) ? as.concat(bs) : as
+  })
+}
