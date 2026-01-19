@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContents, parseContents } from './RandomizeLang.js'
+import { initSequences, evalContents } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -32,7 +32,7 @@ describe('evalContents', () => {
     ])
   })
 
-  test('block context', () => {
+  test('block context interpolate', () => {
     const text = `
       -=- a
       a
@@ -42,6 +42,18 @@ describe('evalContents', () => {
     `.replaceAll(/^ */mg, '')
 
     expect(evalContents(text)).toStrictEqual(['[a b]'])
+  })
+
+  test('block context explode', () => {
+    const text = `
+      -=- a
+      a
+      b
+      -=-
+      {context.get('a')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual(['a', 'b'])
   })
 
   test('copies', () => {
@@ -65,7 +77,7 @@ describe('evalContents', () => {
   })
 
   test('eval explode', () => {
-    expect(evalContents('-=-\nitem {s("abc")}')).toStrictEqual(['item [a]', 'item [b]', 'item [c]'])
+    expect(evalContents('-=-\nitem {s("abc")}')).toStrictEqual(['item a', 'item b', 'item c'])
     expect(evalContents('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])
     expect(evalContents('-=-\nitem {divide(s("abcd"), 2)}')).toStrictEqual(['item [a b]', 'item [c d]'])
   })

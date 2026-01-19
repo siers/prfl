@@ -115,7 +115,7 @@ const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items
 
 // parser
 
-export function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [string, [Marker, string][]] {
+function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [string, [Marker, string][]] {
   const groups: [string, string][] = []
 
   let count = 0
@@ -130,7 +130,7 @@ export function replaceMatchesMarker(line: string, regex: RegExp, marker: string
   return [template, groups]
 }
 
-export function extractEvals(l: string): [string, Evals] {
+function extractEvals(l: string): [string, Evals] {
   const [template, matches] = replaceMatchesMarker(l, /\{[^}]+\}|\[[^\]]+\]/g, defaultMarker)
 
   const evals: Evals = matches.map(([marker, m]) => {
@@ -178,45 +178,50 @@ export function parseContents(text: string): Parsed {
   return { named, main }
 }
 
-export function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
-  const repl: any = executeInContext({ context, ...randomizeLangUtils() }, e.command)
-  if (repl?.kind === 'error') return [`failed to compile: ${repl?.contents}}`]
+// evaluators
 
-  if (e.kind == 'interpolate') {
-    let out
+function substituteInterpolate(line: string, marker: string, subst: any) {
+  let out
 
-    try {
-      if (typeof repl === 'object' && repl['every'] && repl['every']((a: any) => typeof a === 'string')) {
-        out = repl.join(' ')
-      }
-      else {
-        out = repl.toString()
-      }
-    } catch (e) {
-      out = 'x'
+  try {
+    if (typeof subst === 'object' && subst['every'] && subst['every']((a: any) => typeof a === 'string')) {
+      out = subst.join(' ')
     }
-
-    return [line.replace(marker, `[${out}]`)]
-    // if (typeof repl === 'string')
-    // else return [`interpolate requires string, got ${typeof repl}`]
+    else {
+      out = subst.toString()
+    }
+  } catch (e) {
+    out = 'x'
   }
 
-  if (e.kind == 'explode') {
-    if (isStringArray(repl)) {
-      return (repl as string[]).map(r => line.replace(marker, `[${r}]`))
-    }
+  return [line.replace(marker, `[${out}]`)]
+  // if (typeof subst === 'string')
+  // else return [`interpolate requires string, got ${typeof subst}`]
+}
 
-    if (isArrayStringArray(repl)) {
-      return (repl.map(c => c.join(' '))).map(r => line.replace(marker, `[${r}]`))
-    }
-
-    else return [`explode requires string[], got ${typeof repl}`]
+function substituteExplode(line: string, marker: string, subst: any) {
+  if (isStringArray(subst)) {
+    return (subst as string[]).map(r => line.replace(marker, `${r}`))
   }
+
+  if (isArrayStringArray(subst)) {
+    return (subst.map(c => c.join(' '))).map(r => line.replace(marker, `[${r}]`))
+  }
+
+  else return [`explode requires string[], got ${typeof subst}`]
+}
+
+function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
+  const subst: any = executeInContext({ context, ...randomizeLangUtils() }, e.command)
+  if (subst?.kind === 'error') return [`failed to compile: ${subst?.contents}}`]
+
+  if (e.kind == 'interpolate') return substituteInterpolate(line, marker, subst)
+  if (e.kind == 'explode') return substituteExplode(line, marker, subst)
 
   return [] // e.kind is never and both if branches are full, so this shouldn't be possible
 }
 
-export function evalItem(item: Item, context: Context): string[] {
+function evalItem(item: Item, context: Context): string[] {
   if (item.kind == 'header') return []
   if (item.kind == 'line') {
     const [is, es] = _.partition(item.evals, ([_m, e]) => e.kind == 'interpolate')
