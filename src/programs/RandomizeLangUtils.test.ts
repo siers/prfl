@@ -8,7 +8,7 @@ const {
   parts,
   divide,
   partChunks,
-  mj,
+  // mj,
   j,
   jj,
   zip,
@@ -42,7 +42,7 @@ test('divide', () => {
 
 test('partChunks', () => {
   expect(partChunks(5, 2)).toStrictEqual([['0%', '20%'], ['40%', '60%', '80%']])
-  expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
+  // expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
 })
 
 test('shuffle', () => {

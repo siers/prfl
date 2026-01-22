@@ -1,16 +1,17 @@
-import { pick, shuffleMinDistance } from "../lib/Random"
+import { pick, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery } from '../lib/Array'
 
 export type Interface = {
   s: (s: string) => string[],
   ss: (s: string) => string[],
   cross: (sentence: string) => string[],
-  times: <A>(a: A[], n: number) => A[],
+  times: <A>(a: A, n: number) => A[],
   parts: (n: number, m?: number) => string[],
+  partsShuf: (n: number, m?: number) => string[],
   divide: <A>(as: A[], parts: number) => A[][],
   partChunks: (part: number, chunk: number, offset?: number) => string[][],
-  partChunksJS: (part: number, chunk: number, offset?: number) => string[],
-  mj: <A>(ass: A[][]) => string[],
+  partChunksShuf: (part: number, chunk: number, offset?: number) => string[][],
+  // mj: <A>(ass: A[][]) => string[],
   j: <A>(as: A[]) => string,
   jj: <A>(as: A[][]) => string,
   zip: (...as: string[][]) => string[],
@@ -18,6 +19,7 @@ export type Interface = {
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
   shuffle: <A>(a: A[]) => A[],
+  shuffleM: <A>(a: A[]) => A[],
   pick: <A>(array: A[]) => A,
   context: Map<string, string[]> | null,
   block: ((name: string) => string[] | undefined) | null,
@@ -45,12 +47,16 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     }
   }
 
-  function times<A>(a: A[], n: number): A[] {
+  function times<A>(a: A, n: number): A[] {
     return Array(n).fill(a)
   }
 
   function parts(parts: number, offset?: number): string[] {
     return Array(parts).fill(null).map((_, i) => `${100 * (i + (offset || 0) / 100 * parts) / parts}%`)
+  }
+
+  function partsShuf(ps: number, offset?: number): string[] {
+    return shuffle(parts(ps, offset))
   }
 
   function divide<A>(as: A[], parts: number) {
@@ -63,13 +69,13 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return divide(parts(part, offset), chunk)
   }
 
-  function partChunksJS(part: number, chunk: number, offset?: number): string[] {
-    return mj(divide(shuffle(parts(part, offset)), chunk))
+  function partChunksShuf(part: number, chunk: number, offset?: number): string[][] {
+    return divide(shuffle(parts(part, offset)), chunk)
   }
 
-  function mj<A>(ass: A[][]): string[] {
-    return ass.map(as => as.join(' '))
-  }
+  // function mj<A>(ass: A[][]): string[] {
+  //   return ass.map(as => as.join(' '))
+  // }
 
   function j<A>(as: A[]): string {
     return as.join(' ')
@@ -85,8 +91,12 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return Array(minLength).fill(null).map((_, idx) => width.map(w => ass[w][idx]).join(''))
   }
 
-  function shuffle<A>(a: A[]): A[] {
+  function shuffleM<A>(a: A[]): A[] {
     return shuffleMinDistance(a, 1)
+  }
+
+  function shuffle<A>(a: A[]): A[] {
+    return shuffleArray(a)
   }
 
   function block(name: string): string[] | undefined {
@@ -104,16 +114,17 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     cross,
     times,
     parts,
+    partsShuf,
     divide,
     partChunks,
-    partChunksJS,
+    partChunksShuf,
     shuffle,
+    shuffleM,
     zip,
     intersperse,
     interspersing,
     interleavingEvery,
     pick,
-    mj,
     j,
     jj,
     context,

@@ -49,15 +49,16 @@ function Randomize(controls: any) {
 
 export default Randomize
 
-// TODO: chunk the whole per 10
-// TODO: allow escaping brackets inside brackets
-// TODO: make programmable scales
 // TODO: execution view for the rendered program
 // TODO: time tracker & adding comments to update the original item
-// TODO: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
-// TODO: s split on comma
+// TODO: add statistics for s(``)
+// TODO: renderProgram as a function from the App.tsx
 
+// TODO: allow escaping brackets inside brackets
+// TODO: maybeReverse
 // TODO: brackets: enable combinatorial functions (remove mirror copies)
+// TODO: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
 
-// TODO content: figure out content (and/or utils) for interleave situps
 // TODO content: pieces into their own lists, extract portions into the main
+
+// TODO: make programmable scales
