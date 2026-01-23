@@ -18,7 +18,8 @@ function Randomize(controls: any) {
       const outLineCount = output.split('\n').filter(a => a !== '---').length
 
       return {
-        ...s, text: contentsOr, distance: distanceOr, output: output, outLineCount }
+        ...s, text: contentsOr, distance: distanceOr, output: output, outLineCount
+      }
     })
   }
 
@@ -41,7 +42,9 @@ function Randomize(controls: any) {
       <div className="pl-[10px]">
         <a className="pr-3" onClick={() => newAndRecalculate()}>🔄</a>
         <a className="pr-3" onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
-        <span className="pr-3">{state.outLineCount} * 4min = {hm(state.outLineCount * 4)}</span>
+        <span className="pr-3">
+          { state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></> }
+        </span>
       </div>
     </div>
   )
