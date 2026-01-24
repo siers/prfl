@@ -1,5 +1,6 @@
 import { pick, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery } from '../lib/Array'
+import _ from 'lodash'
 
 export type Interface = {
   s: (s: string) => string[],
@@ -20,6 +21,7 @@ export type Interface = {
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
   shuffle: <A>(a: A[]) => A[],
   shuffleM: <A>(a: A[]) => A[],
+  shuffleX: <A>(a: A[], number: number) => A[],
   pick: <A>(array: A[]) => A,
   context: Map<string, string[]> | null,
   block: ((name: string) => string[] | undefined) | null,
@@ -99,6 +101,21 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return shuffleArray(a)
   }
 
+  function shuffleConstraintFirst<A>(shouldntBe: A[], b: A[]): A[] {
+    const [shouldnts, rests] = _.partition(b, x => shouldntBe.indexOf(x) !== -1)
+    if (rests.length == 0) {
+      return []
+    } else {
+      const [head, ...restRests] = rests
+      return [head, ...shuffle(restRests.concat(shouldnts))]
+    }
+  }
+
+  function shuffleX<A>(a: A[] | string, number: number): A[] {
+    const list: A[] = shuffle(typeof a === 'string' ? (s(a) as A[]) : a)
+    return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(0, 1), addition)))
+  }
+
   function block(name: string): string[] | undefined {
     return context.get(name)
   }
@@ -120,6 +137,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     partChunksShuf,
     shuffle,
     shuffleM,
+    shuffleX,
     zip,
     intersperse,
     interspersing,

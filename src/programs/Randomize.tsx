@@ -54,14 +54,16 @@ export default Randomize
 
 // TODO: execution view for the rendered program
 // TODO: time tracker & adding comments to update the original item
-// TODO: add statistics for s(``)
 // TODO: renderProgram as a function from the App.tsx
+// TODO: phone view for the execution program
 
-// TODO: allow escaping brackets inside brackets
-// TODO: maybeReverse
-// TODO: brackets: enable combinatorial functions (remove mirror copies)
+// TODO: lang: allow escaping brackets inside brackets
 // TODO: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
+//
+// TODO: util: add statistics for s(``)
+// TODO: util: progress(startDate, endDate) = percentage% [0, 100]%
+// TODO: util: maybeReverse
 
-// TODO content: pieces into their own lists, extract portions into the main
+// TODO content: pieces into their own lists, extract portions into the main, basically a fully-fledged program
 
 // TODO: make programmable scales
