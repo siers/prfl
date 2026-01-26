@@ -2,10 +2,18 @@ import { pick, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery } from '../lib/Array'
 import _ from 'lodash'
 
+function roundToNaive(num: number, decimalPlaces: number = 0): number {
+  var p = Math.pow(10, decimalPlaces)
+  return Math.round(num * p) / p
+}
+
 export type Interface = {
+  // DSL
   s: (s: string) => string[],
   ss: (s: string) => string[],
   cross: (sentence: string) => string[],
+
+  // array
   times: <A>(a: A, n: number) => A[],
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
@@ -23,6 +31,10 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[], number: number) => A[],
   pick: <A>(array: A[]) => A,
+
+  progress: (start: string, end: string) => number,
+
+  // block operations
   context: Map<string, string[]> | null,
   block: ((name: string) => string[] | undefined) | null,
   aba: (as: string[], bs: string[]) => string[],
@@ -116,6 +128,16 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(0, 1), addition)))
   }
 
+  function progress(start: string, end: string) {
+    const now = new Date().getTime()
+    const startDate = new Date(start).getTime()
+    const endDate = new Date(end).getTime()
+
+    const perc = (now - startDate) / (endDate - startDate)
+
+    return roundToNaive(Math.max(0, Math.min(perc)), 3)
+  }
+
   function block(name: string): string[] | undefined {
     return context.get(name)
   }
@@ -143,6 +165,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     interspersing,
     interleavingEvery,
     pick,
+    progress,
     j,
     jj,
     context,
