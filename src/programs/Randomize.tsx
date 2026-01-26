@@ -56,11 +56,13 @@ export default Randomize
 // TODO: time tracker & adding comments to update the original item
 // TODO: renderProgram as a function from the App.tsx
 // TODO: phone view for the execution program
+// TODO: execution view can update tasks, blocker: required that the list is actually just a list of indexes, not items themselves
 
-// TODO: lang: allow escaping brackets inside brackets
-// TODO: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
+// TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization
+// TODO: interpret: allow escaping brackets inside brackets
+// TODO: interpret: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
 //
-// TODO: util: add statistics for s(``)
+// TODO: util: add statistics for s(``), blocker: memory needed to feed back into react state
 // TODO: util: progress(startDate, endDate) = percentage% [0, 100]%
 // TODO: util: maybeReverse
 

@@ -1,5 +1,5 @@
-import { pick, shuffleArray, shuffleMinDistance } from "../lib/Random"
-import { intersperse, interspersing, interleavingEvery } from '../lib/Array'
+import { pick as pickArray, shuffleArray, shuffleMinDistance } from "../lib/Random"
+import { intersperse, interspersing, interleavingEvery, zipT } from '../lib/Array'
 import _ from 'lodash'
 
 function roundToNaive(num: number, decimalPlaces: number = 0): number {
@@ -24,13 +24,15 @@ export type Interface = {
   j: <A>(as: A[]) => string,
   jj: <A>(as: A[][]) => string,
   zip: (...as: string[][]) => string[],
+  zipSpace: (...as: string[][]) => string[],
+  zipT: <A>(as: A[], bs: A[]) => [A, A][],
   intersperse: <A>(arr: A[], sep: A) => A[],
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
   shuffle: <A>(a: A[]) => A[],
   shuffleM: <A>(a: A[]) => A[],
-  shuffleX: <A>(a: A[], number: number) => A[],
-  pick: <A>(array: A[]) => A,
+  shuffleX: <A>(a: A[] | string, number: number) => A[],
+  pick: <A>(array: A[] | string) => A | string,
 
   progress: (start: string, end: string) => number,
 
@@ -38,6 +40,10 @@ export type Interface = {
   context: Map<string, string[]> | null,
   block: ((name: string) => string[] | undefined) | null,
   aba: (as: string[], bs: string[]) => string[],
+
+  // domain specific
+  scalePositions: () => string,
+  scalePositionsDbl: () => string[],
 }
 
 export function randomizeLangUtils(context: Map<string, string[]>): Interface {
@@ -73,7 +79,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return shuffle(parts(ps, offset))
   }
 
-  function divide<A>(as: A[], parts: number) {
+  function divide<A>(as: A[], parts: number): A[][] {
     const part = Math.floor(as.length / parts)
     const starts = Array(parts).fill(null).map((_, idx) => idx * part)
     return starts.map((start, idx) => as.slice(start, idx + 1 == starts.length ? undefined : start + part))
@@ -99,10 +105,18 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return as.map(a => a.join(' ')).join(', ')
   }
 
-  function zip(...ass: string[][]): string[] {
+  function zipGen(ass: string[][], sep: string = ''): string[] {
     const minLength = ass.map(as => as.length).reduce((prev, next) => Math.min(prev, next), 100000)
     const width = Array(ass.length).fill(null).map((_, idx) => idx)
-    return Array(minLength).fill(null).map((_, idx) => width.map(w => ass[w][idx]).join(''))
+    return Array(minLength).fill(null).map((_, idx) => width.map(w => ass[w][idx]).join(sep))
+  }
+
+  function zip(...ass: string[][]): string[] {
+    return zipGen(ass, '')
+  }
+
+  function zipSpace(...ass: string[][]): string[] {
+    return zipGen(ass, ' ')
   }
 
   function shuffleM<A>(a: A[]): A[] {
@@ -118,14 +132,21 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     if (rests.length == 0) {
       return []
     } else {
-      const [head, ...restRests] = rests
-      return [head, ...shuffle(restRests.concat(shouldnts))]
+      const restRests = rests.slice(0, -1)
+      const last = rests.at(-1)!
+      console.log({ shouldnts, rests, last, restRests })
+      return [last, ...shuffle(restRests.concat(shouldnts))]
     }
   }
 
   function shuffleX<A>(a: A[] | string, number: number): A[] {
     const list: A[] = shuffle(typeof a === 'string' ? (s(a) as A[]) : a)
-    return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(0, 1), addition)))
+    return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)))
+  }
+
+  function pick<A>(array: A[] | string): A | string {
+    if (typeof array === 'string') return pickArray(ss(array))
+    else return pickArray(array)
   }
 
   function progress(start: string, end: string) {
@@ -147,6 +168,18 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return [...a1, '---', ...bs, '---', ...a2]
   }
 
+  // add upwards/downwards buttons, shuffleX(uudd, 2)
+  function scalePositions() {
+    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↓', 2)).join(' ')
+  }
+
+  // add upwards/downwards buttons + upbow downbow
+  function scalePositionsDbl() {
+    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↑↓', 2))
+  }
+
+  // stīga x pozīcija tabulas flashcardi
+
   return {
     s,
     ss,
@@ -161,6 +194,8 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     shuffleM,
     shuffleX,
     zip,
+    zipSpace,
+    zipT,
     intersperse,
     interspersing,
     interleavingEvery,
@@ -171,5 +206,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     context,
     block,
     aba,
+    scalePositions,
+    scalePositionsDbl,
   }
 }

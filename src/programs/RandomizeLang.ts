@@ -210,6 +210,8 @@ function substituteExplode(line: string, marker: string, subst: any) {
     return (subst.map(c => c.join(' '))).map(r => line.replace(marker, `[${r}]`))
   }
 
+  if (subst === undefined) return []
+
   else return [`explode requires string[], got ${typeof subst}`]
 }
 
@@ -246,12 +248,17 @@ function evalBlock(block: Block, context: Context): string[] {
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
-export function evalContents(text: string): string[] {
+export function evalContents(text: string, memory: Map<String, String> = new Map()): string[] {
   const { named, main } = parseContents(text)
 
-  const namedBlocks = named.map<[string, string[]]>(b => [b.header.name || '', evalBlock(b, new Map())])
-  const namedMap: Context = new Map<string, string[]>(namedBlocks)
-  const mainBlocks = main.map(b => evalBlock(b, namedMap))
+  const context = named.reduce((context, b) => {
+    const name = b.header.name || ''
+    const evaluated = evalBlock(b, context)
+    context.set(name, evaluated)
+    return context
+  }, new Map<string, string[]>())
+
+  const mainBlocks = main.map(b => evalBlock(b, context))
 
   return intersperse(mainBlocks, ['---']).flat()
 }
