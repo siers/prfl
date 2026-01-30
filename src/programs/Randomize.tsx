@@ -57,15 +57,19 @@ export default Randomize
 // TODO: renderProgram as a function from the App.tsx
 // TODO: phone view for the execution program
 // TODO: execution view can update tasks, blocker: required that the list is actually just a list of indexes, not items themselves
+// TODO: execution view: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization
 // TODO: interpret: allow escaping brackets inside brackets
 // TODO: interpret: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
-//
-// TODO: util: add statistics for s(``), blocker: memory needed to feed back into react state
-// TODO: util: progress(startDate, endDate) = percentage% [0, 100]%
+// TODO: interpret: either text-blocks or text-only line syntax
+// TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
+
+// TODO: util: add statistics for s(``), blocker: memory needed to feed back into react state, gotta look out for overclearing
 // TODO: util: maybeReverse
+// TODO: util: partChunksShuf offsets fucked
+// TODO: util: parts choices for formatting, because neither option always works (10%, 1/10, 1)
 
-// TODO content: pieces into their own lists, extract portions into the main, basically a fully-fledged program
-
-// TODO: make programmable scales
+// TODO content: make programmable scales
+// TODO content: write chromatic slide exercise instrunctions
+// TODO ToneLib: uses for modelling the violin fingerboard: finding first inversion of a chord for programming chromatic slides

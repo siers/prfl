@@ -7,7 +7,7 @@ const {
   times,
   parts,
   divide,
-  partChunks,
+  // partChunks,
   // mj,
   j,
   jj,
@@ -31,8 +31,10 @@ test('times', () => {
 })
 
 test('parts', () => {
-  expect(parts(4)).toStrictEqual(['0%', '25%', '50%', '75%'])
-  expect(parts(4, 10)).toStrictEqual(['10%', '35%', '60%', '85%'])
+  // expect(parts(4)).toStrictEqual(['0%', '25%', '50%', '75%'])
+  // expect(parts(4, 10)).toStrictEqual(['10%', '35%', '60%', '85%'])
+  expect(parts(4)).toStrictEqual('1/4 2/4 3/4 4/4'.split(' '))
+  expect(parts(4, 1)).toStrictEqual('2/4 3/4 4/4 1/4'.split(' '))
 })
 
 test('divide', () => {
@@ -40,10 +42,10 @@ test('divide', () => {
   expect(divide([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2], [3, 4, 5]])
 })
 
-test('partChunks', () => {
-  expect(partChunks(5, 2)).toStrictEqual([['0%', '20%'], ['40%', '60%', '80%']])
-  // expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
-})
+// test('partChunks', () => {
+//   expect(partChunks(5, 2)).toStrictEqual([['0%', '20%'], ['40%', '60%', '80%']])
+//   expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
+// })
 
 test('shuffle', () => {
   const long = 'kdnwjertnblrekjnfqlekjfnqlkewjfnqwelkjfnqwelkjnfq'

@@ -15,6 +15,7 @@ export type Interface = {
 
   // array
   times: <A>(a: A, n: number) => A[],
+  indices: (until: number) => string[],
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
   divide: <A>(as: A[], parts: number) => A[][],
@@ -25,7 +26,7 @@ export type Interface = {
   jj: <A>(as: A[][]) => string,
   zip: (...as: string[][]) => string[],
   zipSpace: (...as: string[][]) => string[],
-  zipT: <A>(as: A[], bs: A[]) => [A, A][],
+  zipT: <A>(...ass: A[][]) => A[][],
   intersperse: <A>(arr: A[], sep: A) => A[],
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
@@ -35,6 +36,7 @@ export type Interface = {
   pick: <A>(array: A[] | string) => A | string,
 
   progress: (start: string, end: string) => number,
+  progressClamp: (start: string, end: string, from: number, to: number) => number,
 
   // block operations
   context: Map<string, string[]> | null,
@@ -71,8 +73,13 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return Array(n).fill(a)
   }
 
+  function indices(until: number): string[] {
+    return times(0, until).map((_, i) => '' + (i + 1))
+  }
+
   function parts(parts: number, offset?: number): string[] {
-    return Array(parts).fill(null).map((_, i) => `${100 * (i + (offset || 0) / 100 * parts) / parts}%`)
+    return Array(parts).fill(null).map((_, i) => `${(i + (offset || 0)) % parts + 1}/${parts}`)
+    // return Array(parts).fill(null).map((_, i) => `${100 * (i + (offset || 0) / 100 * parts) / parts}%`)
   }
 
   function partsShuf(ps: number, offset?: number): string[] {
@@ -89,6 +96,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return divide(parts(part, offset), chunk)
   }
 
+  // Bug: offset screws it up
   function partChunksShuf(part: number, chunk: number, offset?: number): string[][] {
     return divide(shuffle(parts(part, offset)), chunk)
   }
@@ -134,7 +142,6 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     } else {
       const restRests = rests.slice(0, -1)
       const last = rests.at(-1)!
-      console.log({ shouldnts, rests, last, restRests })
       return [last, ...shuffle(restRests.concat(shouldnts))]
     }
   }
@@ -156,7 +163,12 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
 
     const perc = (now - startDate) / (endDate - startDate)
 
-    return roundToNaive(Math.max(0, Math.min(perc)), 3)
+    return roundToNaive(Math.max(0, Math.min(1, perc)), 3)
+  }
+
+  function progressClamp(start: string, end: string, from: number, to: number) {
+    const diff = to - from
+    return from + progress(start, end) * diff
   }
 
   function block(name: string): string[] | undefined {
@@ -169,13 +181,15 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
   }
 
   // add upwards/downwards buttons, shuffleX(uudd, 2)
+  // Bug: G/E doesn't need direction
   function scalePositions() {
-    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↓', 2)).join(' ')
+    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).join(' ')
   }
 
   // add upwards/downwards buttons + upbow downbow
+  // for downwards scales, it makes sense to add +2 to the position
   function scalePositionsDbl() {
-    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↑↓', 2))
+    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2))
   }
 
   // stīga x pozīcija tabulas flashcardi
@@ -185,6 +199,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     ss,
     cross,
     times,
+    indices,
     parts,
     partsShuf,
     divide,
@@ -201,6 +216,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     interleavingEvery,
     pick,
     progress,
+    progressClamp,
     j,
     jj,
     context,
