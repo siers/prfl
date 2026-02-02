@@ -1,7 +1,8 @@
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery, zipT } from '../lib/Array'
-import { keyCenters, keysBySemi, keySemis, render } from '../lib/ToneLib'
+import { keysBySemi, keySemis, render } from '../lib/ToneLib'
 import _ from 'lodash'
+import tlv from '../lib/ToneLibViolin'
 
 function roundToNaive(num: number, decimalPlaces: number = 0): number {
   var p = Math.pow(10, decimalPlaces)
@@ -251,7 +252,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
   function pickKeysOffset(cacheKey: string, ...offsets: number[]): string[] {
     const semis = keySemis()
     const key = `pickKeys|${cacheKey}`
-    const picks = (pickMemK(key, semis) as number[]).flatMap(n => [n, offsets.map(o => o + n)])
+    const picks = (pickMemK(key, semis) as number[]).flatMap(n => [n, ...offsets.map(o => o + n)])
 
     return picks.map(s => {
       const keys = keysBySemi(s)
