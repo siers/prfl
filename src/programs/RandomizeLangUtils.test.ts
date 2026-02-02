@@ -13,7 +13,7 @@ const {
   jj,
   zip,
   shuffle,
-} = randomizeLangUtils(new Map())
+} = randomizeLangUtils(new Map(), new Map())
 
 test('s', () => {
   expect(s('')).toStrictEqual([])
@@ -33,8 +33,10 @@ test('times', () => {
 test('parts', () => {
   // expect(parts(4)).toStrictEqual(['0%', '25%', '50%', '75%'])
   // expect(parts(4, 10)).toStrictEqual(['10%', '35%', '60%', '85%'])
-  expect(parts(4)).toStrictEqual('1/4 2/4 3/4 4/4'.split(' '))
-  expect(parts(4, 1)).toStrictEqual('2/4 3/4 4/4 1/4'.split(' '))
+  // expect(parts(4)).toStrictEqual('1/4 2/4 3/4 4/4'.split(' '))
+  // expect(parts(4, 1)).toStrictEqual('2/4 3/4 4/4 1/4'.split(' '))
+  expect(parts(4)).toStrictEqual('1 2 3 4'.split(' '))
+  expect(parts(4, 1)).toStrictEqual('2 3 4 1'.split(' '))
 })
 
 test('divide', () => {
