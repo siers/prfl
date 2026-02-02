@@ -34,7 +34,7 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   pick: <A>(array: A[] | string) => A | string,
-  pickMem: <A>(array: A[] | string, n: number | null) => A | string,
+  pickMem: (array: any[] | string, n: number | undefined) => any[],
 
   progress: (start: string, end: string) => number,
   progressClamp: (start: string, end: string, from: number, to: number) => number,
@@ -158,22 +158,26 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     else return pickArray(array)
   }
 
-  function pickMem(array: any[] | string, n: number | null): any {
-    const items = (typeof array === 'string') ? s(array) : array
-    const memoryKey = items.sort().join('||')
+  function pickMem(array: any[] | string, n: number | undefined): any[] {
+    if (n !== undefined && n <= 0) return []
+
+    const items = ((typeof array === 'string') ? s(array) : array).sort()
+    if (!items.length) return []
+
+    const memoryKey = items.join('||')
 
     const storedStats = memory.get(memoryKey) || {}
-    const itemFrequencies: [any, number][] = items.map(item => {
+    const frequencies: [any, number][] = items.map(item => {
       return [item, (storedStats[item] || 0)] satisfies [any, number]
     })
-    const frequencies = _.sortBy(itemFrequencies, 1)
-    const item = frequencies[0][0]
+    const frequenciesSorted = _.sortBy(frequencies, 1)
+    const item = pick(frequenciesSorted.filter(([_, freq]) => freq == frequenciesSorted[0][1]))[0]
 
     const nextStats = Object.fromEntries(frequencies)
     nextStats[item] = (nextStats[item] || 0) + 1
     memory.set(memoryKey, nextStats)
 
-    return item
+    return [item, ...pickMem(items, (n || 0) - 1)]
   }
 
   function progress(start: string, end: string) {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContents, evalContentsMem, mapCopy } from './RandomizeLang.js'
+import { initSequences, evalContents, evalContentsMem } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(

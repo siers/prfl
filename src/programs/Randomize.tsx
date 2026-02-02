@@ -69,10 +69,7 @@ export default Randomize
 // TODO: interpret: either text-blocks or text-only line syntax
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
 
-// TODO: util: add statistics for s(``), blocker: memory needed to feed back into react state, gotta look out for overclearing
 // TODO: util: maybeReverse
-// TODO: util: partChunksShuf offsets fucked
-// TODO: util: parts choices for formatting, because neither option always works (10%, 1/10, 1)
 
 // TODO content: make programmable scales
 // TODO content: write chromatic slide exercise instrunctions
