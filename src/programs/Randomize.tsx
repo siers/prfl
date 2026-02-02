@@ -16,6 +16,7 @@ function Randomize(controls: any) {
       const distanceOr = parseInt(newDistance || distance)
 
       const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
+      console.clear()
       const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
       const output = lines.join('\n')
       const outLineCount = output.split('\n').filter(a => a !== '---').length
@@ -32,6 +33,14 @@ function Randomize(controls: any) {
         min distance: <input type="number" onChange={e => newAndRecalculate(null, e.target.value)} className="border" min="0" max="10" placeholder={distance} />
       </div> */ }
 
+      <div className="pl-[10px]">
+        <a className="pr-3" onClick={() => newAndRecalculate()}>🔄</a>
+        <a className="pr-3" onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
+        <span className="pr-3">
+          {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
+        </span>
+      </div>
+
       <div className="flex flex-row selection:red text-sm">
         <div className="grow p-[10px]">
           <textarea className="p-[5px] border" rows={20} cols={50} onChange={e => newAndRecalculate(e.target.value, null)} value={state?.text}></textarea>
@@ -40,14 +49,6 @@ function Randomize(controls: any) {
         <div className="grow p-[10px]">
           <textarea className="p-[5px] border font-mono" rows={20} cols={50} value={state?.output} readOnly></textarea>
         </div>
-      </div>
-
-      <div className="pl-[10px]">
-        <a className="pr-3" onClick={() => newAndRecalculate()}>🔄</a>
-        <a className="pr-3" onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
-        <span className="pr-3">
-          {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
-        </span>
       </div>
     </div>
   )

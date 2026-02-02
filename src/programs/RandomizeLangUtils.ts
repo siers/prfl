@@ -34,6 +34,7 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   pick: <A>(array: A[] | string) => A | string,
+  pickMem: <A>(array: A[] | string, n: number | null) => A | string,
 
   progress: (start: string, end: string) => number,
   progressClamp: (start: string, end: string, from: number, to: number) => number,
@@ -78,7 +79,8 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
   }
 
   function parts(parts: number, offset?: number): string[] {
-    return Array(parts).fill(null).map((_, i) => `${(i + (offset || 0)) % parts + 1}/${parts}`)
+    return Array(parts).fill(null).map((_, i) => `${(i + (offset || 0)) % parts + 1}`)
+    // return Array(parts).fill(null).map((_, i) => `${(i + (offset || 0)) % parts + 1}/${parts}`)
     // return Array(parts).fill(null).map((_, i) => `${100 * (i + (offset || 0) / 100 * parts) / parts}%`)
   }
 
@@ -156,6 +158,24 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     else return pickArray(array)
   }
 
+  function pickMem(array: any[] | string, n: number | null): any {
+    const items = (typeof array === 'string') ? s(array) : array
+    const memoryKey = items.sort().join('||')
+
+    const storedStats = memory.get(memoryKey) || {}
+    const itemFrequencies: [any, number][] = items.map(item => {
+      return [item, (storedStats[item] || 0)] satisfies [any, number]
+    })
+    const frequencies = _.sortBy(itemFrequencies, 1)
+    const item = frequencies[0][0]
+
+    const nextStats = Object.fromEntries(frequencies)
+    nextStats[item] = (nextStats[item] || 0) + 1
+    memory.set(memoryKey, nextStats)
+
+    return item
+  }
+
   function progress(start: string, end: string) {
     const now = new Date().getTime()
     const startDate = new Date(start).getTime()
@@ -217,6 +237,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     interspersing,
     interleavingEvery,
     pick,
+    pickMem,
     progress,
     progressClamp,
     j,
