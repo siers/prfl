@@ -38,7 +38,7 @@ function Flash(controls) {
 
   const queue = controls?.state?.next
   const next = queue?.at(0)
-  const perc = queue ? 100 - ((queue.length - 1) / current.length * 100) : 0
+  const perc = queue ? 100 - ((queue.length - 1) / (current.length - 1)) * 97.5 : 0
 
   return (
     <div className="flex flex-col w-full h-full text-center">
