@@ -2,6 +2,9 @@
 
 html, body { width: 100dvw; height: 100dvh; overflow: hidden; }
 
+/* late night debug dark-mode */
+/* html, body { background: #000; color: #bbb; } */
+
 * { touch-action: manipulation; } /* disable double-click zoom on tablet */
 
 a { color: #4796e6; }

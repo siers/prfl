@@ -40,7 +40,7 @@ export type Interface = {
 
   // block operations
   context: Map<string, string[]> | null,
-  block: ((name: string) => string[] | undefined) | null,
+  block: (name: string) => any | undefined,
   aba: (as: string[], bs: string[]) => string[],
 
   // domain specific
@@ -171,7 +171,7 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
     return from + progress(start, end) * diff
   }
 
-  function block(name: string): string[] | undefined {
+  function block(name: string): any {
     return context.get(name)
   }
 
@@ -183,16 +183,18 @@ export function randomizeLangUtils(context: Map<string, string[]>): Interface {
   // add upwards/downwards buttons, shuffleX(uudd, 2)
   // Bug: G/E doesn't need direction
   function scalePositions() {
-    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).join(' ')
+    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).map(example =>
+      example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
+    ).join(' ')
   }
 
   // add upwards/downwards buttons + upbow downbow
   // for downwards scales, it makes sense to add +2 to the position
   function scalePositionsDbl() {
-    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2))
+    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2)).map(example =>
+      example.replace(/((GD|AE).)[↑↓]/, (_, withoutDirection) => withoutDirection)
+    )
   }
-
-  // stīga x pozīcija tabulas flashcardi
 
   return {
     s,

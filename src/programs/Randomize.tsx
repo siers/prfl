@@ -72,4 +72,6 @@ export default Randomize
 
 // TODO content: make programmable scales
 // TODO content: write chromatic slide exercise instrunctions
+// TODO content: stringPositions() { return string x position.map(sp = note) }, then quiz self on execution view
+// TODO content: random note while inside position
 // TODO ToneLib: uses for modelling the violin fingerboard: finding first inversion of a chord for programming chromatic slides
