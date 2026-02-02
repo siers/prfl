@@ -10,10 +10,10 @@ function Randomize(controls: any) {
 
   const distance = state?.distance || 0
 
-  function newAndRecalculate(newContents: string | null = null, newDistance: string | null = null) {
+  function newAndRecalculate(a: { contents?: string, distance?: string, save?: boolean }) {
     setState(s => {
-      const contentsOr = newContents === '' ? newContents : (newContents || state?.text || '')
-      const distanceOr = parseInt(newDistance || distance)
+      const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
+      const distanceOr = parseInt(a.distance || distance)
 
       const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
       console.clear()
@@ -21,8 +21,10 @@ function Randomize(controls: any) {
       const output = lines.join('\n')
       const outLineCount = output.split('\n').filter(a => a !== '---').length
 
+      const savedMemory = a.save ? { memory: mapSerialize(memory) } : {}
+
       return {
-        ...s, text: contentsOr, distance: distanceOr, output, memory: mapSerialize(memory), outLineCount
+        ...s, text: contentsOr, distance: distanceOr, output, ...savedMemory, outLineCount
       }
     })
   }
@@ -30,12 +32,13 @@ function Randomize(controls: any) {
   return (
     <div className="">
       { /* <div className="pl-[10px]">
-        min distance: <input type="number" onChange={e => newAndRecalculate(null, e.target.value)} className="border" min="0" max="10" placeholder={distance} />
+        min distance: <input type="number" onChange={e => newAndRecalculate({distance: e.target.value})} className="border" min="0" max="10" placeholder={distance} />
       </div> */ }
 
       <div className="pl-[10px]">
-        <a className="pr-3" onClick={() => newAndRecalculate()}>🔄</a>
-        <a className="pr-3" onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
+        <a className="pr-3" onClick={() => newAndRecalculate({save: true})}>💾</a>
+        <a className="pr-3" onClick={() => newAndRecalculate({})}>🔄</a>
+        <a className="pr-3" onClick={() => newAndRecalculate({ contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
         <span className="pr-3">
           {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
         </span>
@@ -43,7 +46,7 @@ function Randomize(controls: any) {
 
       <div className="flex flex-row selection:red text-sm">
         <div className="grow p-[10px]">
-          <textarea className="p-[5px] border" rows={20} cols={50} onChange={e => newAndRecalculate(e.target.value, null)} value={state?.text}></textarea>
+          <textarea className="p-[5px] border" rows={20} cols={50} onChange={e => newAndRecalculate({ contents: e.target.value })} value={state?.text}></textarea>
         </div>
 
         <div className="grow p-[10px]">

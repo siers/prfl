@@ -1,5 +1,6 @@
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery, zipT } from '../lib/Array'
+import { keyCenters, keysBySemi, keySemis, render } from '../lib/ToneLib'
 import _ from 'lodash'
 
 function roundToNaive(num: number, decimalPlaces: number = 0): number {
@@ -34,6 +35,7 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   pick: <A>(array: A[] | string) => A | string,
+  pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined) => any[],
   pickMem: (array: any[] | string, n: number | undefined) => any[],
 
   progress: (start: string, end: string) => number,
@@ -47,6 +49,9 @@ export type Interface = {
   // domain specific
   scalePositions: () => string,
   scalePositionsDbl: () => string[],
+
+  pickKeys: (cacheKey: string, n: number) => string[],
+  pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
 }
 
 export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<string, any>): Interface {
@@ -158,13 +163,13 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     else return pickArray(array)
   }
 
-  function pickMem(array: any[] | string, n: number | undefined): any[] {
+  function pickMemK(key: string | undefined, array: any[] | string, n: number | undefined = undefined): any[] {
     if (n !== undefined && n <= 0) return []
 
     const items = ((typeof array === 'string') ? s(array) : array).sort()
     if (!items.length) return []
 
-    const memoryKey = items.join('||')
+    const memoryKey = key || items.join('||')
 
     const storedStats = memory.get(memoryKey) || {}
     const frequencies: [any, number][] = items.map(item => {
@@ -177,7 +182,14 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     nextStats[item] = (nextStats[item] || 0) + 1
     memory.set(memoryKey, nextStats)
 
-    return [item, ...pickMem(items, (n || 0) - 1)]
+    // const debug = frequencies.map(([k, f]) => `${k}/${f}`).join(' ')
+    // console.log(frequencies.reduce((sum, [_, f]) => sum + f, 0), JSON.stringify(frequencies))
+
+    return [item, ...pickMemK(memoryKey, items, (n || 0) - 1)]
+  }
+
+  function pickMem(array: any[] | string, n: number | undefined): any[] {
+    return pickMemK(undefined, array, n)
   }
 
   function progress(start: string, end: string) {
@@ -195,6 +207,8 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     return from + progress(start, end) * diff
   }
 
+  // block utilities
+
   function block(name: string): any {
     return context.get(name)
   }
@@ -203,6 +217,8 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     const [a1, a2] = divide(as, 2)
     return [...a1, '---', ...bs, '---', ...a2]
   }
+
+  // practical calculations
 
   function scalePositions() {
     return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).map(example =>
@@ -214,11 +230,34 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2)).map(example =>
       example.replace(/(\d)(GD|DA|AE)(.)([↑↓])/, (_, position, string, bow, direction) => {
         if (string == 'GD' || string == 'AE') direction = ''
-        console.log(position)
         if (direction == '↓') position = parseInt(position) + 2
         return position + string + bow + direction
       })
     )
+  }
+
+  function pickKeys(cacheKey: string, n: number): string[] {
+    const semis = keySemis()
+    const key = `pickKeys|${cacheKey}`
+    const pick = pickMemK(key, semis, n)
+
+    return pick.map(s => {
+      const keys = keysBySemi(s)
+      const note = keys.length !== 1 ? pickMemK(`${key}|FG`, keys, 1)[0] : keys[0]
+      return render(note, false)
+    })
+  }
+
+  function pickKeysOffset(cacheKey: string, ...offsets: number[]): string[] {
+    const semis = keySemis()
+    const key = `pickKeys|${cacheKey}`
+    const picks = (pickMemK(key, semis) as number[]).flatMap(n => [n, offsets.map(o => o + n)])
+
+    return picks.map(s => {
+      const keys = keysBySemi(s)
+      const note = keys.length !== 1 ? pickMemK(`${key}|FG`, keys, 1)[0] : keys[0]
+      return render(note, false)
+    })
   }
 
   return {
@@ -242,6 +281,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     interspersing,
     interleavingEvery,
     pick,
+    pickMemK,
     pickMem,
     progress,
     progressClamp,
@@ -252,5 +292,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     aba,
     scalePositions,
     scalePositionsDbl,
+    pickKeys,
+    pickKeysOffset,
   }
 }

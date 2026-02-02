@@ -1,6 +1,7 @@
 // https://en.wikipedia.org/wiki/Piano_key_frequencies
 
 import { Set } from 'immutable'
+import _ from 'lodash'
 
 type Name = 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
 
@@ -94,7 +95,7 @@ function addAccidental(note: Note, accidental: number): Note {
   return { ...note, alter: note.alter + accidental }
 }
 
-// property key(note, base) = key(note), only octave is changed
+// old, wrong comment: property key(note, base) = key(note), only octave is changed
 export function rebase(note: Note, base: Note): Note {
   const distanceA = names.indexOf(note.name) // * base.octave * 8
   const distanceB = names.indexOf(base.name) // * base.octave * 8
@@ -108,6 +109,10 @@ export function normalize(n: Note): Note {
 
 export function rebaseSemi(note: Note, semiBase: number): Note {
   return rebase(note, enharmonics(semiBase)[0])
+}
+
+export function equalNote(a: Note, b: Note): boolean {
+  return a.name == b.name && a.alter == b.alter
 }
 
 // === Keys
@@ -216,4 +221,18 @@ export function normalizedNotesRendered(k: Notes): Set<string> {
 
 export function notesMissing(k: Key, l: Key): Set<string> {
   return allNotesRendered().subtract(normalizedNotesRendered(k).union(normalizedNotesRendered(l)))
+}
+
+export function keyCenters(): Note[] {
+  return keysMajor().map(k => k[0])
+}
+
+// NOTE: this really could be just [0, 11]
+export function keySemis(): number[] {
+  return _.uniq(keyCenters().map(k => semi(normalize(k))))
+}
+
+export function keysBySemi(n: number): Note[] {
+  const centers = keyCenters()
+  return enharmonics(n).flatMap(e => centers.filter(c => equalNote(c, e)))
 }
