@@ -103,7 +103,8 @@ type Parsed = {
   main: Blocks,
 }
 
-type Context = Map<string, string[]>
+type Context = Map<string, any>
+export type Memory = Map<string, any>
 
 const defaultMarker = '!!!'
 
@@ -216,7 +217,10 @@ function substituteExplode(line: string, marker: string, subst: any) {
 }
 
 function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
-  const subst: any = executeInContext(randomizeLangUtils(context), e.command)
+  const memory = context.get('memory') as Memory
+  const fullContext = { ...randomizeLangUtils(context, memory), memory }
+
+  const subst: any = executeInContext(fullContext, e.command)
   if (subst?.kind === 'error') return [`failed to compile: ${subst?.contents}}`]
 
   if (e.kind == 'interpolate') return substituteInterpolate(line, marker, subst)
@@ -248,17 +252,24 @@ function evalBlock(block: Block, context: Context): string[] {
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
-export function evalContents(text: string, memory: Map<String, String> = new Map()): string[] {
+export function mapCopy<A, B>(m: Map<A, B>): Map<A, B> {
+  return new Map(JSON.parse(JSON.stringify(Array.from(m.entries()))))
+}
+
+export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [string[], Memory] {
   const { named, main } = parseContents(text)
+  const memory: Memory = mapCopy(oldMemory)
 
   const context = named.reduce((context, b) => {
-    const name = b.header.name || ''
-    const evaluated = evalBlock(b, context)
-    context.set(name, evaluated)
+    context.set(b.header.name || '', evalBlock(b, context))
     return context
-  }, new Map<string, string[]>())
+  }, new Map<string, any>([['memory', memory]]))
 
   const mainBlocks = main.map(b => evalBlock(b, context))
 
-  return intersperse(mainBlocks, ['---']).flat()
+  return [intersperse(mainBlocks, ['---']).flat(), context.get('memory') as Memory]
+}
+
+export function evalContents(text: string): string[] {
+  return evalContentsMem(text)[0]
 }

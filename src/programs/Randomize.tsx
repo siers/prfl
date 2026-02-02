@@ -1,4 +1,4 @@
-import { evalContents } from './RandomizeLang.js'
+import { evalContentsMem, Memory } from './RandomizeLang.js'
 
 function hm(m: number): string {
   return `${Math.floor(m / 60)}h${m % 60}`
@@ -14,11 +14,12 @@ function Randomize(controls: any) {
       const contentsOr = newContents === '' ? newContents : (newContents || state?.text || '')
       const distanceOr = parseInt(newDistance || distance)
 
-      const output = evalContents(contentsOr).join('\n')
+      const oldMemory = state?.memory || new Map()
+      const [output, memory] = evalContentsMem(contentsOr, oldMemory).join('\n')
       const outLineCount = output.split('\n').filter(a => a !== '---').length
 
       return {
-        ...s, text: contentsOr, distance: distanceOr, output: output, outLineCount
+        ...s, text: contentsOr, distance: distanceOr, output, memory, outLineCount
       }
     })
   }
@@ -43,7 +44,7 @@ function Randomize(controls: any) {
         <a className="pr-3" onClick={() => newAndRecalculate()}>🔄</a>
         <a className="pr-3" onClick={() => newAndRecalculate('')}>❌{/* right now this breaks history of textarea */}</a>
         <span className="pr-3">
-          { state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></> }
+          {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
         </span>
       </div>
     </div>

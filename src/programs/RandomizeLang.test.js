@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContents, parseContents } from './RandomizeLang.js'
+import { initSequences, evalContents, evalContentsMem, mapCopy } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -123,5 +123,30 @@ describe('integration', () => {
     `.replaceAll(/^ */mg, '')
 
     expect(evalContents(text)).toStrictEqual(['1', '3', '4', '2'])
+  })
+})
+
+
+describe('memory', () => {
+  test('basic', () => {
+    const text = `
+      {memory.set('a', (memory.get('a') || 0) + 1);}
+    `.replaceAll(/^ */mg, '')
+
+    const [out, mem1] = evalContentsMem(text)
+    const [_, mem2] = evalContentsMem(text, mem1)
+
+    expect(out).toStrictEqual([])
+    expect(mem1).toStrictEqual(new Map([["a", 1]]))
+    expect(mem2).toStrictEqual(new Map([["a", 2]]))
+  })
+})
+
+describe('mapCopy', () => {
+  test('basic', () => {
+    const m = new Map([[1, 2]])
+    const m2 = mapCopy(m)
+    m2.set(1, 3)
+    expect(m.get(1)).toEqual(2)
   })
 })

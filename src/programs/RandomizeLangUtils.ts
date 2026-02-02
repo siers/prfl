@@ -48,7 +48,7 @@ export type Interface = {
   scalePositionsDbl: () => string[],
 }
 
-export function randomizeLangUtils(context: Map<string, string[]>): Interface {
+export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<string, any>): Interface {
   function s(s: string): string[] {
     if (s.indexOf(',') !== -1) return s.split(/ *, */)
     if (s.indexOf(' ') !== -1) return s.split(' ')
