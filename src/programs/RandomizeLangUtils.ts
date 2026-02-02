@@ -204,19 +204,20 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     return [...a1, '---', ...bs, '---', ...a2]
   }
 
-  // add upwards/downwards buttons, shuffleX(uudd, 2)
-  // Bug: G/E doesn't need direction
   function scalePositions() {
     return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).map(example =>
       example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
     ).join(' ')
   }
 
-  // add upwards/downwards buttons + upbow downbow
-  // for downwards scales, it makes sense to add +2 to the position
   function scalePositionsDbl() {
     return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2)).map(example =>
-      example.replace(/((GD|AE).)[↑↓]/, (_, withoutDirection) => withoutDirection)
+      example.replace(/(\d)(GD|DA|AE)(.)([↑↓])/, (_, position, string, bow, direction) => {
+        if (string == 'GD' || string == 'AE') direction = ''
+        console.log(position)
+        if (direction == '↓') position = parseInt(position) + 2
+        return position + string + bow + direction
+      })
     )
   }
 
