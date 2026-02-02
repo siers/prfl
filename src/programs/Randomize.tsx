@@ -1,4 +1,5 @@
-import { evalContentsMem, Memory } from './RandomizeLang.js'
+import { mapParse, mapSerialize } from '../lib/Map.js'
+import { evalContentsMem } from './RandomizeLang.js'
 
 function hm(m: number): string {
   return `${Math.floor(m / 60)}h${m % 60}`
@@ -14,12 +15,13 @@ function Randomize(controls: any) {
       const contentsOr = newContents === '' ? newContents : (newContents || state?.text || '')
       const distanceOr = parseInt(newDistance || distance)
 
-      const oldMemory = state?.memory || new Map()
-      const [output, memory] = evalContentsMem(contentsOr, oldMemory).join('\n')
+      const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
+      const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
+      const output = lines.join('\n')
       const outLineCount = output.split('\n').filter(a => a !== '---').length
 
       return {
-        ...s, text: contentsOr, distance: distanceOr, output, memory, outLineCount
+        ...s, text: contentsOr, distance: distanceOr, output, memory: mapSerialize(memory), outLineCount
       }
     })
   }

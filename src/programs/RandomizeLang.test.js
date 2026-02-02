@@ -141,12 +141,3 @@ describe('memory', () => {
     expect(mem2).toStrictEqual(new Map([["a", 2]]))
   })
 })
-
-describe('mapCopy', () => {
-  test('basic', () => {
-    const m = new Map([[1, 2]])
-    const m2 = mapCopy(m)
-    m2.set(1, 3)
-    expect(m.get(1)).toEqual(2)
-  })
-})

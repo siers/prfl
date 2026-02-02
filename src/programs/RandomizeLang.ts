@@ -1,6 +1,7 @@
 // import { shuffleMinDistanceIndexed } from '../lib/ShuffleVibe.js'
 import { shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
+import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
 
@@ -250,10 +251,6 @@ function evalBlock(block: Block, context: Context): string[] {
     })
 
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
-}
-
-export function mapCopy<A, B>(m: Map<A, B>): Map<A, B> {
-  return new Map(JSON.parse(JSON.stringify(Array.from(m.entries()))))
 }
 
 export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [string[], Memory] {
