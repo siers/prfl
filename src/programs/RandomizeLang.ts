@@ -89,6 +89,8 @@ type Header = {
   shuffle: boolean,
 }
 
+const isMainHeader: (h: Header) => boolean = (h: Header) => h.name === null
+
 type Item = Header | Line
 
 type Block = {
@@ -99,11 +101,7 @@ type Block = {
 
 type Blocks = Block[]
 
-type Parsed = {
-  named: Blocks,
-  main: Blocks,
-}
-
+type Parsed = Blocks
 type Context = Map<string, any>
 export type Memory = Map<string, any>
 
@@ -174,12 +172,7 @@ function parseBlock(items: Item[]): Block {
 export function parseContents(text: string): Parsed {
   const lines = text.split('\n').filter(x => !x.match(/^ *$/))
   const parsed = lines.map(parseLine)
-  const blocked = initSequences(parsed, i => i.kind! == 'header')
-
-  const blocks = blocked.map(parseBlock)
-
-  const [named, main] = _.partition(blocks, b => b.header.name != null)
-  return { named, main }
+  return initSequences(parsed, i => i.kind! == 'header').map(parseBlock)
 }
 
 // evaluators
@@ -253,16 +246,22 @@ function evalBlock(block: Block, context: Context): string[] {
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
-export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [string[], Memory] {
-  const { named, main } = parseContents(text)
+type EvaluationResult = string[]
+type EvaluationContext = [EvaluationResult[], Context]
+
+export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [EvaluationResult, Memory] {
+  const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const context = named.reduce((context, b) => {
-    context.set(b.header.name || '', evalBlock(b, context))
-    return context
-  }, new Map<string, any>([['memory', memory]]))
+  const evaluationInit: EvaluationContext = [[], new Map<string, any>([['memory', memory]])]
+  const [mainBlocks, context]: EvaluationContext = blocks.reduce(([mainBlocks, context], b) => {
+    if (isMainHeader(b.header))
+      mainBlocks.push(evalBlock(b, context))
+    else
+      context.set(b.header.name || '', evalBlock(b, context))
 
-  const mainBlocks = main.map(b => evalBlock(b, context))
+    return [mainBlocks, context] satisfies EvaluationContext
+  }, evaluationInit)
 
   return [intersperse(mainBlocks, ['---']).flat(), context.get('memory') as Memory]
 }
