@@ -78,12 +78,13 @@ export default Randomize
 // TODO: execution view can update tasks, blocker: required that the list is actually just a list of indexes, not items themselves
 // TODO: execution view: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
 
-// TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization
+// TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: allow escaping brackets inside brackets
 // TODO: interpret: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
 // TODO: interpret: either text-blocks or text-only line syntax
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
 
+// TODO content: write a task selection picker without refering to the contents
 // TODO content: make programmable scales
-// TODO content: stringPositions() { return string x position.map(sp = note) }, then quiz self on execution view
 // TODO content: random note while inside position
+// TODO content: bow articulations tasks

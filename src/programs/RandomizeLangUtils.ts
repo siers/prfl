@@ -51,7 +51,7 @@ export type Interface = {
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
 
   // domain specific
-  scalePositions: () => string,
+  scalePositions: (opts: { arrows?: boolean }) => string,
   scalePositionsDbl: () => string[],
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
 }
@@ -157,7 +157,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
   function shuffleX<A>(a: A[] | string, number: number): A[] {
     const list: A[] = shuffle(typeof a === 'string' ? (s(a) as A[]) : a)
-    return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)))
+    return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)), [])
   }
 
   function pick<A>(array: A[] | string): A | string {
@@ -249,8 +249,9 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
   // violin
 
-  function scalePositions() {
-    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).map(example =>
+  function scalePositions(opts: { arrows?: boolean } = {}) {
+    const arrows: string[] = opts?.arrows === false ? times('', 8) : shuffleX('↑↑↓↓', 2)
+    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), arrows).map(example =>
       example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
     ).join(' ')
   }
