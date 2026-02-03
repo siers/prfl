@@ -60,6 +60,14 @@ export function chromaticSlide(tonic: Note | string, s: 'G' | 'D' | 'A' | 'E'): 
           ? '12'
           : '1'
 
-  console.log(render(string.base), ':', first, '->', next, render(lowest), distance, fingers.split(''))
   return `${s}(${pick(fingers.split(''))}):${render(first)}${arrow}${render(next)}`
+}
+
+export function positionsQuiz(): string[] {
+  return strings.flatMap(string => {
+    const base = render(string.base, false)
+    return string.positions.slice(1).map((fret, index) =>
+      `${base}${index + 1} = ${render(fret, false)}`
+    )
+  })
 }

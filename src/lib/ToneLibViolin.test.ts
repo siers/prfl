@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { findTriadOnString, strings } from './ToneLibViolin.ts'
+import { findTriadOnString, positionsQuiz, strings } from './ToneLibViolin.ts'
 import { parseNote, render } from './ToneLib.ts'
+import { shuffleArray } from './Random.tsx'
 
 describe('ToneLibViolin', () => {
   test('basic', () => {
@@ -14,5 +15,13 @@ describe('ToneLibViolin', () => {
     expect(findTriadOnString(parseNote('Bb')!, 'G').map(n => render(n)).join(' ')).toEqual('Bb3 D4 F4 Bb4')
 
     expect(findTriadOnString(parseNote('A')!, 'E').map(n => render(n)).join(' ')).toEqual('A5 C#6 E6 A6')
+  })
+
+  test('positions quiz', () => {
+    const quizes = shuffleArray(positionsQuiz());
+
+    ['G4 = D', 'D5 = B', 'A4 = E', 'D4 = A', 'G5 = E'].forEach(mustExist =>
+      expect(quizes.indexOf(mustExist) !== -1).toBe(true)
+    )
   })
 })

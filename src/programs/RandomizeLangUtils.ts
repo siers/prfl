@@ -122,18 +122,18 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     return as.map(a => a.join(' ')).join(', ')
   }
 
-  function zipGen(ass: string[][], sep: string = ''): string[] {
+  function zipSep(ass: string[][], sep: string = ''): string[] {
     const minLength = ass.map(as => as.length).reduce((prev, next) => Math.min(prev, next), 100000)
     const width = Array(ass.length).fill(null).map((_, idx) => idx)
     return Array(minLength).fill(null).map((_, idx) => width.map(w => ass[w][idx]).join(sep))
   }
 
   function zip(...ass: string[][]): string[] {
-    return zipGen(ass, '')
+    return zipSep(ass, '')
   }
 
   function zipSpace(...ass: string[][]): string[] {
-    return zipGen(ass, ' ')
+    return zipSep(ass, ' ')
   }
 
   function shuffleM<A>(a: A[]): A[] {
@@ -165,6 +165,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     else return pickArray(array)
   }
 
+  // bug: if a key is used, but array now contains fewer items, the previous frequencies will have items that are no longer present
   function pickMemK(key: string | undefined, array: any[] | string, n: number | undefined = undefined): any[] {
     if (n !== undefined && n <= 0) return []
 

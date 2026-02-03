@@ -84,8 +84,6 @@ export default Randomize
 // TODO: interpret: either text-blocks or text-only line syntax
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
 
-// TODO: util: maybeReverse
-
 // TODO content: make programmable scales
 // TODO content: stringPositions() { return string x position.map(sp = note) }, then quiz self on execution view
 // TODO content: random note while inside position
