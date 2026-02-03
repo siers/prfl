@@ -2,6 +2,7 @@
 
 import { Set } from 'immutable'
 import _ from 'lodash'
+import { arrayShift } from './Array'
 
 type Name = 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
 
@@ -20,13 +21,6 @@ export interface Note {
 
 type Key = Note[] // semantic distinction only, unfortunately
 type Notes = Note[]
-
-function arrayShift<A>(arr: A[], count: number): A[] {
-  const len = arr.length
-  const c = len - count
-  arr.push(...arr.splice(0, (-c % len + len) % len))
-  return arr
-}
 
 export function semi(n: Note): number {
   return 4 + (n.octave - 1) * 12 + namesSemiMap[n.name] + n.alter

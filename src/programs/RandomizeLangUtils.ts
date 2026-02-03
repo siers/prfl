@@ -1,8 +1,8 @@
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery, zipT } from '../lib/Array'
-import { keysBySemi, keySemis, render } from '../lib/ToneLib'
+import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import _ from 'lodash'
-import tlv from '../lib/ToneLibViolin'
+import { chromaticSlide } from '../lib/ToneLibViolin'
 
 function roundToNaive(num: number, decimalPlaces: number = 0): number {
   var p = Math.pow(10, decimalPlaces)
@@ -47,12 +47,13 @@ export type Interface = {
   block: (name: string) => any | undefined,
   aba: (as: string[], bs: string[]) => string[],
 
+  pickKeys: (cacheKey: string, n: number) => string[],
+  pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
+
   // domain specific
   scalePositions: () => string,
   scalePositionsDbl: () => string[],
-
-  pickKeys: (cacheKey: string, n: number) => string[],
-  pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
+  chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
 }
 
 export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<string, any>): Interface {
@@ -221,22 +222,6 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
   // practical calculations
 
-  function scalePositions() {
-    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).map(example =>
-      example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
-    ).join(' ')
-  }
-
-  function scalePositionsDbl() {
-    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2)).map(example =>
-      example.replace(/(\d)(GD|DA|AE)(.)([↑↓])/, (_, position, string, bow, direction) => {
-        if (string == 'GD' || string == 'AE') direction = ''
-        if (direction == '↓') position = parseInt(position) + 2
-        return position + string + bow + direction
-      })
-    )
-  }
-
   function pickKeys(cacheKey: string, n: number): string[] {
     const semis = keySemis()
     const key = `pickKeys|${cacheKey}`
@@ -259,6 +244,24 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
       const note = keys.length !== 1 ? pickMemK(`${key}|FG`, keys, 1)[0] : keys[0]
       return render(note, false)
     })
+  }
+
+  // violin
+
+  function scalePositions() {
+    return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), shuffleX('↑↑↓↓', 2)).map(example =>
+      example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
+    ).join(' ')
+  }
+
+  function scalePositionsDbl() {
+    return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2)).map(example =>
+      example.replace(/(\d)(GD|DA|AE)(.)([↑↓])/, (_, position, string, bow, direction) => {
+        if (string == 'GD' || string == 'AE') direction = ''
+        if (direction == '↓') position = parseInt(position) + 2
+        return position + string + bow + direction
+      })
+    )
   }
 
   return {
@@ -291,9 +294,10 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     context,
     block,
     aba,
-    scalePositions,
-    scalePositionsDbl,
     pickKeys,
     pickKeysOffset,
+    scalePositions,
+    scalePositionsDbl,
+    chromaticSlide,
   }
 }

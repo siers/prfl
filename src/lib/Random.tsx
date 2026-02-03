@@ -1,6 +1,6 @@
 import { directRangeClamp, zipWithIndex } from './Array'
 
-function randInt(from: number, to: number) {
+export function randInt(from: number, to: number) {
   return from + Math.floor(Math.random() * (to - from + 1))
 }
 
@@ -59,4 +59,8 @@ export function shuffleMinDistanceIndexed<A>(array: [number, A][], min: number) 
 
 export function shuffleMinDistance<A>(array: A[], min: number) {
   return shuffleMinDistanceIndexed(zipWithIndex(array), min)
+}
+
+export function maybeReverse<A>(a: A[]): A[] {
+  return randInt(0, 1) == 0 ? a : a.toReversed()
 }

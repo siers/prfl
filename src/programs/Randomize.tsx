@@ -5,6 +5,15 @@ function hm(m: number): string {
   return `${Math.floor(m / 60)}h${m % 60}`
 }
 
+const generateHash = (string) => {
+  let hash = 0
+  for (const char of string) {
+    hash = (hash << 5) - hash + char.charCodeAt(0)
+    hash |= 0 // Constrain to 32bit integer
+  }
+  return hash
+}
+
 function Randomize(controls: any) {
   const { state, setState } = controls
 
@@ -16,7 +25,7 @@ function Randomize(controls: any) {
       const distanceOr = parseInt(a.distance || distance)
 
       const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
-      console.clear()
+      // console.clear()
       const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
       const output = lines.join('\n')
       const outLineCount = output.split('\n').filter(a => a !== '---').length
@@ -41,6 +50,9 @@ function Randomize(controls: any) {
         <a className="pr-3" onClick={() => newAndRecalculate({ contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
         <span className="pr-3">
           {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
+        </span>
+        <span className="pr-3 text-[#f4f4f4]">
+          {state.memory && Math.abs(generateHash(state.memory)) % 10000}
         </span>
       </div>
 
@@ -75,6 +87,5 @@ export default Randomize
 // TODO: util: maybeReverse
 
 // TODO content: make programmable scales
-// TODO content: write chromatic slide exercise instrunctions
 // TODO content: stringPositions() { return string x position.map(sp = note) }, then quiz self on execution view
 // TODO content: random note while inside position

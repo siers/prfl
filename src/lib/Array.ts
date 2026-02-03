@@ -50,3 +50,10 @@ export function interleavingEvery<A>(into: A[], what: A[], every: number): A[] {
     return (as.length == every) ? as.concat(bs) : as
   })
 }
+
+export function arrayShift<A>(arr: A[], count: number): A[] {
+  const len = arr.length
+  const c = len - count
+  arr.push(...arr.splice(0, (-c % len + len) % len))
+  return arr
+}
