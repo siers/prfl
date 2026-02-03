@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { randomizeLangUtils } from './RandomizeLangUtils'
 
 const {
@@ -68,4 +68,34 @@ test('zip', () => {
 test('j & jj', () => {
   expect(j([1, 2])).toStrictEqual('1 2')
   expect(jj([[1, 2], [3, 4]])).toStrictEqual('1 2, 3 4')
+})
+
+describe('pickMemK', () => {
+  type Memory = Map<string, any>
+  type Sig =
+    (m: Memory, key: string | undefined, array: any[] | string, n: number | undefined, stats: any)
+      => [string[], Memory]
+
+  const pmk: Sig = (m, a, b, c, d) => [randomizeLangUtils(new Map(), m).pickMemK(a, b, c, d), m]
+
+  test('basic', () => {
+    const m: Memory = new Map()
+    expect(pmk(m, '', '1', 1, undefined)).toEqual([["1"], m])
+  })
+
+  test('make a key if it is missing', () => {
+    const m: Memory = new Map([["1||2||2", { "2": 1 }]])
+    expect(pmk(m, '', '212', 1, undefined)).toEqual([["1"], m])
+  })
+
+  test('use stats', () => {
+    const m: Memory = new Map([["choice", { "2": 1 }]])
+    expect(pmk(m, 'choice', '212', 1, undefined)).toEqual([["1"], m])
+  })
+
+  test('update stats', () => {
+    const m: Memory = new Map([["stuff", { "2": 1 }]])
+    expect(pmk(m, 'stuff', '212', 1, undefined)).toEqual([["1"], m])
+    expect(m.get('stuff')).toStrictEqual({ "2": 1, "1": 1 })
+  })
 })

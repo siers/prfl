@@ -38,6 +38,9 @@ export type Interface = {
   pick: <A>(array: A[] | string) => A | string,
   pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined) => any[],
   pickMem: (array: any[] | string, n: number | undefined) => any[],
+  pickTasks: (key: string, items: string[], n?: number) => any[],
+  pickBlock: (name: string, n?: number) => any[],
+  scheduleBlocks: (sentence: string) => string[],
 
   progress: (start: string, end: string) => number,
   progressClamp: (start: string, end: string, from: number, to: number) => number,
@@ -166,7 +169,9 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
   }
 
   // bug: if a key is used, but array now contains fewer items, the previous frequencies will have items that are no longer present
-  function pickMemK(key: string | undefined, array: any[] | string, n: number | undefined = undefined): any[] {
+  function pickMemK(
+    key: string | undefined, array: any[] | string, n: number | undefined = undefined, stats: any = undefined,
+  ): any[] {
     if (n !== undefined && n <= 0) return []
 
     const items = ((typeof array === 'string') ? s(array) : array).sort()
@@ -174,7 +179,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
     const memoryKey = key || items.join('||')
 
-    const storedStats = memory.get(memoryKey) || {}
+    const storedStats = stats || memory.get(memoryKey) || {}
     const frequencies: [any, number][] = items.map(item => {
       return [item, (storedStats[item] || 0)] satisfies [any, number]
     })
@@ -193,6 +198,48 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
   function pickMem(array: any[] | string, n: number | undefined): any[] {
     return pickMemK(undefined, array, n)
+  }
+
+  function pickTasks(key: string, items: string[], n?: number): string[] {
+    const map = items.map(i => {
+      const match = i.match(/^([a-zA-Z0-9]{1,10}):/)
+      if (!match || !match[1]) return
+      return [match[1], i] satisfies [string, string]
+    })
+
+    if (map.some(x => !x)) return [`pickTasks: ids missing for '${key}'`]
+
+    const mapF = map.flatMap(i => i ? [i] : [])
+    const keys = _.uniq(mapF.map(([key, _]) => key))
+    const theKey = `${key}||${keys}`
+
+    const mapM = new Map<string, string[]>()
+    mapF.map(([k, v]) => {
+      mapM.set(k, (mapM.get(k) || []).concat([v]))
+    })
+
+    return pickMemK(theKey, keys, n).map(keyOut => pick(mapM.get(keyOut) || ['missing']))
+  }
+
+  function pickBlock(name: string, n?: number): string[] {
+    if (!block(name)) return [`pickBlock: cannot find ${name}`]
+    return pickTasks(name, block(name), n)
+  }
+
+  function scheduleBlocks(sentence: string): string[] {
+    let err
+
+    const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0])
+    const blocks = parsed.map(s => {
+      const match = s.match(/([a-z]+)(\d+)?/)
+      if (!match) err = "block name not found"
+      if (!match![1]) err = "cannot parse block name"
+      return [match![1], parseInt(match![2] || '1', 10)] satisfies [string, number]
+    })
+
+    if (err) return [`scheduleBlockks: ${err}`]
+
+    return blocks.flatMap(([name, amount]) => pickBlock(name, amount))
   }
 
   function progress(start: string, end: string) {
@@ -289,6 +336,9 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     pick,
     pickMemK,
     pickMem,
+    pickTasks,
+    pickBlock,
+    scheduleBlocks,
     progress,
     progressClamp,
     j,

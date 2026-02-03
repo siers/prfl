@@ -39,7 +39,7 @@ function Randomize(controls: any) {
   }
 
   return (
-    <div className="">
+    <div className="w-full">
       { /* <div className="pl-[10px]">
         min distance: <input type="number" onChange={e => newAndRecalculate({distance: e.target.value})} className="border" min="0" max="10" placeholder={distance} />
       </div> */ }
@@ -56,13 +56,13 @@ function Randomize(controls: any) {
         </span>
       </div>
 
-      <div className="flex flex-row selection:red text-sm">
+      <div className="w-full flex flex-row selection:red text-sm">
         <div className="grow p-[10px]">
-          <textarea className="p-[5px] border" rows={20} cols={50} onChange={e => newAndRecalculate({ contents: e.target.value })} value={state?.text}></textarea>
+          <textarea className="block w-full p-[5px] border" rows={30} cols={60} onChange={e => newAndRecalculate({ contents: e.target.value })} value={state?.text}></textarea>
         </div>
 
         <div className="grow p-[10px]">
-          <textarea className="p-[5px] border font-mono" rows={20} cols={50} value={state?.output} readOnly></textarea>
+          <textarea className="block w-full p-[5px] border font-mono" rows={30} cols={60} value={state?.output} readOnly></textarea>
         </div>
       </div>
     </div>
