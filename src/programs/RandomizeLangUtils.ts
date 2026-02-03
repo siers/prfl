@@ -96,7 +96,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
   }
 
   function divide<A>(as: A[], parts: number): A[][] {
-    const part = Math.floor(as.length / parts)
+    const part = Math.max(1, Math.floor(as.length / parts))
     const starts = Array(parts).fill(null).map((_, idx) => idx * part)
     return starts.map((start, idx) => as.slice(start, idx + 1 == starts.length ? undefined : start + part))
   }
