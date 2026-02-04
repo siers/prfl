@@ -202,7 +202,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
   function pickTasks(key: string, items: string[], n?: number): string[] {
     const map = items.map(i => {
-      const match = i.match(/^([a-zA-Z0-9]{1,10}):/)
+      const match = i.match(/^([a-zA-Z0-9\-]+):/)
       if (!match || !match[1]) return
       return [match[1], i] satisfies [string, string]
     })
@@ -231,9 +231,11 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
     const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0])
     const blocks = parsed.map(s => {
-      const match = s.match(/([a-z]+)(\d+)?/)
+      const match = s.match(/^([a-z0-9]+?)-?(\d+)?$/i)
+
       if (!match) err = "block name not found"
       if (!match![1]) err = "cannot parse block name"
+
       return [match![1], parseInt(match![2] || '1', 10)] satisfies [string, number]
     })
 
