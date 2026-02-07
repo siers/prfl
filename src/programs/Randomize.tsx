@@ -1,17 +1,9 @@
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { evalContentsMem } from './RandomizeLang.js'
+import murmur from 'murmurhash3js'
 
 function hm(m: number): string {
   return `${Math.floor(m / 60)}h${m % 60}`
-}
-
-const generateHash = (string) => {
-  let hash = 0
-  for (const char of string) {
-    hash = (hash << 5) - hash + char.charCodeAt(0)
-    hash |= 0 // Constrain to 32bit integer
-  }
-  return hash
 }
 
 function Randomize(controls: any) {
@@ -45,14 +37,14 @@ function Randomize(controls: any) {
       </div> */ }
 
       <div className="pl-[10px]">
-        <a className="pr-3" onClick={() => newAndRecalculate({save: true})}>💾</a>
+        <a className="pr-3" onClick={() => newAndRecalculate({ save: true })}>💾</a>
         <a className="pr-3" onClick={() => newAndRecalculate({})}>🔄</a>
         <a className="pr-3" onClick={() => newAndRecalculate({ contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
         <span className="pr-3">
           {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
         </span>
         <span className="pr-3 text-[#f4f4f4]">
-          {state.memory && Math.abs(generateHash(state.memory)) % 10000}
+          {state.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
         </span>
       </div>
 
@@ -80,11 +72,21 @@ export default Randomize
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: allow escaping brackets inside brackets
-// TODO: interpret: 2x = (1/2) + (2/2) (requires another pass over block after shuffling)
+// TODO: interpret: 2x = (1/2) + (2/2) (combine with execution mode: the view is just an index of the item + some decoration)
 // TODO: interpret: either text-blocks or text-only line syntax
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
+
+// TODO: util: schedule doesn't respect
+// TODO: util: if an item doesn't get fulfilled, it still impacted the memory
+// TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
+// TODO: util: the save button should save the memory from the current rendered content
+
+// TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
+// TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
+// TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
 
 // TODO content: write a task selection picker without refering to the contents
 // TODO content: make programmable scales
 // TODO content: random note while inside position
 // TODO content: bow articulations tasks
+// TODO content: random from day

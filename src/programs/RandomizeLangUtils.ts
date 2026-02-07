@@ -3,6 +3,7 @@ import { intersperse, interspersing, interleavingEvery, zipT } from '../lib/Arra
 import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import _ from 'lodash'
 import { chromaticSlide } from '../lib/ToneLibViolin'
+import murmur from 'murmurhash3js'
 
 function roundToNaive(num: number, decimalPlaces: number = 0): number {
   var p = Math.pow(10, decimalPlaces)
@@ -32,15 +33,18 @@ export type Interface = {
   intersperse: <A>(arr: A[], sep: A) => A[],
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
+
   shuffle: <A>(a: A[]) => A[],
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
+
   pick: <A>(array: A[] | string) => A | string,
   pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined) => any[],
   pickMem: (array: any[] | string, n: number | undefined) => any[],
   pickTasks: (key: string, items: string[], n?: number) => any[],
-  pickBlock: (name: string, n?: number) => any[],
-  scheduleBlocks: (sentence: string) => string[],
+
+  dayRandom: (modulo?: number) => number,
+  maybeEvery: (nthDay: number, item: string | string[]) => string[],
 
   progress: (start: string, end: string) => number,
   progressClamp: (start: string, end: string, from: number, to: number) => number,
@@ -49,7 +53,10 @@ export type Interface = {
   context: Map<string, string[]> | null,
   block: (name: string) => any | undefined,
   aba: (as: string[], bs: string[]) => string[],
+  pickBlock: (name: string, n?: number) => any[],
+  scheduleBlocks: (sentence: string) => string[],
 
+  pickNKeys: (n: number) => string[],
   pickKeys: (cacheKey: string, n: number) => string[],
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
 
@@ -244,6 +251,17 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     return blocks.flatMap(([name, amount]) => pickBlock(name, amount))
   }
 
+  function dayRandom(modulo?: number): number {
+    return murmur.x86.hash32(new Date().toISOString().slice(0, 10)) % (modulo || 100000)
+  }
+
+  function maybeEvery(nthDay: number, itemsIn: string | string[]): string[] {
+    const items: string[] = typeof itemsIn === 'string' ? [itemsIn] : itemsIn
+
+    console.log(dayRandom(nthDay))
+    return dayRandom(nthDay) == 0 ? items : []
+  }
+
   function progress(start: string, end: string) {
     const now = new Date().getTime()
     const startDate = new Date(start).getTime()
@@ -271,6 +289,12 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
   }
 
   // practical calculations
+
+  function pickNKeys(cacheKey: string, n?: number): string[] {
+    if (!n) return []
+    const offsets = times(null, n - 1).map((_, index) => (12 / n) * (index + 1))
+    return pickKeysOffset(cacheKey, ...offsets)
+  }
 
   function pickKeys(cacheKey: string, n: number): string[] {
     const semis = keySemis()
@@ -319,6 +343,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     s,
     ss,
     cross,
+
     times,
     indices,
     parts,
@@ -326,30 +351,40 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     divide,
     partChunks,
     partChunksShuf,
-    shuffle,
-    shuffleM,
-    shuffleX,
+    j,
+    jj,
     zip,
     zipSpace,
     zipT,
     intersperse,
     interspersing,
     interleavingEvery,
+
+    shuffle,
+    shuffleM,
+    shuffleX,
+
     pick,
     pickMemK,
     pickMem,
     pickTasks,
-    pickBlock,
-    scheduleBlocks,
+
+    dayRandom,
+    maybeEvery,
+
     progress,
     progressClamp,
-    j,
-    jj,
+
     context,
     block,
     aba,
+    pickBlock,
+    scheduleBlocks,
+
+    pickNKeys,
     pickKeys,
     pickKeysOffset,
+
     scalePositions,
     scalePositionsDbl,
     chromaticSlide,
