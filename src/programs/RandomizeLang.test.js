@@ -62,7 +62,7 @@ describe('evalContents', () => {
       a
       b
       -=-
-      [context.get('a')]
+      [block('a')]
     `.replaceAll(/^ */mg, '')
 
     expect(evalContents(text)).toStrictEqual(['[a b]'])
@@ -74,7 +74,7 @@ describe('evalContents', () => {
       a
       b
       -=-
-      {context.get('a')}
+      {block('a')}
       -
       {block('a')}
     `.replaceAll(/^ */mg, '')

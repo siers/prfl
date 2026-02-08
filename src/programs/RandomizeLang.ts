@@ -99,10 +99,12 @@ type Block = {
   items: Item[],
 }
 
+// export type ContextBlock = (...args: any) => string[]
+
 type Blocks = Block[]
 
 type Parsed = Blocks
-type Context = Map<string, any>
+type Context = Map<string, any> // contains both blocks as function and memory
 export type Memory = Map<string, any>
 
 const defaultMarker = '!!!'
@@ -258,7 +260,7 @@ export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [E
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
     else
-      context.set(b.header.name || '', evalBlock(b, context))
+      context.set(b.header.name || '', () => evalBlock(b, context))
 
     return [mainBlocks, context] satisfies EvaluationContext
   }, evaluationInit)

@@ -41,10 +41,11 @@ test('parts', () => {
 
 test('divide', () => {
   expect(divide([1, 2, 3, 4, 5], 5)).toStrictEqual([[1], [2], [3], [4], [5]])
-  expect(divide([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2], [3, 4, 5]])
+  expect(divide([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2, 3], [4, 5]])
   expect(divide([1], 2)).toStrictEqual([[1], []])
   expect(divide([1], 5)).toStrictEqual([[1], [], [], [], []])
   expect(divide([1, 2], 5)).toStrictEqual([[1], [2], [], [], []])
+  expect(divide([1, 2, 3], 2)).toStrictEqual([[1, 2], [3]])
 })
 
 // test('partChunks', () => {

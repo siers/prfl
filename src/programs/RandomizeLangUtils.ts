@@ -39,24 +39,28 @@ export type Interface = {
   shuffleX: <A>(a: A[] | string, number: number) => A[],
 
   pick: <A>(array: A[] | string) => A | string,
-  pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined) => any[],
+  pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined, stats?: any) => any[],
+
   pickMem: (array: any[] | string, n: number | undefined) => any[],
   pickTasks: (key: string, items: string[], n?: number) => any[],
 
   dayRandom: (modulo?: number) => number,
   maybeEvery: (nthDay: number, item: string | string[]) => string[],
 
+  // percentages
+
   progress: (start: string, end: string) => number,
   progressClamp: (start: string, end: string, from: number, to: number) => number,
 
   // block operations
-  context: Map<string, string[]> | null,
-  block: (name: string) => any | undefined,
+  context: Map<string, any> | null,
+  block: (name: string, ...args: any) => any | undefined,
   aba: (as: string[], bs: string[]) => string[],
   pickBlock: (name: string, n?: number) => any[],
   scheduleBlocks: (sentence: string) => string[],
+  zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
 
-  pickNKeys: (n: number) => string[],
+  pickNKeys: (cacheKey: string, n: number) => string[],
   pickKeys: (cacheKey: string, n: number) => string[],
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
 
@@ -66,7 +70,7 @@ export type Interface = {
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
 }
 
-export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<string, any>): Interface {
+export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
   function s(s: string): string[] {
     if (s.indexOf(',') !== -1) return s.split(/ *, */)
     if (s.indexOf(' ') !== -1) return s.split(' ')
@@ -106,7 +110,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
   }
 
   function divide<A>(as: A[], parts: number): A[][] {
-    const part = Math.max(1, Math.floor(as.length / parts))
+    const part = Math.max(1, Math.ceil(as.length / parts))
     const starts = Array(parts).fill(null).map((_, idx) => idx * part)
     return starts.map((start, idx) => as.slice(start, idx + 1 == starts.length ? undefined : start + part))
   }
@@ -177,7 +181,10 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
 
   // bug: if a key is used, but array now contains fewer items, the previous frequencies will have items that are no longer present
   function pickMemK(
-    key: string | undefined, array: any[] | string, n: number | undefined = undefined, stats: any = undefined,
+    key: string | undefined,
+    array: any[] | string,
+    n: number | undefined = undefined,
+    stats: any = undefined,
   ): any[] {
     if (n !== undefined && n <= 0) return []
 
@@ -228,6 +235,55 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     return pickMemK(theKey, keys, n).map(keyOut => pick(mapM.get(keyOut) || ['missing']))
   }
 
+  // scheduling
+
+  function dayRandom(modulo?: number): number {
+    return murmur.x86.hash32(new Date().toISOString().slice(0, 10)) % (modulo || 100000)
+  }
+
+  function maybeEvery(nthDay: number, itemsIn: string | string[]): string[] {
+    const items: string[] = typeof itemsIn === 'string' ? [itemsIn] : itemsIn
+
+    console.log(dayRandom(nthDay))
+    return dayRandom(nthDay) == 0 ? items : []
+  }
+
+  // percentages
+
+  function progress(start: string, end: string) {
+    const now = new Date().getTime()
+    const startDate = new Date(start).getTime()
+    const endDate = new Date(end).getTime()
+
+    const perc = (now - startDate) / (endDate - startDate)
+
+    return roundToNaive(Math.max(0, Math.min(1, perc)), 3)
+  }
+
+  function progressClamp(start: string, end: string, from: number, to: number) {
+    const diff = to - from
+    return from + progress(start, end) * diff
+  }
+
+  // block utilities
+
+  function block(name: string, ...args: any): any {
+    const lookup = context.get(name)
+    if (!lookup) return [`error: block('${name}') == ${lookup}`]
+    const lookupChecked = lookup as (...args: any) => string[]
+    return lookupChecked(...args)
+  }
+
+  function aba(as: string[], bs: string[]): string[] {
+    const [a1, a2] = divide(as, 2)
+    return [...a1, '---', ...bs, '---', ...a2]
+  }
+
+  function zipBlocksDiv(names: string, div: number, ...args: any): any[string] {
+    const zipped = zipT(...s(names).map(name => divide(block(name, ...args), div)))
+    return zipped.flat().flat()
+  }
+
   function pickBlock(name: string, n?: number): string[] {
     if (!block(name)) return [`pickBlock: cannot find ${name}`]
     return pickTasks(name, block(name), n)
@@ -249,43 +305,6 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     if (err) return [`scheduleBlockks: ${err}`]
 
     return blocks.flatMap(([name, amount]) => pickBlock(name, amount))
-  }
-
-  function dayRandom(modulo?: number): number {
-    return murmur.x86.hash32(new Date().toISOString().slice(0, 10)) % (modulo || 100000)
-  }
-
-  function maybeEvery(nthDay: number, itemsIn: string | string[]): string[] {
-    const items: string[] = typeof itemsIn === 'string' ? [itemsIn] : itemsIn
-
-    console.log(dayRandom(nthDay))
-    return dayRandom(nthDay) == 0 ? items : []
-  }
-
-  function progress(start: string, end: string) {
-    const now = new Date().getTime()
-    const startDate = new Date(start).getTime()
-    const endDate = new Date(end).getTime()
-
-    const perc = (now - startDate) / (endDate - startDate)
-
-    return roundToNaive(Math.max(0, Math.min(1, perc)), 3)
-  }
-
-  function progressClamp(start: string, end: string, from: number, to: number) {
-    const diff = to - from
-    return from + progress(start, end) * diff
-  }
-
-  // block utilities
-
-  function block(name: string): any {
-    return context.get(name)
-  }
-
-  function aba(as: string[], bs: string[]): string[] {
-    const [a1, a2] = divide(as, 2)
-    return [...a1, '---', ...bs, '---', ...a2]
   }
 
   // practical calculations
@@ -384,6 +403,7 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     aba,
     pickBlock,
     scheduleBlocks,
+    zipBlocksDiv,
 
     pickNKeys,
     pickKeys,
