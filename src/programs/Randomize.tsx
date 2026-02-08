@@ -63,12 +63,12 @@ function Randomize(controls: any) {
 
 export default Randomize
 
-// TODO: execution view for the rendered program
-// TODO: time tracker & adding comments to update the original item
-// TODO: renderProgram as a function from the App.tsx
-// TODO: phone view for the execution program
-// TODO: execution view can update tasks, blocker: required that the list is actually just a list of indexes, not items themselves
-// TODO: execution view: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
+// TODO: execution: a view for the rendered program
+// TODO: execution: show contents in a split view (renderProgram as a function from the App.tsx)
+// TODO: execution: phone view
+// TODO: execution: can update tasks (comments, params) (blocker: required that the list is actually just a list of indexes, not items themselves)
+// TODO: execution: time tracker
+// TODO: execution: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: allow escaping brackets inside brackets
@@ -87,7 +87,7 @@ export default Randomize
 // TODO: scheduling: store not "times picked", but order of last picked
 // TODO: scheduling: after() function to ban certain exercises
 
-// TODO content: write a task selection picker without refering to the contents
+// TODO content: write a task selection picker without refering to the contents (I have no idea what this means any more)
 // TODO content: make programmable scales
 // TODO content: random note while inside position
 // TODO content: bow articulations tasks
