@@ -329,11 +329,15 @@ export function randomizeLangUtils(context: Map<string, string[]>, memory: Map<s
     ).join(' ')
   }
 
+  // features:
+  // * if going down, position = +2
+  // * on GD it's always up, on AE, it's always down. the direction is therefore not shown
   function scalePositionsDbl() {
     return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑↑', 2)).map(example =>
       example.replace(/(\d)(GD|DA|AE)(.)([↑↓])/, (_, position, string, bow, direction) => {
+        const logicalDirection = string == 'AE' ? '↓' : direction
         if (string == 'GD' || string == 'AE') direction = ''
-        if (direction == '↓') position = parseInt(position) + 2
+        if (logicalDirection) position = parseInt(position) + 2
         return position + string + bow + direction
       })
     )

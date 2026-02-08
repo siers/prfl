@@ -84,9 +84,11 @@ export default Randomize
 // TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
+// TODO: scheduling: store not "times picked", but order of last picked
+// TODO: scheduling: after() function to ban certain exercises
 
 // TODO content: write a task selection picker without refering to the contents
 // TODO content: make programmable scales
 // TODO content: random note while inside position
 // TODO content: bow articulations tasks
-// TODO content: random from day
+// TODO content: maybeEvery derived from memory (make it work on indices)
