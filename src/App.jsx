@@ -126,7 +126,7 @@ function App() {
       <div className="log">
       </div>
 
-      <div className="knob-wrapwrap">
+      <div className="knob-wrapwrap hidden">
         <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
       </div>
 

@@ -1,5 +1,5 @@
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from "../lib/Random"
-import { intersperse, interspersing, interleavingEvery, zipT } from '../lib/Array'
+import { intersperse, interspersing, interleavingEvery, zipT, directRange } from '../lib/Array'
 import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import _ from 'lodash'
 import { chromaticSlide } from '../lib/ToneLibViolin'
@@ -52,6 +52,11 @@ export type Interface = {
   progress: (start: string, end: string) => number,
   progressClamp: (start: string, end: string, from: number, to: number) => number,
 
+  // progressive gluing
+
+  phrasePyramid(phrases: string | string[]): string[][],
+  pyramid(phrases: string | string[], roughness?: number): string[][],
+
   // block operations
   context: Map<string, any> | null,
   block: (name: string, ...args: any) => any | undefined,
@@ -72,8 +77,8 @@ export type Interface = {
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
   function s(s: string): string[] {
-    if (s.indexOf(',') !== -1) return s.split(/ *, */)
-    if (s.indexOf(' ') !== -1) return s.split(' ')
+    if (s.indexOf(',') !== -1) return s.split(/ *, */).filter(x => x != '')
+    if (s.indexOf(' ') !== -1) return s.split(' ').filter(x => x != '')
     else return s.split('')
   }
 
@@ -110,7 +115,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function divide<A>(as: A[], parts: number): A[][] {
-    const part = Math.max(1, Math.ceil(as.length / parts))
+    const part = Math.max(1, Math.round(as.length / parts))
     const starts = Array(parts).fill(null).map((_, idx) => idx * part)
     return starts.map((start, idx) => as.slice(start, idx + 1 == starts.length ? undefined : start + part))
   }
@@ -265,6 +270,37 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return from + progress(start, end) * diff
   }
 
+  // progressive gluing
+
+  function phrasePyramid(phrasesIn: string | string[]): string[][] {
+    const phrases = typeof phrasesIn === 'string' ? s(phrasesIn) : phrasesIn
+
+    return directRange(1, phrases.length).map((_, length) => {
+      return directRange(0, phrases.length - 1 - length).map((_, start) => {
+        const range = directRange(start, start + length).map(i => phrases[i])
+        const abbrev = range.length == 1 ? [range] : [range.at(0), range.at(-1)]
+        if (length >= 8) abbrev.splice(1, 0, '...')
+        else if (length >= 4) abbrev.splice(1, 0, '..')
+        else if (length >= 2) abbrev.splice(1, 0, '.')
+        return `[${abbrev.join(' ')}]`.replaceAll(/ (\.{1,3}) /g, '$1')
+      })
+    })
+  }
+
+  // testable, just shuffled has to be passed
+  function pyramid(phrasesIn: string | string[], roughness?: number): string[][] {
+    roughness ||= 1000
+    const divisions = divide(phrasePyramid(phrasesIn), roughness)
+    return divisions.map((division, index) => {
+      const first = index == 0
+      const last = index == divisions.length - 1
+      const representative = shuffle(division.at(last ? -1 : 0) as string[])
+
+      const tooLong = !(first || last) && representative.length > roughness
+      return tooLong ? representative.slice(0, roughness) : representative
+    })
+  }
+
   // block utilities
 
   function block(name: string, ...args: any): any {
@@ -397,6 +433,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     progress,
     progressClamp,
+
+    phrasePyramid,
+    pyramid,
 
     context,
     block,

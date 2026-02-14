@@ -9,10 +9,12 @@ const {
   divide,
   // partChunks,
   // mj,
+  phrasePyramid,
   j,
   jj,
   zip,
   shuffle,
+  interleavingEvery,
 } = randomizeLangUtils(new Map(), new Map())
 
 test('s', () => {
@@ -20,6 +22,8 @@ test('s', () => {
   expect(s('GDAE')).toStrictEqual(['G', 'D', 'A', 'E'])
   expect(s('one two three')).toStrictEqual(['one', 'two', 'three'])
   expect(s('one two, three four')).toStrictEqual(['one two', 'three four'])
+
+  expect(s('a,b,')).toStrictEqual(['a', 'b'])
 })
 
 test('cross', () => {
@@ -40,18 +44,37 @@ test('parts', () => {
 })
 
 test('divide', () => {
-  expect(divide([1, 2, 3, 4, 5], 5)).toStrictEqual([[1], [2], [3], [4], [5]])
-  expect(divide([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2, 3], [4, 5]])
+  expect(divide([], 2)).toStrictEqual([[], []])
   expect(divide([1], 2)).toStrictEqual([[1], []])
   expect(divide([1], 5)).toStrictEqual([[1], [], [], [], []])
   expect(divide([1, 2], 5)).toStrictEqual([[1], [2], [], [], []])
   expect(divide([1, 2, 3], 2)).toStrictEqual([[1, 2], [3]])
+  expect(divide([1, 2, 3, 4], 3)).toStrictEqual([[1], [2], [3, 4]])
+  expect(divide([1, 2, 3, 4, 5], 5)).toStrictEqual([[1], [2], [3], [4], [5]])
+  expect(divide([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2, 3], [4, 5]])
+  expect(divide([1, 2, 3, 4, 5, 6, 7, 8], 3)).toStrictEqual([[1, 2, 3], [4, 5, 6], [7, 8]])
+  expect(divide([1, 2, 3, 4, 5, 6, 7, 8, 9], 3)).toStrictEqual([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+  expect(divide([1, 2, 3, 4, 5, 6, 7, 8, 9], 2)).toStrictEqual([[1, 2, 3, 4, 5], [6, 7, 8, 9]])
 })
 
 // test('partChunks', () => {
 //   expect(partChunks(5, 2)).toStrictEqual([['0%', '20%'], ['40%', '60%', '80%']])
 //   expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
 // })
+
+test('phrasePyramid', () => {
+  {
+    const inp = '1 2 3'
+    const out = '[1], [2], [3] | [1 2], [2 3] | [1.3]'
+    expect(phrasePyramid(inp)).toStrictEqual(out.split(/ *\| */).map(x => x.split(/, */)))
+  }
+
+  {
+    const inp = '1 2 3 4'
+    const out = '[1], [2], [3], [4] | [1 2], [2 3], [3 4] | [1.3], [2.4] | [1.4]'
+    expect(phrasePyramid(inp)).toStrictEqual(out.split(/ *\| */).map(x => x.split(/, */)))
+  }
+})
 
 test('shuffle', () => {
   const long = 'kdnwjertnblrekjnfqlekjfnqlkewjfnqwelkjfnqwelkjnfq'
@@ -99,4 +122,9 @@ describe('pickMemK', () => {
     expect(pmk(m, 'stuff', '212', 1, undefined)).toEqual([["1"], m])
     expect(m.get('stuff')).toStrictEqual({ "2": 1, "1": 1 })
   })
+})
+
+test('interleavingEvery', () => {
+  expect(interleavingEvery(s('1 2 3'), s('a'), 2)).toStrictEqual(s('1 2 a 3'))
+  expect(interleavingEvery(s('1 2 3 4'), s('a'), 2)).toStrictEqual(s('1 2 a 3 4 a'))
 })
