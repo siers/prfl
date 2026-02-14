@@ -284,16 +284,16 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   function phrasePyramid(phrasesIn: string | string[]): string[][] {
     const phrases = typeof phrasesIn === 'string' ? s(phrasesIn) : phrasesIn
 
-    return directRange(1, phrases.length).map((_, length) => {
-      return directRange(0, phrases.length - 1 - length).map((_, start) => {
-        const range = directRange(start, start + length).map(i => phrases[i])
-        const abbrev = range.length == 1 ? [range] : [range.at(0), range.at(-1)]
-        if (length >= 8) abbrev.splice(1, 0, '...')
-        else if (length >= 4) abbrev.splice(1, 0, '..')
-        else if (length >= 2) abbrev.splice(1, 0, '.')
-        return `[${abbrev.join(' ')}]`.replaceAll(/ (\.{1,3}) /g, '$1')
-      })
-    })
+    return indexPyramid(phrases.length).map(ofLength => ofLength.map(sequence => {
+      const range = sequence.map(i => phrases[i])
+      const seqLength = range.length - 1
+
+      const abbrev = range.length == 1 ? [range] : [range.at(0), range.at(-1)]
+      if (seqLength >= 8) abbrev.splice(1, 0, '...')
+      else if (seqLength >= 4) abbrev.splice(1, 0, '..')
+      else if (seqLength >= 2) abbrev.splice(1, 0, '.')
+      return `[${abbrev.join(' ')}]`.replaceAll(/ (\.{1,3}) /g, '$1')
+    }))
   }
 
   // testable, just shuffled has to be passed

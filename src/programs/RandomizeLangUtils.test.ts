@@ -78,13 +78,13 @@ test('indexPyramid', () => {
 test('phrasePyramid', () => {
   {
     const inp = '1 2 3'
-    const out = '[1], [2], [3] | [1 2], [2 3] | [1.3]'
+    const out = '[1], [2], [3] | [1 2], [2 3], [3 1] | [1.3], [2.1], [3.2]'
     expect(phrasePyramid(inp)).toStrictEqual(out.split(/ *\| */).map(x => x.split(/, */)))
   }
 
   {
     const inp = '1 2 3 4'
-    const out = '[1], [2], [3], [4] | [1 2], [2 3], [3 4] | [1.3], [2.4] | [1.4]'
+    const out = '[1], [2], [3], [4] | [1 2], [2 3], [3 4], [4 1] | [1.3], [2.4], [3.1], [4.2] | [1.4], [2.1], [3.2], [4.3]'
     expect(phrasePyramid(inp)).toStrictEqual(out.split(/ *\| */).map(x => x.split(/, */)))
   }
 })
