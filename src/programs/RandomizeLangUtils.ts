@@ -54,6 +54,7 @@ export type Interface = {
 
   // progressive gluing
 
+  indexPyramid(length: number): number[][],
   phrasePyramid(phrases: string | string[]): string[][],
   pyramid(phrases: string | string[], roughness?: number): string[][],
 
@@ -272,6 +273,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   // progressive gluing
 
+  function indexPyramid(totalLength: number): number[][][] {
+    return directRange(1, totalLength).map((_, length) => {
+      return directRange(0, totalLength - 1).map((_, start) => {
+        return directRange(start, start + length).map(x => x % totalLength)
+      })
+    })
+  }
+
   function phrasePyramid(phrasesIn: string | string[]): string[][] {
     const phrases = typeof phrasesIn === 'string' ? s(phrasesIn) : phrasesIn
 
@@ -434,6 +443,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     progress,
     progressClamp,
 
+    indexPyramid,
     phrasePyramid,
     pyramid,
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { randomizeLangUtils } from './RandomizeLangUtils'
+import _ from 'lodash'
 
 const {
   s,
@@ -7,8 +8,7 @@ const {
   times,
   parts,
   divide,
-  // partChunks,
-  // mj,
+  indexPyramid,
   phrasePyramid,
   j,
   jj,
@@ -62,6 +62,19 @@ test('divide', () => {
 //   expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
 // })
 
+test('indexPyramid', () => {
+  const predistrib = indexPyramid(5).flat().flat()
+  const freq = _.countBy(predistrib, x => x)
+
+  expect(freq).toStrictEqual({
+    "0": 15,
+    "1": 15,
+    "2": 15,
+    "3": 15,
+    "4": 15,
+  })
+})
+
 test('phrasePyramid', () => {
   {
     const inp = '1 2 3'
@@ -75,6 +88,11 @@ test('phrasePyramid', () => {
     expect(phrasePyramid(inp)).toStrictEqual(out.split(/ *\| */).map(x => x.split(/, */)))
   }
 })
+
+// test('phrasePyramid counts', () => {
+//   const inp = '1 2 3'
+//   expect(_.countBy(phrasePyramid(inp), x => x)).toStrictEqual([])
+// })
 
 test('shuffle', () => {
   const long = 'kdnwjertnblrekjnfqlekjfnqlkewjfnqwelkjfnqwelkjnfq'
