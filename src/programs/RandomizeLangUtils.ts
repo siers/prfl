@@ -1,4 +1,4 @@
-import { pick as pickArray, shuffleArray, shuffleMinDistance } from "../lib/Random"
+import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from "../lib/Random"
 import { intersperse, interspersing, interleavingEvery, zipT, directRange } from '../lib/Array'
 import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import _ from 'lodash'
@@ -67,6 +67,7 @@ export type Interface = {
   scheduleBlocks: (sentence: string) => string[],
   zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
 
+  pickKey: (n?: number) => string | string[],
   pickNKeys: (cacheKey: string, n: number) => string[],
   pickKeys: (cacheKey: string, n: number) => string[],
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
@@ -367,6 +368,16 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   // practical calculations
 
+  function pickKey(n?: number): string | string[] {
+    const shufflePick = (a: number[]) => (shuffleArray(a).slice(0, 1))
+
+    if ((n || 0) <= 0) return []
+    if (n == 1) return pickKeysOffsetGeneric(shufflePick)[0]
+
+    const offsets = times((n || 0) - 1, 0).map(_ => randInt(0, 12 * 3))
+    return pickKeysOffsetGeneric(shufflePick, ...offsets)
+  }
+
   function pickNKeys(cacheKey: string, n?: number): string[] {
     if (!n) return []
     const offsets = times(n - 1, null).map((_, index) => (12 / n) * (index + 1))
@@ -385,16 +396,22 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     })
   }
 
-  function pickKeysOffset(cacheKey: string, ...offsets: number[]): string[] {
+  function pickKeysOffsetGeneric(shufflePick: (as: number[]) => number[], ...offsets: number[]): string[] {
     const semis = keySemis()
-    const key = `pickKeys|${cacheKey}`
-    const picks = (pickMemK(key, semis) as number[]).flatMap(n => [n, ...offsets.map(o => o + n)])
+    console.log(offsets)
+    const picks = shufflePick(semis).flatMap(n => [n, ...offsets.map(o => o + n)])
 
     return picks.map(s => {
       const keys = keysBySemi(s)
-      const note = keys.length !== 1 ? pickMemK(`${key}|FG`, keys, 1)[0] : keys[0]
+      const note = keys.length !== 1 ? pickArray(keys) : keys[0]
       return render(note, false)
     })
+  }
+
+  function pickKeysOffset(cacheKey: string, ...offsets: number[]): string[] {
+    const key = `pickKeys|${cacheKey}`
+    const shuffler = (semis: number[]) => pickMemK(key, semis)
+    return pickKeysOffsetGeneric(shuffler, ...offsets)
   }
 
   // violin
@@ -468,6 +485,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     scheduleBlocks,
     zipBlocksDiv,
 
+    pickKey,
     pickNKeys,
     pickKeys,
     pickKeysOffset,

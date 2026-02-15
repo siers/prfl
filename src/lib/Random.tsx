@@ -4,7 +4,7 @@ export function randInt(from: number, to: number) {
   return from + Math.floor(Math.random() * (to - from + 1))
 }
 
-export function pick<A>(array: A[]) {
+export function pick<A>(array: A[]): A {
   return array[randInt(0, array.length - 1)]
 }
 
