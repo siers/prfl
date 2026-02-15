@@ -11,9 +11,11 @@ a { color: #4796e6; }
 a:hover { color: #52b8e3; }
 
 .knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
-.next { position: absolute; bottom: 0.5em; right: 0.5em; font-size: 2em; }
-.clear-state { position: absolute; bottom: 0.5em; font-size: 2em; right: 1.8em; }
 .programs { font-size: 20px; padding: 0.3em; }
+
+.next        { position: absolute; bottom: 1.2em; right: 2.1rem; font-size: 2em; }
+.clear-state { position: absolute; bottom: 1.2em; right: 4.18rem; font-size: 2em; }
+.prev        { position: absolute; bottom: 1.2em; right: 6.3rem; font-size: 2em; }
 
 /* .wrap { display: flex; align-items: center; justify-content: center; overflow: hidden; } */
 .content { font-weight: 700; font-size: calc(0.75em + 2.5vmin); text-wrap: nowrap; }

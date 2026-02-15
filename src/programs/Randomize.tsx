@@ -9,12 +9,14 @@ function hm(m: number): string {
 type RState = {
   text?: string,
   distance?: number,
-  execute: boolean,
 
   output?: string,
   outLineCount?: number,
   memory?: string,
   nextMemory?: string,
+
+  execute: boolean,
+  current?: number,
 }
 
 type Args = {
@@ -23,19 +25,24 @@ type Args = {
   distance?: string,
   save?: boolean,
   execute?: boolean,
+  advance?: number,
 }
 
 
 function Randomize(controls: any) {
-  const { state, setState } = controls
+  const { state, setState, advance } = controls
+
+  const advanceDir = advance?.target?.className
+  const advanceDelta = advance === true ? 1 : advanceDir == 'next' ? 1 : advanceDir == 'prev' ? -1 : 0
 
   const distance = state?.distance || 0
+  const current = state?.current || 0
 
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
       const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
       const distanceOr = parseInt(a.distance || distance)
-      const execute = a.execute === null ? state?.execute : a.execute
+      const execute = a.execute === undefined ? state?.execute : a.execute
 
       let output = (s?.output || '')
       let newMemory: Memory | undefined = undefined
@@ -48,23 +55,34 @@ function Randomize(controls: any) {
         output = lines.join('\n')
       }
 
+      const nextOutput = output === undefined ? s?.output : output
+      const lineCount = output.split('\n').length
+
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
       const nextMemory = ((s?.nextMemory && a.save) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
+
+      const nextCurrent = Math.max(0, Math.min((s?.current || 0) + (a.advance || 0), lineCount - 1))
 
       return {
         ...s,
         text: contentsOr,
         distance: distanceOr,
 
-        output: output === undefined ? s?.output : output,
-        outLineCount: output.split('\n').filter(a => a !== '---').length,
+        output: nextOutput,
+        outLineCount: lineCount,
         ...savedMemory,
         ...nextMemory,
 
         execute: execute,
+        current: a.eval ? 0 : nextCurrent,
       } satisfies RState
     })
   }
+
+  if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
+
+  const items = (state?.output || '').split('\n')
+  const show = [-1, 0, 1]
 
   return (
     <div className="w-full">
@@ -74,7 +92,7 @@ function Randomize(controls: any) {
 
       <div className="pl-[10px]">
         <a className="pr-3" onClick={() => newAndRecalculate({ execute: !state.execute })}>{state?.execute ? '⏸️' : '▶️'}</a>
-        <a className="pr-3" style={state?.nextMemory ? {} : {opacity: '50%'}} onClick={() => newAndRecalculate({ save: true })}>💾</a>
+        <a className="pr-3" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
         <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
         <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
 
@@ -86,13 +104,24 @@ function Randomize(controls: any) {
         </span>
       </div>
 
-      <div className="w-full flex flex-row selection:red text-sm">
+      <div className={"w-[100dvwh] flex flex-row selection:red text-sm " + (state?.execute ? 'hidden' : '')} style={({ height: "calc(90dvh - 4rem)" })}>
         <div className="grow p-[10px]">
-          <textarea className="block w-full p-[5px] border" rows={35} cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
+          <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
         </div>
 
         <div className="grow p-[10px]">
-          <textarea className="block w-full p-[5px] border font-mono" rows={35} cols={130} value={state?.output} readOnly></textarea>
+          <textarea className="block w-full h-full p-[5px] border font-mono" cols={130} value={state?.output} readOnly></textarea>
+        </div>
+      </div>
+
+      <div className={"w-[100dvw] flex flex-col justfiy-center " + (!state?.execute ? 'hidden' : '')} style={({ height: "calc(90dvh - 4rem)" })}>
+        <div className="w-full text-center color-[#888] pb-2 text-center">{current + 1} / {state?.outLineCount}</div>
+
+        <div className="w-full flex flex-col flex-grow justify-center">
+
+          {show.map(s => s + current).map(index =>
+            <div key={index} className="w-full text-center" style={index == current ? { fontSize: '4rem' } : { color: '#bbb' }}>{items[index]}</div>
+          )}
         </div>
       </div>
     </div>

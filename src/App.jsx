@@ -132,6 +132,7 @@ function App() {
 
       <a className="next" onClick={event => setItem(event)}>➡️</a>
       <a className="clear-state" onClick={() => setState({})}>🔄</a>
+      <a className="prev" onClick={event => setItem(event)}>⬅️</a>
     </div>
   )
 }
