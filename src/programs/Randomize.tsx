@@ -6,13 +6,21 @@ function hm(m: number): string {
   return `${Math.floor(m / 60)}h${m % 60}`
 }
 
+type RState = {
+  text?: string,
+  distance?: number,
+  output?: string,
+  outLineCount?: number,
+  memory?: string,
+}
+
 function Randomize(controls: any) {
   const { state, setState } = controls
 
   const distance = state?.distance || 0
 
   function newAndRecalculate(a: { contents?: string, distance?: string, save?: boolean }) {
-    setState(s => {
+    setState((s: RState) => {
       const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
       const distanceOr = parseInt(a.distance || distance)
 
@@ -25,8 +33,13 @@ function Randomize(controls: any) {
       const savedMemory = a.save ? { memory: mapSerialize(memory) } : {}
 
       return {
-        ...s, text: contentsOr, distance: distanceOr, output, ...savedMemory, outLineCount
-      }
+        ...s,
+        text: contentsOr,
+        distance: distanceOr,
+        output,
+        ...savedMemory,
+        outLineCount,
+      } satisfies RState
     })
   }
 
