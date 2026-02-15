@@ -50,11 +50,11 @@ function Randomize(controls: any) {
 
       <div className="w-full flex flex-row selection:red text-sm">
         <div className="grow p-[10px]">
-          <textarea className="block w-full p-[5px] border" rows={30} cols={60} onChange={e => newAndRecalculate({ contents: e.target.value })} value={state?.text}></textarea>
+          <textarea className="block w-full p-[5px] border" rows={35} cols={130} onChange={e => newAndRecalculate({ contents: e.target.value })} value={state?.text}></textarea>
         </div>
 
         <div className="grow p-[10px]">
-          <textarea className="block w-full p-[5px] border font-mono" rows={30} cols={60} value={state?.output} readOnly></textarea>
+          <textarea className="block w-full p-[5px] border font-mono" rows={35} cols={130} value={state?.output} readOnly></textarea>
         </div>
       </div>
     </div>

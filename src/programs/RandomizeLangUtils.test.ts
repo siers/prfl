@@ -13,6 +13,7 @@ const {
   j,
   jj,
   zip,
+  zipInterleave,
   shuffle,
   interleavingEvery,
 } = randomizeLangUtils(new Map(), new Map())
@@ -31,7 +32,8 @@ test('cross', () => {
 })
 
 test('times', () => {
-  expect(times('f', 3)).toStrictEqual(['f', 'f', 'f'])
+  expect(times(3, 'f')).toStrictEqual(['f', 'f', 'f'])
+  expect(times(3, x => (x || 0) + 1)).toStrictEqual([1, 2, 3])
 })
 
 test('parts', () => {
@@ -105,6 +107,12 @@ test('shuffle', () => {
 test('zip', () => {
   expect(zip(s('123'), s('ab'))).toStrictEqual(['1a', '2b'])
   expect(zip(s('ab'), s('123'))).toStrictEqual(['a1', 'b2'])
+})
+
+test('zipInterleave', () => {
+  expect(zipInterleave(s('1 2 3'), s('a b c'))).toStrictEqual(s('1 a 2 b 3 c'))
+  expect(zipInterleave(s('1 2 3 4 5 6'), s('a b c'))).toStrictEqual(s('1 2 a 3 4 b 5 6 c'))
+  expect(zipInterleave(s('a b c'), s('1 2 3 4 5 6'))).toStrictEqual(s('a 1 2 b 3 4 c 5 6'))
 })
 
 test('j & jj', () => {

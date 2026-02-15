@@ -17,7 +17,7 @@ export type Interface = {
   cross: (sentence: string) => string[],
 
   // array
-  times: <A>(a: A, n: number) => A[],
+  times: <A>(n: number, a: A | ((idx?: number) => A)) => A[],
   indices: (until: number) => string[],
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
@@ -30,6 +30,7 @@ export type Interface = {
   zip: (...as: string[][]) => string[],
   zipSpace: (...as: string[][]) => string[],
   zipT: <A>(...ass: A[][]) => A[][],
+  zipInterleave: <A>(...args: A[][]) => A[],
   intersperse: <A>(arr: A[], sep: A) => A[],
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
@@ -54,7 +55,7 @@ export type Interface = {
 
   // progressive gluing
 
-  indexPyramid(length: number): number[][],
+  indexPyramid: (totalLength: number) => number[][][],
   phrasePyramid(phrases: string | string[]): string[][],
   pyramid(phrases: string | string[], roughness?: number): string[][],
 
@@ -78,9 +79,13 @@ export type Interface = {
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
   function s(s: string): string[] {
-    if (s.indexOf(',') !== -1) return s.split(/ *, */).filter(x => x != '')
-    if (s.indexOf(' ') !== -1) return s.split(' ').filter(x => x != '')
-    else return s.split('')
+    let out: string[]
+
+    if (s.indexOf(',') !== -1) out = s.split(/ *, */)
+    else if (s.indexOf(' ') !== -1) out = s.split(' ')
+    else out = s.split('')
+
+    return out.filter(x => x != '' && x != '-')
   }
 
   function ss(sentence: string): string[] {
@@ -97,12 +102,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     }
   }
 
-  function times<A>(a: A, n: number): A[] {
-    return Array(n).fill(a)
+  function times<A>(n: number, a: A | ((idx?: number) => A)): A[] {
+    if (typeof a === 'function') return Array(n).fill(0).map((_, i) => (a as (idx?: number) => A)(i))
+    else return Array(n).fill(a)
   }
 
   function indices(until: number): string[] {
-    return times(0, until).map((_, i) => '' + (i + 1))
+    return times(until, 0).map((_, i) => '' + (i + 1))
   }
 
   function parts(parts: number, offset?: number): string[] {
@@ -156,6 +162,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return zipSep(ass, ' ')
   }
 
+  function zipInterleave<A>(...args: A[][]): A[] {
+    const lengths = args.map(l => l.length)
+    const div = _.min(lengths) as number
+    const zipped = zipT(...args.map(l => divide(l, div)))
+    return zipped.flat().flat()
+  }
+
   function shuffleM<A>(a: A[]): A[] {
     return shuffleMinDistance(a, 1)
   }
@@ -177,7 +190,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function shuffleX<A>(a: A[] | string, number: number): A[] {
     const list: A[] = shuffle(typeof a === 'string' ? (s(a) as A[]) : a)
-    return times(list, number).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)), [])
+    return times(number, list).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)), [])
   }
 
   function pick<A>(array: A[] | string): A | string {
@@ -356,7 +369,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function pickNKeys(cacheKey: string, n?: number): string[] {
     if (!n) return []
-    const offsets = times(null, n - 1).map((_, index) => (12 / n) * (index + 1))
+    const offsets = times(n - 1, null).map((_, index) => (12 / n) * (index + 1))
     return pickKeysOffset(cacheKey, ...offsets)
   }
 
@@ -387,7 +400,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   // violin
 
   function scalePositions(opts: { arrows?: boolean } = {}) {
-    const arrows: string[] = opts?.arrows === false ? times('', 8) : shuffleX('↑↑↓↓', 2)
+    const arrows: string[] = opts?.arrows === false ? times(8, '') : shuffleX('↑↑↓↓', 2)
     return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), arrows).map(example =>
       example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
     ).join(' ')
@@ -424,6 +437,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     zip,
     zipSpace,
     zipT,
+    zipInterleave,
     intersperse,
     interspersing,
     interleavingEvery,
