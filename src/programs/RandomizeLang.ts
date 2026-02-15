@@ -150,9 +150,9 @@ function extractEvals(l: string): [string, Evals] {
 }
 
 function parseLine(lineRaw: string): Item {
-  const match = lineRaw.match(/^-([-=])- ?(.*)$/)
-  if (match) {
-    return header(match[1] == '-', match[2] && match[2] != '' ? match[2] : null)
+  const headerMatch = lineRaw.match(/^-([-=])- ?(.*) *$/)
+  if (headerMatch) {
+    return header(headerMatch[1] == '-', headerMatch[2] && headerMatch[2] != '' ? headerMatch[2] : null)
   } else {
     const timesMatch = lineRaw.match(/^(\d+)x /)
     const times = timesMatch ? parseInt(timesMatch[0], 10) : 1
