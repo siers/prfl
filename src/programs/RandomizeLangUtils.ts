@@ -311,6 +311,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // testable, just shuffled has to be passed
+  // bug: roughness too low or high crashes
   function pyramid(phrasesIn: string | string[], roughness?: number): string[][] {
     roughness ||= 1000
     const divisions = divide(phrasePyramid(phrasesIn), roughness)

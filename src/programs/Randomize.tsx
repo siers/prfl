@@ -100,7 +100,7 @@ function Randomize(controls: any) {
           {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
         </span>
         <span className="pr-3 text-[#f4f4f4]">
-          {state.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
+          {state?.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
         </span>
       </div>
 

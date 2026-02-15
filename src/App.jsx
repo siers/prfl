@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './App.css'
 import Knob from './Knob'
 import programs from './Programs'
@@ -31,7 +31,7 @@ function App() {
   const timeout = useRef()
   const content = useRef()
 
-  const defaultProgram = Object.keys(programs)[0]
+  const defaultProgram = 'randomize' // Object.keys(programs)[0]
   const [state, setState] = useLocalStorage('programState', {})
   const [program, setProgram] = useLocalStorage('program', defaultProgram)
   const setProgramState = programName => nextProgramState => {
@@ -77,8 +77,6 @@ function App() {
       setItem(false, event)
     }
   }
-
-  let timeoutId
 
   useEffect(() => {
     const handleKey = (e) => button(event, e.key)
