@@ -46,7 +46,7 @@ export type Interface = {
   pickTasks: (key: string, items: string[], n?: number) => any[],
 
   dayRandom: (modulo?: number) => number,
-  maybeEvery: (nthDay: number, item: string | string[]) => string[],
+  maybeEvery: (nthDayXOffset: number | string, item: string | string[]) => string[],
 
   // percentages
 
@@ -257,15 +257,30 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   // scheduling
 
+  // [0..modulo-1]
   function dayRandom(modulo?: number): number {
     return murmur.x86.hash32(new Date().toISOString().slice(0, 10)) % (modulo || 100000)
   }
 
-  function maybeEvery(nthDay: number, itemsIn: string | string[]): string[] {
+  function maybeEvery(nthDayXOffset: number | string, itemsIn: string | string[]): string[] {
+    let nthDay: number
+    let offset: number = 0
+    const match = typeof nthDayXOffset === 'string' ? nthDayXOffset.match(/^(\d+),(\d+)$/) : null
+
+    if (typeof nthDayXOffset === 'string') {
+      if (match === null) return [`error: maybeEvery(${nthDayXOffset} ${itemsIn}): parse error`]
+
+      nthDay = parseInt(match![1] || '', 10)
+      offset = parseInt(match![2] || '', 10)
+    } else {
+      nthDay = nthDayXOffset
+    }
+
     const items: string[] = typeof itemsIn === 'string' ? [itemsIn] : itemsIn
 
-    console.log(dayRandom(nthDay))
-    return dayRandom(nthDay) == 0 ? items : []
+    if (nthDay <= 1) return items
+
+    return (dayRandom(nthDay) + offset) % nthDay == 0 ? items : []
   }
 
   // percentages
@@ -399,7 +414,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function pickKeysOffsetGeneric(shufflePick: (as: number[]) => number[], ...offsets: number[]): string[] {
     const semis = keySemis()
-    console.log(offsets)
     const picks = shufflePick(semis).flatMap(n => [n, ...offsets.map(o => o + n)])
 
     return picks.map(s => {
