@@ -94,7 +94,7 @@ function Randomize(controls: any) {
         <a className="pr-3" onClick={() => newAndRecalculate({ execute: !state.execute })}>{state?.execute ? '⏸️' : '▶️'}</a>
         <a className="pr-3" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
         <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
-        <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
+        <a className="pr-3" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
 
         <span className="pr-3">
           {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
