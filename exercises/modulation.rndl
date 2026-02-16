@@ -1,0 +1,18 @@
+--- sequence
+[Array(pick(`I, I△7, I△7 I7`), pick(`ii ii6 IV VI`), pick(`-, III vi, III VI`), pick('V V9b viii viiio'))]
+--- modulation
+[pick(`direct, III `)] → II
+[pick(`direct, VII`)] → III
+[pick(`direct, VII`)] → IIIb
+[pick(`direct`)] -> VI
+[pick(`direct, II`)] -> V
+[pick(`direct, VI, dim`)] -> VII
+[pick(`direct, VI, dim`)] -> VIIb
+-=- randroman
+First key: [pickKeys('randroman')]
+{n=5;}
+{sq=times(n*2, _ => block('sequence')).flat();}
+{ml=times(n, _ => `modulate to: ` + pick(block('modulation'))).flat();}
+{zipInterleave(ml, sq)}
+-=-
+{block('randroman')}

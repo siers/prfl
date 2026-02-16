@@ -1,0 +1,30 @@
+Focus: [pickMemK(`focus`, `intonation intonation tone tone contact text`)] harmonics tasto
+Keys: [keys=pickKeysOffset('scales', 6)]
+-=- scales
+Scales: {keys}, {[([`three octaves: ` + pick(`ion dor phry lyd mix aeo loc`), `climb on: ` + ss(`GDAE`).join('') + ` / ` + ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `), scalePositions()])[pickMemK('scaleType', [0,1,2])]]}
+Scales: {zipSpace(keys, ss(`thirds, sixths, octaves`))} [scalePositionsDbl()]
+--- bowing
+Bowing: arches over [pick(`dim sixths ysaye`)], p{divide(zip(ss(`1234`), shuffleX(s(`uudd`), 2), shuffleX(s(`↑↑↓↓`), 2)), 2)}
+--- shifting
+0x Shifting: position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [s(`G D A E`)]
+Slides: for {keys.map(key=> key + ': ' + (ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', '))}
+1x Shifting: Sevcik, no gliss [ss(`G D A E`).slice(0, 2)]
+-=- warmup
+{zipT(divide(block('scales'), 2), divide(block('bowing'), 2),  divide(block('shifting'), 2)).flat().flat()}
+--- extensions
+Ext1: 4 finger: [zip(shuffleX(`3rd/, 4th/, 4#/, 5th/`, 2), ss(scalePositions({arrows: false})))]
+--- bowings
+Bowing1: sautille, {ss(`DG AD EA`).map(str => str + ` ` + ss(`40 31 22 13`).join(':'))}
+Bowing2: E-G connection [divide(shuffleX(`GEu EGd`, 4), 2).join(' | ')] (arches)
+Bowing3: marcato with control over [pick(`dim sixths`)], p{divide(ss(`1 2 3 4 5 6`), 2)}
+Bowing4: fast draws [pick(`dim sixths ysaye`)]
+--- stops
+Stop1: Bowing: 4-stops
+Stop2: Bowing: sixths on EA, GD intersperesed 
+Stop3: Fingerboard: sixths: sliding fingers over fifths, flat pads
+--- entrances
+Entr1: bow ends clicks exercise [ss(`GDAE`)]
+Entr2: entrances in tips [ss(`GDAE`)]
+Entr3: entrances down, with stability and power
+-=-
+{block('warmup')}

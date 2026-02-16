@@ -1,0 +1,23 @@
+#!/usr/bin/env npx tsx
+
+// vim: ft=typescript
+
+import { evalContentsMem } from '../src/programs/RandomizeLang.js'
+import { mapParse, mapSerialize } from '../src/lib/Map.js'
+
+import fs from 'node:fs'
+
+const argv = process.argv.slice(2)
+
+let memory = new Map()
+
+argv.map((file, idx) => {
+  if (idx === 0) console.log()
+
+  const contents = fs.readFileSync(file, 'utf-8')
+  const [lines, nextMemory] = evalContentsMem(contents, memory)
+  memory = nextMemory
+  console.log(memory)
+  console.log()
+  lines.map(line => console.log(line))
+})
