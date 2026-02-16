@@ -217,7 +217,7 @@ function evalEvals(line: string, marker: string, e: Eval, context: Context): str
   const fullContext = { ...randomizeLangUtils(context, memory), memory }
 
   const subst: any = executeInContext(fullContext, e.command)
-  if (subst?.kind === 'error') return [`failed to compile: ${subst?.contents}}`]
+  if (subst?.kind === 'error') return [`error: failed to compile: ${subst?.contents}}`]
 
   if (e.kind == 'interpolate') return substituteInterpolate(line, marker, subst)
   if (e.kind == 'explode') return substituteExplode(line, marker, subst)

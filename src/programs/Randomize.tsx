@@ -1,9 +1,27 @@
+import { renderToString } from 'react-dom/server'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { evalContentsMem, Memory } from './RandomizeLang.js'
 import murmur from 'murmurhash3js'
+import { clone } from 'lodash'
+import { roundToNaive } from '../lib/Math.js'
+import { JSX, RefObject, useEffect, useRef } from 'react'
 
-function hm(m: number): string {
-  return `${Math.floor(m / 60)}h${m % 60}`
+function pad(str: string, size: number, with_: string): string {
+  var s = str
+  while (s.length < size) s = with_ + s
+  return s
+}
+
+function hm(a: number): string {
+  const h = Math.floor(a / 60)
+  const m = roundToNaive(a % 60, 2)
+  return h == 0 ? `${m}m` : `${h}h${m}`
+}
+
+function ms(a: number): string {
+  const m = Math.floor(a / 60)
+  const s = roundToNaive(a % 60, 2).toFixed(2)
+  return pad(m == 0 ? `${s}s` : `${m}m${s}`, 10, ' ')
 }
 
 type RState = {
@@ -17,6 +35,28 @@ type RState = {
 
   execute: boolean,
   current?: number,
+  timers?: Timers,
+}
+
+type Timer = { kind: 'started', start: number, running: true } | { kind: 'stopped', length: number, running: false }
+type Timers = (Timer | null)[]
+
+const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
+const toStoppedTimer: (t: Timer, stop: number) => Timer = (t: Timer, stop: number) => {
+  if (t.kind == 'stopped') return t
+  if (t.kind == 'started') return ({ kind: 'stopped', length: stop - t.start, running: false })
+  return freshTimer(0) // t.kind is `never` here
+}
+const toStartedTimer: (t: Timer, start: number) => Timer = (t: Timer, start: number) => {
+  if (t.kind == 'started') return t
+  if (t.kind == 'stopped') return freshTimer(start - t.length)
+  return freshTimer(0) // t.kind is `never` here
+}
+
+function timerLength(t: Timer, now: number): number {
+  if (t.kind == 'started') return (now - t.start) / 1000
+  if (t.kind == 'stopped') return t.length / 1000
+  return 0
 }
 
 type Args = {
@@ -29,14 +69,43 @@ type Args = {
 }
 
 
-function Randomize(controls: any) {
-  const { state, setState, advance } = controls
-
-  const advanceDir = advance?.target?.className
-  const advanceDelta = advance === true ? 1 : advanceDir == 'next' ? 1 : advanceDir == 'prev' ? -1 : 0
+function Randomize(controls: any): JSX.Element {
+  const { state, setState, advanceRef } = controls
 
   const distance = state?.distance || 0
   const current = state?.current || 0
+  const timers: Timers = state?.timers || []
+
+  const output: string = state?.output || ''
+  const outLineCount: number = state?.outLineCount || 0
+
+  const items = (state?.output || '').split('\n')
+  const show = [-1, 0, 1]
+  const timer = timers[current]
+  const timerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
+
+  useEffect(() => {
+    if (state?.execute !== true) return () => { }
+    const id = setInterval(() => { timerRef.current && (timerRef.current.innerHTML = renderToString(timerContent())) }, 45.33)
+    return () => clearInterval(id)
+  }, [output, current, timers, state?.execute])
+
+  advanceRef.current = (advance: MouseEvent | null, _event: any) => {
+    const advanceDir = (advance?.target as HTMLElement)?.className
+    const advanceDelta =
+      advanceDir == 'next'
+        ? 1
+        : advanceDir == 'prev'
+          ? -1 :
+          advance ? 1 : 0
+
+    // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
+    if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
+  }
+
+  useEffect(() => {
+    if (current < timers.length && !timers[current]) startTimer()
+  }, [output, current, timers])
 
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
@@ -46,13 +115,16 @@ function Randomize(controls: any) {
 
       let output = (s?.output || '')
       let newMemory: Memory | undefined = undefined
+      let nextTimers: Timers | undefined = undefined
 
+      console.log(timers)
       if (a.eval) {
         const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
         // console.clear()
         const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
         newMemory = memory
         output = lines.join('\n')
+        nextTimers = lines.map(_ => null)
       }
 
       const nextOutput = output === undefined ? s?.output : output
@@ -75,14 +147,37 @@ function Randomize(controls: any) {
 
         execute: execute,
         current: a.eval ? 0 : nextCurrent,
+        timers: nextTimers || timers,
       } satisfies RState
     })
   }
 
-  if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
+  function startTimer(restart: boolean = false) {
+    setState((s: RState | undefined) => {
+      if (!s) return s
 
-  const items = (state?.output || '').split('\n')
-  const show = [-1, 0, 1]
+      const ts = clone(timers)
+      console.log({ timer, current })
+      const newTimer = (!timers[current] || restart) ? freshTimer(Date.now()) : toStartedTimer(timers[current], Date.now())
+      ts.splice(current, 1, newTimer)
+      return { ...s, timers: ts }
+    })
+  }
+
+  function stopTimer() {
+    setState((s: RState | undefined) => {
+      if (!s) return s
+      if (!timers[current]) return s
+
+      const ts = clone(timers)
+      ts.splice(current, 1, toStoppedTimer(timers[current], Date.now()))
+      return { ...s, timers: ts }
+    })
+  }
+
+  function timerContent(): string {
+    return (timer && (ms(timerLength(timer, Date.now())))) || ''
+  }
 
   return (
     <div className="w-full">
@@ -91,10 +186,10 @@ function Randomize(controls: any) {
       </div> */ }
 
       <div className="pl-[10px]">
-        <a className="pr-3" onClick={() => newAndRecalculate({ execute: !state.execute })}>{state?.execute ? '⏸️' : '▶️'}</a>
+        <a className="pr-3" onClick={() => newAndRecalculate({ execute: !state?.execute })}>{state?.execute ? '⏸️' : '▶️'}</a>
         <a className="pr-3" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
         <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
-        <a className="pr-3" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '' })}>❌{/* right now this breaks history of textarea */}</a>
+        <a className="pr-3" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
 
         <span className="pr-3">
           {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
@@ -115,12 +210,19 @@ function Randomize(controls: any) {
       </div>
 
       <div className={"w-[100dvw] flex flex-col justfiy-center " + (!state?.execute ? 'hidden' : '')} style={({ height: "calc(90dvh - 4rem)" })}>
-        <div className="w-full text-center color-[#888] pb-2 text-center">{current + 1} / {state?.outLineCount}</div>
+        <div className="w-full text-center pb-2 text-center">
+          <div className="text-[#888]">{current + 1} / {outLineCount}</div>
+
+          <div className="font-mono">
+            <span className="p-3" ref={timerRef}></span>
+            {timer && <span onClick={() => timer.running ? stopTimer() : startTimer(false)} className="p-3">{timer.running ? '⏸️' : '▶️'}</span>}
+            <span onClick={() => startTimer(true)} className="p-3">🔄</span>
+          </div>
+        </div>
 
         <div className="w-full flex flex-col flex-grow justify-center">
-
           {show.map(s => s + current).map(index =>
-            <div key={index} className="w-full text-center" style={index == current ? { fontSize: '4rem' } : { color: '#bbb' }}>{items[index]}</div>
+            <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '4rem' } : { color: '#bbb' }}>{items[index]}</div>
           )}
         </div>
       </div>
@@ -132,10 +234,9 @@ export default Randomize
 
 // TODO: execution: a view for the rendered program
 // TODO: execution: show contents in a split view (renderProgram as a function from the App.tsx)
-// TODO: execution: phone view
 // TODO: execution: can update tasks (comments, params) (blocker: required that the list is actually just a list of indexes, not items themselves)
-// TODO: execution: time tracker
 // TODO: execution: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
+// TODO: execution: memory impact only per-item
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: allow escaping brackets inside brackets
@@ -144,7 +245,6 @@ export default Randomize
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
 
 // TODO: util: schedule doesn't respect
-// TODO: util: if an item doesn't get fulfilled, it still impacted the memory
 // TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
 // TODO: util: the save button should save the memory from the current rendered content
 

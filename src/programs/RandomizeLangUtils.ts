@@ -4,11 +4,7 @@ import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import _ from 'lodash'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import murmur from 'murmurhash3js'
-
-function roundToNaive(num: number, decimalPlaces: number = 0): number {
-  var p = Math.pow(10, decimalPlaces)
-  return Math.round(num * p) / p
-}
+import { roundToNaive } from '../lib/Math'
 
 export type Interface = {
   // DSL

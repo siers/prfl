@@ -34,6 +34,25 @@ function App() {
   const defaultProgram = 'randomize' // Object.keys(programs)[0]
   const [state, setState] = useLocalStorage('programState', {})
   const [program, setProgram] = useLocalStorage('program', defaultProgram)
+
+  const advanceRef = useRef(null)
+
+  useEffect(() => {
+    const handleKey = (e) => button(e, e.key)
+    addEventListener('keydown', handleKey)
+
+    return () => {
+      removeEventListener('keydown', handleKey)
+    }
+  })
+
+  useEffect(() => {
+    if (running) {
+      startTimeout()
+    }
+    return () => stopTimeout()
+  }, [running, speed, program, state])
+
   const setProgramState = programName => nextProgramState => {
     setState(state => ({
       ...state,
@@ -41,19 +60,10 @@ function App() {
     }))
   }
   const programName = (programs[program] && program) || defaultProgram
-
-  // the program should advance itself, if the state is empty
-  const makeItem = (advance, event) => {
-    return programs[programName]({
-      state: state[programName],
-      setState: setProgramState(programName),
-      advance,
-      event,
-    })
-  }
+  const ProgramComponent = programs[programName]
 
   const setItem = (advance, event) => {
-    makeItem(advance == undefined ? true : advance, event)
+    if (advance && advanceRef.current) advanceRef.current(advance, event)
     flash()
   }
 
@@ -78,22 +88,6 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    const handleKey = (e) => button(event, e.key)
-    addEventListener('keydown', handleKey)
-
-    return () => {
-      removeEventListener('keydown', handleKey)
-    }
-  })
-
-  useEffect(() => {
-    if (running) {
-      startTimeout()
-    }
-    return () => stopTimeout()
-  }, [running, speed, program, state])
-
   return (
     <div className="app p-1em">
       <div className="flex flex-col h-dvh">
@@ -106,17 +100,21 @@ function App() {
         <div className="wrap flex-1 flex flex-row items-center" data-mode={program}>
           {
             (program == "flash")
-            ? (
-              <div ref={content} className="content flash1">
-                {makeItem()}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center grow">
+              ? (
                 <div ref={content} className="content flash1">
-                  {makeItem()}
+                  {<ProgramComponent state={state[programName]} setState={setProgramState(programName)} advance={false} />}
                 </div>
-              </div>
-            )
+              ) : (
+                <div className="flex flex-col items-center grow">
+                  <div ref={content} className="content flash1">
+                    {<ProgramComponent
+                      state={state[programName]}
+                      setState={setProgramState(programName)}
+                      advanceRef={advanceRef}
+                      />}
+                  </div>
+                </div>
+              )
           }
         </div>
       </div>
