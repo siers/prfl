@@ -147,7 +147,7 @@ describe('pickMemK', () => {
   test('update stats', () => {
     const m: Memory = new Map([["stuff", { "2": 1 }]])
     expect(pmk(m, 'stuff', '212', 1, undefined)).toEqual([["1"], m])
-    expect(m.get('stuff')).toStrictEqual({ "2": 1, "1": 1 })
+    expect(m.get('stuff')).toStrictEqual({ "2": 1, "1": 2 })
   })
 })
 

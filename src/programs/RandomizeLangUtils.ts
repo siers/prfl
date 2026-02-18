@@ -196,7 +196,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     else return pickArray(array)
   }
 
-  // bug: if a key is used, but array now contains fewer items, the previous frequencies will have items that are no longer present
+  // stores pick order (incrementing index) instead of frequency counts
+  // new/unknown items get max+1, oldest items get picked first
   function pickMemK(
     key: string | undefined,
     array: any[] | string,
@@ -211,18 +212,16 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const memoryKey = key || items.join('||')
 
     const storedStats = stats || memory.get(memoryKey) || {}
-    const frequencies: [any, number][] = items.map(item => {
-      return [item, (storedStats[item] || 0)] satisfies [any, number]
+    const maxOrder = Math.max(0, ...Object.values(storedStats).map(Number))
+    const orders: [any, number][] = items.map(item => {
+      return [item, storedStats[item] ?? -(maxOrder + 1)] satisfies [any, number]
     })
-    const frequenciesSorted = _.sortBy(frequencies, 1)
-    const item = pick(frequenciesSorted.filter(([_, freq]) => freq == frequenciesSorted[0][1]))[0]
+    const ordersSorted = _.sortBy(orders, 1)
+    const item = pick(ordersSorted.filter(([_, ord]) => ord == ordersSorted[0][1]))[0]
 
-    const nextStats = Object.fromEntries(frequencies)
-    nextStats[item] = (nextStats[item] || 0) + 1
+    const nextStats = Object.fromEntries(orders)
+    nextStats[item] = maxOrder + 1
     memory.set(memoryKey, nextStats)
-
-    // const debug = frequencies.map(([k, f]) => `${k}/${f}`).join(' ')
-    // console.log(frequencies.reduce((sum, [_, f]) => sum + f, 0), JSON.stringify(frequencies))
 
     return [item, ...pickMemK(memoryKey, items, (n || 0) - 1)]
   }
