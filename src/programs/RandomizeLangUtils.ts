@@ -421,7 +421,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     return pick.map(s => {
       const keys = keysBySemi(s)
-      const note = keys.length !== 1 ? pickMemK(`${key}|FG`, keys, 1)[0] : keys[0]
+      const note = keys.length !== 1
+        ? JSON.parse(pickMemK(`${key}|FG`, keys.map(k => JSON.stringify(k)), 1)[0])
+        : keys[0]
       return render(note, false)
     })
   }
