@@ -243,7 +243,6 @@ export default Randomize
 // TODO: interpret: either text-blocks or text-only line syntax
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
 
-// TODO: util: schedule doesn't respect
 // TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
 // TODO: util: the save button should save the memory from the current rendered content
 

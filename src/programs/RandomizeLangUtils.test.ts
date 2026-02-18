@@ -150,6 +150,15 @@ describe('pickMemK', () => {
     expect(counts['a']).toBeGreaterThan(counts['b'] || 0)
   })
 
+  test('stale keys in stats are ignored', () => {
+    const stale = { "x1": -1, "x2": -1, "x3": -1, "x4": -1, "x5": -1, "x6": -1, "x7": -1, "a": 1 }
+    const m: Memory = new Map([["k", stale]])
+    const [picked] = pmk(m, 'k', 'ab', 1, undefined)
+    // "b" is unknown (oldest), "a" has order 1 (newest), stale x1-x7 not in items
+    // only "b" should be pickable (past-middle = 0 weight, and there's only 2 items)
+    expect(picked[0]).toEqual("b")
+  })
+
   test('update stats', () => {
     const m: Memory = new Map([["stuff", { "b": 1 }]])
     pmk(m, 'stuff', 'ab', 1, undefined)
