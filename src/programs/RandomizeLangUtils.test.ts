@@ -167,6 +167,22 @@ describe('pickMemK', () => {
     const picked = Object.entries(stats).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0]
     expect(stats[picked]).toEqual(2)
   })
+
+  test('stale keys preserved and items coming back retain history', () => {
+    const m: Memory = new Map()
+    // pick from a b c
+    pmk(m, 'k', 'abc', 3, undefined)
+    const statsAfterFirst = { ...m.get('k') }
+    console.log(statsAfterFirst)
+    // now only a c are active - b is gone
+    pmk(m, 'k', 'ac', 2, undefined)
+    // b's stats should still be in memory (not wiped)
+    expect(m.get('k')['b']).toEqual(statsAfterFirst['b'])
+    // bring b back - it retains its old order, not treated as brand new
+    const bOrderBefore = m.get('k')['b']
+    pmk(m, 'k', 'abc', 0, undefined)
+    expect(m.get('k')['b']).toEqual(bOrderBefore)
+  })
 })
 
 test('interleavingEvery', () => {

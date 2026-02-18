@@ -225,14 +225,16 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const memoryKey = key || items.join('||')
 
     const storedStats = stats || memory.get(memoryKey) || {}
-    const maxOrder = Math.max(0, ...Object.values(storedStats).map(Number))
+    const storedValues = Object.values(storedStats).map(Number)
+    const minOrder = storedValues.length ? Math.min(...storedValues) : 0
+    const maxOrder = storedValues.length ? Math.max(...storedValues) : -1
     const orders: [any, number][] = items.map(item => {
-      return [item, storedStats[item] ?? -(maxOrder + 1)] satisfies [any, number]
+      return [item, storedStats[item] ?? minOrder - 1] satisfies [any, number]
     })
     const ordersSorted = _.sortBy(orders, 1)
     const item = pickWeighted(ordersSorted)
 
-    const nextStats = Object.fromEntries(orders)
+    const nextStats = { ...storedStats, ...Object.fromEntries(orders) }
     nextStats[item] = maxOrder + 1
     memory.set(memoryKey, nextStats)
 
