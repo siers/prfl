@@ -124,7 +124,7 @@ describe('integration', () => {
       3
       4
       -=-
-      {[a1,a2]=divide(block('a'), 2); return [...a1, ...block('b'), ...a2]}
+      {[a1,a2]=divide(block('a'), 2); return [...a1, ...block('b'), ...a2];}
     `.replaceAll(/^ */mg, '')
 
     expect(evalContents(text)).toStrictEqual(['1', '3', '4', '2'])

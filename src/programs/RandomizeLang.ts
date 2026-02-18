@@ -12,7 +12,7 @@ function executeInContext<A>(context: Object, f: string): A | { kind: 'error', c
   const values = Object.values(context)
   try {
     const code = f.toString()
-    const body = code.indexOf(';') !== -1 ? code : `return ${f.toString()};`
+    const body = code.match(/;$/) ? code : `return ${f.toString()};`
     const fn = new Function(...keys, body)
     return fn(...values)
   } catch (e) {
