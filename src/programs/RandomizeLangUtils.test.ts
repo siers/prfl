@@ -16,6 +16,7 @@ const {
   zipInterleave,
   shuffle,
   interleavingEvery,
+  after,
 } = randomizeLangUtils(new Map(), new Map())
 
 test('s', () => {
@@ -153,4 +154,10 @@ describe('pickMemK', () => {
 test('interleavingEvery', () => {
   expect(interleavingEvery(s('1 2 3'), s('a'), 2)).toStrictEqual(s('1 2 a 3'))
   expect(interleavingEvery(s('1 2 3 4'), s('a'), 2)).toStrictEqual(s('1 2 a 3 4 a'))
+})
+
+test('after', () => {
+  expect(after('2020-01-01', ['a', 'b'])).toStrictEqual(['a', 'b'])
+  expect(after('2099-01-01', ['a', 'b'])).toStrictEqual([])
+  expect(after('2020-01-01', 'solo')).toStrictEqual(['solo'])
 })

@@ -43,6 +43,7 @@ export type Interface = {
 
   dayRandom: (modulo?: number) => number,
   maybeEvery: (nthDayXOffset: number | string, item: string | string[]) => string[],
+  after: (date: string, items: string | string[]) => string[],
 
   // percentages
 
@@ -279,6 +280,11 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return (dayRandom(nthDay) + offset) % nthDay == 0 ? items : []
   }
 
+  function after(date: string, items: string | string[]): string[] {
+    const list = typeof items === 'string' ? [items] : items
+    return new Date() >= new Date(date) ? list : []
+  }
+
   // percentages
 
   function progress(start: string, end: string) {
@@ -481,6 +487,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     dayRandom,
     maybeEvery,
+    after,
 
     progress,
     progressClamp,
