@@ -222,7 +222,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const items = ((typeof array === 'string') ? s(array) : array).sort()
     if (!items.length) return []
 
-    const memoryKey = key
+    const memoryKey = key || items.join('||')
 
     const storedStats = stats || memory.get(memoryKey) || {}
     const storedValues = Object.values(storedStats).map(Number)
@@ -256,14 +256,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     const mapF = map.flatMap(i => i ? [i] : [])
     const keys = _.uniq(mapF.map(([key, _]) => key))
-    const theKey = `${key}||${keys}`
 
     const mapM = new Map<string, string[]>()
     mapF.map(([k, v]) => {
       mapM.set(k, (mapM.get(k) || []).concat([v]))
     })
 
-    return pickMemK(theKey, keys, n).map(keyOut => pick(mapM.get(keyOut) || ['missing']))
+    return pickMemK(key, keys, n).map(keyOut => pick(mapM.get(keyOut) || ['missing']))
   }
 
   // scheduling
@@ -375,8 +374,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return zipped.flat().flat()
   }
 
-  function pickBlock(name: string, n?: number): string[] {
+  function pickBlock(name: string, n?: number | 'full'): string[] {
     if (!block(name)) return [`pickBlock: cannot find ${name}`]
+    if (n === 'full') return block(name)
     return pickTasks(name, block(name), n)
   }
 
@@ -385,12 +385,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0])
     const blocks = parsed.map(s => {
-      const match = s.match(/^([a-z0-9-]+?)(?:-(\d+))?$/i)
+      const match = s.match(/^([a-z0-9-]+?)(?:-(\d+|\*))?$/i)
 
       if (!match) err = "block name not found"
       if (!match![1]) err = "cannot parse block name"
 
-      return [match![1], parseInt(match![2] || '1', 10)] satisfies [string, number]
+      const count: number | 'full' = match![2] == '*' ? 'full' : parseInt(match![2] || '1', 10)
+
+      return [match![1], count] satisfies [string, number | 'full']
     })
 
     if (err) return [`scheduleBlockks: ${err}`]

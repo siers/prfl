@@ -163,6 +163,19 @@ describe('scheduleBlocks', () => {
 
     expect(evalContents(text)).toHaveLength(1)
   })
+
+  test('schedule all by wildcard', () => {
+    const text = `
+      -=- tasks2
+      one
+      two
+      three
+      -=-
+      {scheduleBlocks('tasks2-*')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toHaveLength(3)
+  })
 })
 
 describe('integration', () => {

@@ -222,7 +222,7 @@ function Randomize(controls: any): JSX.Element {
 
         <div className="w-full flex flex-col flex-grow justify-center">
           {show.map(s => s + current).map(index =>
-            <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '4rem' } : { color: '#bbb' }}>{items[index]}</div>
+            <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '3rem' } : { color: '#bbb' }}>{items[index]}</div>
           )}
         </div>
       </div>
