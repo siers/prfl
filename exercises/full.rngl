@@ -1,0 +1,78 @@
+0x Warmup
+Focus: [pickMemK(`focus`, `intonation intonation tone tone contact text`)] harmonics tasto
+Keys: [keys=pickKeysOffset('scales', 6)]
+-=- scales
+Scales: [key] {[([`three octaves: ` + pick(`ion dor phry lyd mix aeo loc`), `climb on: ` + ss(`GDAE`).join('') + ` / ` + ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `), scalePositions()])[pickMemK('scaleType', [0,1,2])]]}
+Scales: [key] [pick(`thirds, sixths, octaves`)] [scalePositionsDbl()]
+-=- bowing
+Bowing: [key] arches over [pick(`dim sixths ysaye`)], p{divide(zip(ss(`1234`), shuffleX(s(`uudd`), 2), shuffleX(s(`↑↑↓↓`), 2)), 2)}
+-=- shifting
+0x Shifting: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [s(`G D A E`)]
+Slides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
+1x Shifting: [key] Sevcik, no gliss [ss(`G D A E`).slice(0, 2)]
+-=- warmup-key
+{zipT(divide(block('scales'), 2), divide(block('bowing'), 2), divide(block('shifting'), 2)).flat().flat()}
+-=- warmup
+{keys.flatMap(k => { key = k; return block('warmup-key') \})}
+0x Technique
+--- extensions
+Ext1: 4 finger: [zip(shuffleX(`3rd/, 4th/, 4#/, 5th/`, 2), ss(scalePositions({arrows: false})))]
+--- bowings
+Bowing1: sautille, {ss(`DG AD EA`).map(str => str + ` ` + ss(`40 31 22 13`).join(':'))}
+Bowing2: E-G connection [divide(shuffleX(`GEu EGd`, 4), 2).join(' | ')] (arches)
+Bowing3: marcato with control over [pick(`dim sixths`)], p{divide(ss(`1 2 3 4 5 6`), 2)}
+Bowing4: fast draws [pick(`dim sixths ysaye`)]
+--- stops
+Stop1: Bowing: 4-stops
+Stop2: Bowing: sixths on EA, GD intersperesed 
+Stop3: Fingerboard: sixths: sliding fingers over fifths, flat pads
+--- entrances
+Entr1: bow ends clicks exercise [ss(`GDAE`)]
+Entr2: entrances in tips [ss(`GDAE`)]
+Entr3: entrances down, with stability and power
+--- technique
+{scheduleBlocks('extensions bowings stops-1 entrances reading-0')}
+0x Ensemble
+--- ensemble
+0x Ensemble: Sibelius, Impromptu (fuck it, we ball)
+2x Ensemble: Por una cabeza (determine spots, metered)
+2x Ensemble: eine kleine Nachtmusik (number spots, run under metronome)
+Ensemble: He's a pirate (read-through, metronome)
+--- duets
+BachDoppelLargo: make tasks
+0x Pieces
+--- reading
+Sitt6912x: Sitt op69/12: read
+Sitt3212x: Sitt op32/12: read
+Sitt3286x: Sitt op32/86 (double-stops 6): read
+--- kreutzer4
+Kreutzer4: (60bpm), martele mirror, reengage check, avoid ponticello, melodic&dyn&retakes {partChunksShuf(10, 2)}
+--- kreutzer14
+Kreutzer14-1: line 1, no ritardando & bow arm ergo
+Kreutzer14-2: line 2 stick D and smooth D#-D♮
+Kreutzer14-3: line 3, forks
+Kreutzer14-4: line 4, stick the shift
+Kreutzer14-5: line 4-5, stick rising fifths
+Kreutzer14-71: line 7 bow stability on extensions in A
+Kreutzer14-72: line 7 clear chromatics
+Kreutzer14-13: line 13, stick extension with guide
+Kreutzer14-14: line 14, run memorized
+Kreutzer14-17: line 17, stick the two extensions
+Kreutzer14-18: line 18, connect run
+Kreutzer14-19: line 19, improve run
+Kreutzer14-20: line 20th sticks (@120/16ths)
+--- kreisler-full
+{pyramid('AMM Dyn DynP VLCa VLCb VLCc Fa Fb DrawsA DrawsB ZZa ZZb ZZP Low Tight Six1 Six4 Six7 Six11 Six14 Chr1 Chr2 Chr3 Chr4 Outro', 3).flat()}
+--- kreisler-spots
+Kreisler: {ss(`Chr2, VLCa, Fourths`)}
+--- gluck
+Gluck: {ss(`first tranquillo 32ths-run poco-accel tranquillo2 espr 28 32`)}
+--- accolay
+Accolay: page {ss(`1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5`)}
+0x Main
+--- violin
+{scheduleBlocks(`technique-* kreisler-spots gluck-0 accolay-*`)}
+-=-
+{block('warmup')}
+-=-
+{interleavingEvery(interleavingEvery(block(`violin`), [`- situps: 10x`], 5), [`-- walk around`], 12)}
