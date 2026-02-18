@@ -239,7 +239,6 @@ export default Randomize
 // TODO: execution: memory impact only per-item
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
-// TODO: interpret: allow escaping brackets inside brackets
 // TODO: interpret: 2x = (1/2) + (2/2) (combine with execution mode: the view is just an index of the item + some decoration)
 // TODO: interpret: either text-blocks or text-only line syntax
 // TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
@@ -251,8 +250,6 @@ export default Randomize
 // TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
-// TODO: scheduling: store not "times picked", but order of last picked
-// TODO: scheduling: after() function to ban certain exercises
 
 // TODO content: write a task selection picker without refering to the contents (I have no idea what this means any more)
 // TODO content: make programmable scales

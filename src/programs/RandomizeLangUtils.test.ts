@@ -135,19 +135,28 @@ describe('pickMemK', () => {
   })
 
   test('make a key if it is missing', () => {
-    const m: Memory = new Map([["1||2||2", { "2": 1 }]])
-    expect(pmk(m, '', '212', 1, undefined)).toEqual([["1"], m])
+    const m: Memory = new Map([["1||2", { "2": 1 }]])
+    expect(pmk(m, '', '12', 1, undefined)).toEqual([["1"], m])
   })
 
-  test('use stats', () => {
-    const m: Memory = new Map([["choice", { "2": 1 }]])
-    expect(pmk(m, 'choice', '212', 1, undefined)).toEqual([["1"], m])
+  test('favors oldest', () => {
+    const counts: Record<string, number> = {}
+    for (let i = 0; i < 200; i++) {
+      const m: Memory = new Map([["k", { "b": 1 }]])
+      const [picked] = pmk(m, 'k', 'ab', 1, undefined)
+      counts[picked[0]] = (counts[picked[0]] || 0) + 1
+    }
+    // "a" (unknown/oldest) should be picked much more often than "b"
+    expect(counts['a']).toBeGreaterThan(counts['b'] || 0)
   })
 
   test('update stats', () => {
-    const m: Memory = new Map([["stuff", { "2": 1 }]])
-    expect(pmk(m, 'stuff', '212', 1, undefined)).toEqual([["1"], m])
-    expect(m.get('stuff')).toStrictEqual({ "2": 1, "1": 2 })
+    const m: Memory = new Map([["stuff", { "b": 1 }]])
+    pmk(m, 'stuff', 'ab', 1, undefined)
+    const stats = m.get('stuff')
+    // whichever was picked should have the highest order
+    const picked = Object.entries(stats).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0]
+    expect(stats[picked]).toEqual(2)
   })
 })
 

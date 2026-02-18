@@ -196,8 +196,21 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     else return pickArray(array)
   }
 
-  // stores pick order (incrementing index) instead of frequency counts
-  // new/unknown items get max+1, oldest items get picked first
+  // stores pick order (incrementing index), picks by linear weight:
+  // oldest gets weight 2x, middle gets x, past middle gets 0
+  function pickWeighted(ordered: [any, number][]): any {
+    if (ordered.length == 1) return ordered[0][0]
+    const mid = Math.ceil(ordered.length / 2)
+    const weights = ordered.map((_, i) => i < mid ? 2 * (mid - 1 - i) + 1 : 0)
+    const total = weights.reduce((a, b) => a + b, 0)
+    let r = Math.random() * total
+    for (let i = 0; i < ordered.length; i++) {
+      r -= weights[i]
+      if (r <= 0) return ordered[i][0]
+    }
+    return ordered[mid - 1][0]
+  }
+
   function pickMemK(
     key: string | undefined,
     array: any[] | string,
@@ -217,7 +230,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
       return [item, storedStats[item] ?? -(maxOrder + 1)] satisfies [any, number]
     })
     const ordersSorted = _.sortBy(orders, 1)
-    const item = pick(ordersSorted.filter(([_, ord]) => ord == ordersSorted[0][1]))[0]
+    const item = pickWeighted(ordersSorted)
 
     const nextStats = Object.fromEntries(orders)
     nextStats[item] = maxOrder + 1
