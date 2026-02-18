@@ -173,7 +173,6 @@ describe('pickMemK', () => {
     // pick from a b c
     pmk(m, 'k', 'abc', 3, undefined)
     const statsAfterFirst = { ...m.get('k') }
-    console.log(statsAfterFirst)
     // now only a c are active - b is gone
     pmk(m, 'k', 'ac', 2, undefined)
     // b's stats should still be in memory (not wiped)

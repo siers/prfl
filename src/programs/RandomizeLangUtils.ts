@@ -222,7 +222,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const items = ((typeof array === 'string') ? s(array) : array).sort()
     if (!items.length) return []
 
-    const memoryKey = key || items.join('||')
+    const memoryKey = key
 
     const storedStats = stats || memory.get(memoryKey) || {}
     const storedValues = Object.values(storedStats).map(Number)
@@ -385,7 +385,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0])
     const blocks = parsed.map(s => {
-      const match = s.match(/^([a-z0-9]+?)-?(\d+)?$/i)
+      const match = s.match(/^([a-z0-9-]+?)(?:-(\d+))?$/i)
 
       if (!match) err = "block name not found"
       if (!match![1]) err = "cannot parse block name"

@@ -114,6 +114,57 @@ describe('evalContents', () => {
   })
 })
 
+describe('scheduleBlocks', () => {
+  test('no suffix picks 1', () => {
+    const text = `
+      -=- tasks
+      t1: task one
+      t2: task two
+      t3: task three
+      -=-
+      {scheduleBlocks('tasks')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toHaveLength(1)
+  })
+
+  test('dash suffix picks n', () => {
+    const text = `
+      -=- tasks
+      t1: task one
+      t2: task two
+      t3: task three
+      -=-
+      {scheduleBlocks('tasks-2')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toHaveLength(2)
+  })
+
+  test('dash suffix 0 picks 0', () => {
+    const text = `
+      -=- tasks
+      t1: task one
+      t2: task two
+      -=-
+      {scheduleBlocks('tasks-0')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual([])
+  })
+
+  test('digits without dash are part of name', () => {
+    const text = `
+      -=- tasks2
+      t1: task one
+      -=-
+      {scheduleBlocks('tasks2')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toHaveLength(1)
+  })
+})
+
 describe('integration', () => {
   test('aba split', () => {
     const text = `
