@@ -135,12 +135,12 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [str
 }
 
 function extractEvals(l: string): [string, Evals] {
-  const [template, matches] = replaceMatchesMarker(l, /\{[^}]+\}|\[[^\]]+\]/g, defaultMarker)
+  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]/g, defaultMarker)
 
   const evals: Evals = matches.map(([marker, m]) => {
     const ev = (function () {
-      if (m[0] == '[') return interpolate(m.slice(1, m.length - 1))
-      if (m[0] == '{') return explode(m.slice(1, m.length - 1))
+      if (m[0] == '[') return interpolate(m.slice(1, m.length - 1).replace(/\\([\[\]])/g, '$1'))
+      if (m[0] == '{') return explode(m.slice(1, m.length - 1).replace(/\\([\{\}])/g, '$1'))
       return interpolate('unlikely')
     })()
     return [marker, ev]

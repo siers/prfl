@@ -107,6 +107,11 @@ describe('evalContents', () => {
     expect(evalContents('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])
     expect(evalContents('-=-\nitem {divide(s("abcd"), 2)}')).toStrictEqual(['item [a b]', 'item [c d]'])
   })
+
+  test('escaped brackets', () => {
+    expect(evalContents('item ["a\\]b"]')).toStrictEqual(['item [a]b]'])
+    expect(evalContents('-=-\nitem {s("a\\}b c")}')).toStrictEqual(['item a}b', 'item c'])
+  })
 })
 
 describe('integration', () => {
