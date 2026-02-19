@@ -200,9 +200,9 @@ function Randomize(controls: any): JSX.Element {
 
   function planningControlButtons(): JSX.Element {
     return <>
-      <a className="pr-3" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
-      <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
-      <a className="pr-3" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
+      <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
+      <a className="pr-3 select-none" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
+      <a className="pr-3 select-none" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
 
       <span className="pr-3">
         {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
@@ -237,8 +237,8 @@ function Randomize(controls: any): JSX.Element {
 
   function executionStats(): JSX.Element {
     const timerControls = <>
-      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="p-3">{localTimer?.running ? '⏸️' : '▶️'}</span>
-      <span onClick={() => modifyTimer('restart', 'local')} className="p-3">🔄</span>
+      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="p-3 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
+      <span onClick={() => modifyTimer('restart', 'local')} className="p-3 select-none">🔄</span>
     </>
 
     return <div className="w-full pb-2 text-center font-mono">
@@ -255,7 +255,7 @@ function Randomize(controls: any): JSX.Element {
   return (
     <div className="w-full">
       <div className="pl-[10px]">
-        <a className="pr-3" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '⏸️' : '▶️'}</a>
+        <a className="pr-3 select-none" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '⏸️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
       </div>
 
