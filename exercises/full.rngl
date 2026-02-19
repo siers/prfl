@@ -1,18 +1,21 @@
 0x Warmup
 Focus: [pickMemK(`focus`, `intonation intonation tone tone contact text`)] harmonics tasto
 Keys: [keys=pickKeysOffset('scales', 6)]
--=- scales
-Scales: [key] {[([`three octaves: ` + pick(`ion dor phry lyd mix aeo loc`), `climb on: ` + ss(`GDAE`).join('') + ` / ` + ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `), scalePositions()])[pickMemK('scaleType', [0,1,2])]]}
-Scales: [key] [pick(`thirds, sixths, octaves`)] [scalePositionsDbl()]
--=- bowing
+--- scales
+Scales3: [key] three octaves: [pick(`ion dor phry lyd mix aeo loc`)]
+ScalesClimb: [key] climb on: [ss(`GDAE`).join('')] / [ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `)]
+{after('2026-02-25', '')}ScalesPos: [key] [scalePositions()]
+--- scale-stops
+Scales: [key] [pick(`thirds, fourths, sixths, octaves`)] [scalePositionsDbl()]
+--- bowing
 Bowing: [key] arches over [pick(`dim sixths ysaye`)], p{divide(zip(ss(`1234`), shuffleX(s(`uudd`), 2), shuffleX(s(`↑↑↓↓`), 2)), 2)}
--=- shifting
+--- shifting
 0x Shifting: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [s(`G D A E`)]
 Slides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
 1x Shifting: [key] Sevcik, no gliss [ss(`G D A E`).slice(0, 2)]
--=- warmup-key
-{zipT(divide(block('scales'), 2), divide(block('bowing'), 2), divide(block('shifting'), 2)).flat().flat()}
--=- warmup
+--- warmup-key
+{zipInterleave(scheduleBlocks('scales'), block('scale-stops'), block('bowing'), block('shifting')).flat().flat()}
+--- warmup
 {keys.flatMap(k => { key = k; return block('warmup-key') \})}
 0x Technique
 --- extensions

@@ -1,5 +1,4 @@
-// import { shuffleMinDistanceIndexed } from '../lib/ShuffleVibe.js'
-import { shuffleMinDistanceIndexed } from '../lib/Random.js'
+import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
@@ -240,10 +239,11 @@ function evalItem(item: Item, context: Context): string[] {
 }
 
 function evalBlock(block: Block, context: Context): string[] {
-  const lines: [number, string][] =
-    block.items.flatMap((item, index) => {
-      return evalItem(item, context).map<[number, string]>(l => [index, l])
-    })
+  const items = block.header.shuffle ? shuffleMinDistance(block.items, 1) : block.items
+
+  const lines: [number, string][] = items.flatMap((item, index) => {
+    return evalItem(item, context).map<[number, string]>(l => [index, l])
+  })
 
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
