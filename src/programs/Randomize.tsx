@@ -27,7 +27,6 @@ function ms(a: number): string {
 
 type RState = {
   text?: string,
-  distance?: number,
 
   output?: string,
   outLineCount?: number,
@@ -64,7 +63,6 @@ function timerLength(t: Timer, now: number): number {
 type Args = {
   eval?: boolean,
   contents?: string,
-  distance?: string,
   save?: boolean,
   execute?: boolean,
   advance?: number,
@@ -74,7 +72,6 @@ type Args = {
 function Randomize(controls: any): JSX.Element {
   const { state, setState, advanceRef } = controls
 
-  const distance = state?.distance || 0
   const current = state?.current || 0
   const timers: Timers = state?.timers || []
 
@@ -117,7 +114,6 @@ function Randomize(controls: any): JSX.Element {
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
       const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
-      const distanceOr = parseInt(a.distance || distance)
       const execute = a.execute === undefined ? state?.execute : a.execute
 
       let output = (s?.output || '')
@@ -144,7 +140,6 @@ function Randomize(controls: any): JSX.Element {
       return {
         ...s,
         text: contentsOr,
-        distance: distanceOr,
 
         output: nextOutput,
         outLineCount: lineCount,
@@ -240,10 +235,6 @@ function Randomize(controls: any): JSX.Element {
 
   return (
     <div className="w-full">
-      { /* <div className="pl-[10px]">
-        min distance: <input type="number" onChange={e => newAndRecalculate({distance: e.target.value})} className="border" min="0" max="10" placeholder={distance} />
-      </div> */ }
-
       <div className="pl-[10px]">
         <a className="pr-3" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '⏸️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
