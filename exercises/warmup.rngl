@@ -4,7 +4,7 @@ Keys: [keys=pickKeysOffset('scales', 6)]
 --- scales
 Scales3: [key] three octaves: [pick(`ion dor phry lyd mix aeo loc`)]
 ScalesClimb: [key] climb on: [ss(`GDAE`).join('')] / [ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `)]
-{after('2026-02-25', '')}ScalesPos: [key] [scalePositions()]
+{after('2026-02-25', '')} ScalesPos: [key] [scalePositions()]
 --- scale-stops
 Scales: [key] [pick(`thirds, fourths, sixths, octaves`)] [scalePositionsDbl()]
 --- bowing

@@ -248,7 +248,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function pickTasks(key: string, items: string[], n?: number): string[] {
     const map = items.map(i => {
-      const match = i.match(/^([a-zA-Z0-9\-]+):/)
+      const match = i.match(/^ *([a-zA-Z0-9\-]+):/)
       if (!match || !match[1]) return
       return [match[1], i] satisfies [string, string]
     })
