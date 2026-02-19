@@ -2,7 +2,6 @@ import { renderToString } from 'react-dom/server'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { evalContentsMem, Memory } from './RandomizeLang.js'
 import murmur from 'murmurhash3js'
-import { clone } from 'lodash'
 import { roundToNaive } from '../lib/Math.js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
 import { directRange } from '../lib/Array.js'
@@ -108,11 +107,11 @@ function Randomize(controls: any): JSX.Element {
 
     // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
     if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
+    modifyTimer('start')
   }
 
   useEffect(() => {
     if (current < timers.length) {
-      if (inExecution && localTimer === null) modifyTimer('start')
       if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
     }
   }, [output, current, timers, inExecution])
@@ -183,13 +182,12 @@ function Randomize(controls: any): JSX.Element {
       const now = Date.now()
       if (!s) return s
 
-      const timers = s.timers || []
-      const ts = clone(timers)
-      ts.splice(current, 1, modifyTimerPure(timers![current], command, now))
       return {
         ...s,
-        totalTimer: target != 'local' ? modifyTimerPure(state?.totalTimer, command, now) : state?.totalTimer
-        , timers: ts
+        totalTimer: target != 'local' ? modifyTimerPure(s?.totalTimer || null, command, now) : s?.totalTimer,
+        timers: (s.timers || []).map((timer, index) => {
+          return modifyTimerPure(timer, index == s?.current ? command : 'stop', now)
+        })
       }
     })
   }

@@ -80,7 +80,7 @@ function App() {
   const toggleTimeout = () => { if (running) stopTimeout(); else startTimeout() }
 
   function button(event, key) {
-    if (key == 's' || key == 'p' || key == 'Escape') toggleTimeout()
+    if (false && (key == 's' || key == 'p' || key == 'Escape')) toggleTimeout()
     else if (key == 'ArrowRight' || key == 'PageUp' || key == 'ArrowDown' || key == 'Enter' || key == ' ') {
       setItem('next', event)
       postponeTimeout()
