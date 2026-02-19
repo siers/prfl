@@ -211,6 +211,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return ordered[mid - 1][0]
   }
 
+  // Note: uses memory
   function pickMemK(
     key: string | undefined,
     array: any[] | string,
