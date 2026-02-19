@@ -214,7 +214,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function editor(): JSX.Element {
-    return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh - 4rem)" })}>
+    return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh)" })}>
       <div className="grow p-[10px]">
         <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
       </div>
@@ -262,7 +262,7 @@ function Randomize(controls: any): JSX.Element {
       {inPlanning && editor()}
 
       {inExecution &&
-        <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh - 4rem)" })}>
+        <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh)" })}>
           {executionStats()}
           {executionItems()}
         </div>
