@@ -5,6 +5,7 @@ import murmur from 'murmurhash3js'
 import { clone } from 'lodash'
 import { roundToNaive } from '../lib/Math.js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
+import { directRange } from '../lib/Array.js'
 
 function pad(str: string, size: number, with_: string): string {
   var s = str
@@ -40,6 +41,7 @@ type RState = {
 
 type Timer = { kind: 'started', start: number, running: true } | { kind: 'stopped', length: number, running: false }
 type Timers = (Timer | null)[]
+type TimerCommand = 'start' | 'stop' | 'restart'
 
 const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
 const toStoppedTimer: (t: Timer, stop: number) => Timer = (t: Timer, stop: number) => {
@@ -80,9 +82,12 @@ function Randomize(controls: any): JSX.Element {
   const outLineCount: number = state?.outLineCount || 0
 
   const items = (state?.output || '').split('\n')
-  const show = [-1, 0, 1]
   const timer = timers[current]
   const timerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
+  const totalTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
+
+  const inExecution: boolean = state?.execute === true
+  const inPlanning: boolean = state?.execute !== true
 
   useEffect(() => {
     if (state?.execute !== true) return () => { }
@@ -104,8 +109,10 @@ function Randomize(controls: any): JSX.Element {
   }
 
   useEffect(() => {
-    if (current < timers.length && !timers[current]) startTimer()
-  }, [output, current, timers])
+    if (current < timers.length) {
+      if (inPlanning && timer?.kind !== 'stopped') modifyTimer('stop')
+    }
+  }, [output, current, timers, inExecution])
 
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
@@ -151,30 +158,84 @@ function Randomize(controls: any): JSX.Element {
     })
   }
 
-  function startTimer(restart: boolean = false) {
-    setState((s: RState | undefined) => {
-      if (!s) return s
+  function modifyTimerPure(
+    t: Timer | null,
+    command: TimerCommand,
+    now: number,
+  ): Timer {
+    if (command == 'start' || command == 'restart') {
+      return (!t || command == 'restart') ? freshTimer(now) : toStartedTimer(t, now)
+    }
 
-      const ts = clone(timers)
-      const newTimer = (!timers[current] || restart) ? freshTimer(Date.now()) : toStartedTimer(timers[current], Date.now())
-      ts.splice(current, 1, newTimer)
-      return { ...s, timers: ts }
-    })
+    if (command == 'stop') {
+      return toStoppedTimer(t || freshTimer(now), now)
+    }
+
+    return freshTimer(0) // impossible
   }
 
-  function stopTimer() {
+  function modifyTimer(command: TimerCommand) {
+    const now = Date.now()
+
     setState((s: RState | undefined) => {
       if (!s) return s
-      if (!timers[current]) return s
 
       const ts = clone(timers)
-      ts.splice(current, 1, toStoppedTimer(timers[current], Date.now()))
+      ts.splice(current, 1, modifyTimerPure(timers![current], command, now))
       return { ...s, timers: ts }
     })
   }
 
   function timerContent(): string {
     return (timer && (ms(timerLength(timer, Date.now())))) || ''
+  }
+
+  function planningControlButtons(): JSX.Element {
+    return <>
+      <a className="pr-3" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
+      <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
+      <a className="pr-3" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
+
+      <span className="pr-3">
+        {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
+      </span>
+      <span className="pr-3 text-[#f4f4f4]">
+        {state?.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
+      </span>
+    </>
+  }
+
+  function editor(): JSX.Element {
+    return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh - 4rem)" })}>
+      <div className="grow p-[10px]">
+        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
+      </div>
+
+      <div className="grow p-[10px]">
+        <textarea className="block w-full h-full p-[5px] border font-mono" cols={130} value={state?.output} readOnly></textarea>
+      </div>
+    </div>
+  }
+
+  function executionItems(): JSX.Element {
+    const show = directRange(-2, 2)
+
+    return <div className="w-full flex flex-col flex-grow justify-center">
+      {show.map(s => s + current).map(index =>
+        <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>{items[index]}</div>
+      )}
+    </div>
+  }
+
+  function executionStats(): JSX.Element {
+    return <div className="w-full text-center pb-2 font-mono">
+      <div className="text-[#888]">{current + 1}/{outLineCount}</div>
+
+      <div className="p-3" ref={totalTimerRef}></div>
+      <div className="p-3" ref={timerRef}></div>
+      {timer && <span onClick={() => modifyTimer(timer.running ? 'stop' : 'start')} className="p-3">{timer.running ? '⏸️' : '▶️'}</span>}
+      <span onClick={() => modifyTimer('restart')} className="p-3">🔄</span>
+    </div>
   }
 
   return (
@@ -184,46 +245,18 @@ function Randomize(controls: any): JSX.Element {
       </div> */ }
 
       <div className="pl-[10px]">
-        <a className="pr-3" onClick={() => newAndRecalculate({ execute: !state?.execute })}>{state?.execute ? '⏸️' : '▶️'}</a>
-        <a className="pr-3" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
-        <a className="pr-3" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
-        <a className="pr-3" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
-
-        <span className="pr-3">
-          {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
-        </span>
-        <span className="pr-3 text-[#f4f4f4]">
-          {state?.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
-        </span>
+        <a className="pr-3" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '⏸️' : '▶️'}</a>
+        {inPlanning && planningControlButtons()}
       </div>
 
-      <div className={"w-[100dvwh] flex flex-row selection:red text-sm " + (state?.execute ? 'hidden' : '')} style={({ height: "calc(90dvh - 4rem)" })}>
-        <div className="grow p-[10px]">
-          <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
-        </div>
+      {inPlanning && editor()}
 
-        <div className="grow p-[10px]">
-          <textarea className="block w-full h-full p-[5px] border font-mono" cols={130} value={state?.output} readOnly></textarea>
+      {inExecution &&
+        <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh - 4rem)" })}>
+          {executionStats()}
+          {executionItems()}
         </div>
-      </div>
-
-      <div className={"w-[100dvw] flex flex-col justfiy-center " + (!state?.execute ? 'hidden' : '')} style={({ height: "calc(90dvh - 4rem)" })}>
-        <div className="w-full text-center pb-2 text-center">
-          <div className="text-[#888]">{current + 1} / {outLineCount}</div>
-
-          <div className="font-mono">
-            <span className="p-3" ref={timerRef}></span>
-            {timer && <span onClick={() => timer.running ? stopTimer() : startTimer(false)} className="p-3">{timer.running ? '⏸️' : '▶️'}</span>}
-            <span onClick={() => startTimer(true)} className="p-3">🔄</span>
-          </div>
-        </div>
-
-        <div className="w-full flex flex-col flex-grow justify-center">
-          {show.map(s => s + current).map(index =>
-            <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '3rem' } : { color: '#bbb' }}>{items[index]}</div>
-          )}
-        </div>
-      </div>
+      }
     </div>
   )
 }
