@@ -81,8 +81,10 @@ function App() {
   function button(event, key) {
     if (key == 's' || key == 'p' || key == 'Escape') toggleTimeout()
     else if (key == 'ArrowRight' || key == 'PageUp' || key == 'ArrowDown' || key == 'Enter' || key == ' ') {
-      setItem(true, event)
+      setItem('next', event)
       postponeTimeout()
+    } else if (key == 'ArrowLeft' || key == 'PageDown' || key == 'ArrowUp') {
+      setItem('prev', event)
     } else {
       setItem(false, event)
     }
@@ -111,7 +113,7 @@ function App() {
                       state={state[programName]}
                       setState={setProgramState(programName)}
                       advanceRef={advanceRef}
-                      />}
+                    />}
                   </div>
                 </div>
               )
@@ -126,8 +128,8 @@ function App() {
         <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
       </div>
 
-      <a className="next" onClick={event => setItem(event)}>➡️</a>
-      <a className="prev" onClick={event => setItem(event)}>⬅️</a>
+      <a className="next" onClick={event => setItem('next', event)}>➡️</a>
+      <a className="prev" onClick={event => setItem('prev', event)}>⬅️</a>
     </div>
   )
 }

@@ -35,6 +35,7 @@ type RState = {
 
   execute: boolean,
   current?: number,
+  totalTimer?: Timer,
   timers?: Timers,
 }
 
@@ -79,25 +80,29 @@ function Randomize(controls: any): JSX.Element {
   const outLineCount: number = state?.outLineCount || 0
 
   const items = (state?.output || '').split('\n')
-  const timer = timers[current]
-  const timerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
+  const globalTimer = state?.totalTimer
+  const localTimer = timers[current]
+  const localTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
   const totalTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
 
   const inExecution: boolean = state?.execute === true
   const inPlanning: boolean = state?.execute !== true
 
+  function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | null) {
+    ref.current && (ref.current.innerHTML = renderToString(timerContent(timer)))
+  }
+
   useEffect(() => {
     if (state?.execute !== true) return () => { }
-    const id = setInterval(() => { timerRef.current && (timerRef.current.innerHTML = renderToString(timerContent())) }, 45.33)
+    const id = setInterval(() => { renderTimerToRef(totalTimerRef, globalTimer); renderTimerToRef(localTimerRef, localTimer) }, 45.33)
     return () => clearInterval(id)
-  }, [output, current, timers, state?.execute])
+  }, [output, current, globalTimer, timers, state?.execute])
 
-  advanceRef.current = (advance: MouseEvent | null, _event: any) => {
-    const advanceDir = (advance?.target as HTMLElement)?.className
+  advanceRef.current = (advance: string | boolean, _event: any) => {
     const advanceDelta =
-      advanceDir == 'next'
+      advance == 'next'
         ? 1
-        : advanceDir == 'prev'
+        : advance == 'prev'
           ? -1 :
           advance ? 1 : 0
 
@@ -107,7 +112,8 @@ function Randomize(controls: any): JSX.Element {
 
   useEffect(() => {
     if (current < timers.length) {
-      if (inPlanning && timer?.kind !== 'stopped') modifyTimer('stop')
+      if (inExecution && localTimer === null) modifyTimer('start')
+      if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
     }
   }, [output, current, timers, inExecution])
 
@@ -119,6 +125,7 @@ function Randomize(controls: any): JSX.Element {
       let output = (s?.output || '')
       let newMemory: Memory | undefined = undefined
       let nextTimers: Timers | undefined = undefined
+      let nextTotalTimer: Timer | undefined = state?.totalTimer
 
       if (a.eval) {
         const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
@@ -126,6 +133,7 @@ function Randomize(controls: any): JSX.Element {
         const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
         newMemory = memory
         output = lines.join('\n')
+        nextTotalTimer = undefined
         nextTimers = lines.map(_ => null)
       }
 
@@ -148,6 +156,7 @@ function Randomize(controls: any): JSX.Element {
 
         execute: execute,
         current: a.eval ? 0 : nextCurrent,
+        totalTimer: nextTotalTimer,
         timers: nextTimers || timers,
       } satisfies RState
     })
@@ -169,19 +178,23 @@ function Randomize(controls: any): JSX.Element {
     return freshTimer(0) // impossible
   }
 
-  function modifyTimer(command: TimerCommand) {
-    const now = Date.now()
-
+  function modifyTimer(command: TimerCommand, target: null | 'local' = null) {
     setState((s: RState | undefined) => {
+      const now = Date.now()
       if (!s) return s
 
+      const timers = s.timers || []
       const ts = clone(timers)
       ts.splice(current, 1, modifyTimerPure(timers![current], command, now))
-      return { ...s, timers: ts }
+      return {
+        ...s,
+        totalTimer: target != 'local' ? modifyTimerPure(state?.totalTimer, command, now) : state?.totalTimer
+        , timers: ts
+      }
     })
   }
 
-  function timerContent(): string {
+  function timerContent(timer: Timer | null): string {
     return (timer && (ms(timerLength(timer, Date.now())))) || ''
   }
 
@@ -223,13 +236,19 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function executionStats(): JSX.Element {
-    return <div className="w-full text-center pb-2 font-mono">
+    const timerControls = <>
+      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="p-3">{localTimer?.running ? '⏸️' : '▶️'}</span>
+      <span onClick={() => modifyTimer('restart', 'local')} className="p-3">🔄</span>
+    </>
+
+    return <div className="w-full pb-2 text-center font-mono">
       <div className="text-[#888]">{current + 1}/{outLineCount}</div>
 
-      <div className="p-3" ref={totalTimerRef}></div>
-      <div className="p-3" ref={timerRef}></div>
-      {timer && <span onClick={() => modifyTimer(timer.running ? 'stop' : 'start')} className="p-3">{timer.running ? '⏸️' : '▶️'}</span>}
-      <span onClick={() => modifyTimer('restart')} className="p-3">🔄</span>
+      <div className="flex flex-row justify-center">
+        <div className="w-[7em] p-3 text-right" ref={totalTimerRef}></div>
+        {timerControls}
+        <div className="w-[7em] p-3 text-left" ref={localTimerRef}></div>
+      </div>
     </div>
   }
 
