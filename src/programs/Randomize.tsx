@@ -117,7 +117,6 @@ function Randomize(controls: any): JSX.Element {
       let newMemory: Memory | undefined = undefined
       let nextTimers: Timers | undefined = undefined
 
-      console.log(timers)
       if (a.eval) {
         const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
         // console.clear()
@@ -157,7 +156,6 @@ function Randomize(controls: any): JSX.Element {
       if (!s) return s
 
       const ts = clone(timers)
-      console.log({ timer, current })
       const newTimer = (!timers[current] || restart) ? freshTimer(Date.now()) : toStartedTimer(timers[current], Date.now())
       ts.splice(current, 1, newTimer)
       return { ...s, timers: ts }
