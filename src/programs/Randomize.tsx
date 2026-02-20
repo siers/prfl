@@ -19,9 +19,10 @@ function hm(a: number): string {
 }
 
 function ms(a: number): string {
-  const m = Math.floor(a / 60)
+  const h = Math.floor(a / 3600)
+  const m = Math.floor((a / 60) % 60)
   const s = roundToNaive(a % 60, 2).toFixed(2)
-  return pad(m == 0 ? `${s}s` : `${m}m${s}`, 10, ' ')
+  return pad(h != 0 ? `${h}h${m}m${s}` : m != 0 ? `${m}m${s}` : `${s}s`, 10, ' ')
 }
 
 type RState = {
@@ -40,7 +41,7 @@ type RState = {
 
 type Timer = { kind: 'started', start: number, running: true } | { kind: 'stopped', length: number, running: false }
 type Timers = (Timer | null)[]
-type TimerCommand = 'start' | 'stop' | 'restart'
+type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global'
 
 const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
 const toStoppedTimer: (t: Timer, stop: number) => Timer = (t: Timer, stop: number) => {
@@ -107,7 +108,7 @@ function Randomize(controls: any): JSX.Element {
 
     // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
     if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
-    modifyTimer('start')
+    modifyTimer('local-as-global')
   }
 
   useEffect(() => {
@@ -177,10 +178,12 @@ function Randomize(controls: any): JSX.Element {
     return freshTimer(0) // impossible
   }
 
-  function modifyTimer(command: TimerCommand, target: null | 'local' = null) {
+  function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
     setState((s: RState | undefined) => {
       const now = Date.now()
       if (!s) return s
+
+      const command = commandIn == 'local-as-global' ? s?.totalTimer?.kind == 'started' ? 'start' : 'stop' : commandIn
 
       return {
         ...s,
@@ -235,8 +238,8 @@ function Randomize(controls: any): JSX.Element {
 
   function executionStats(): JSX.Element {
     const timerControls = <>
-      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="p-3 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
-      <span onClick={() => modifyTimer('restart', 'local')} className="p-3 select-none">🔄</span>
+      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pt-3 pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
+      <span onClick={() => modifyTimer('restart', 'local')} className="pt-3 pb-3 pl-2 pr-2 select-none">🔄</span>
     </>
 
     return <div className="w-full pb-2 text-center font-mono">
