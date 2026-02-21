@@ -349,7 +349,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return divisions.map((division, index) => {
       const first = index == 0
       const last = index == divisions.length - 1
-      const representative = shuffle(division.at(last ? -1 : 0) as string[])
+      const representative = shuffle(division.length == 0 ? [] : division.at(last ? -1 : 0) as string[])
 
       const tooLong = !(first || last) && representative.length > roughness
       return tooLong ? representative.slice(0, roughness) : representative
@@ -376,6 +376,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function pickBlock(name: string, n?: number | 'full'): string[] {
+    if (n == 0) return []
     if (!block(name)) return [`pickBlock: cannot find ${name}`]
     if (n === 'full') return block(name)
     return pickTasks(name, block(name), n)
