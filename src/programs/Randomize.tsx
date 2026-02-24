@@ -279,6 +279,7 @@ export default Randomize
 // TODO: execution: can update tasks (comments, params) (blocker: required that the list is actually just a list of indexes, not items themselves)
 // TODO: execution: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
 // TODO: execution: memory impact only per-item
+// TODO: execution: scrollable execution items
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: 2x = (1/2) + (2/2) (combine with execution mode: the view is just an index of the item + some decoration)
@@ -287,13 +288,14 @@ export default Randomize
 
 // TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
 // TODO: util: the save button should save the memory from the current rendered content
+// TODO: util: scheduleBlocks syntax for pyramidPhrases.map
 
 // TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
 
-// TODO content: write a task selection picker without refering to the contents (I have no idea what this means any more)
-// TODO content: make programmable scales
-// TODO content: random note while inside position
-// TODO content: bow articulations tasks
-// TODO content: maybeEvery derived from memory (make it work on indices)
+// TODO: content: write a task selection picker without refering to the contents (I have no idea what this means any more)
+// TODO: content: make programmable scales
+// TODO: content: random note while inside position
+// TODO: content: bow articulations tasks
+// TODO: content: maybeEvery derived from memory (make it work on indices)

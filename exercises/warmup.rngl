@@ -1,20 +1,23 @@
 0x Warmup
 Focus: [pickMemK(`focus`, `intonation intonation tone tone contact text`)] harmonics tasto
 Keys: [keys=pickKeysOffset('scales', 6)]
+{stops=`thirds, fourths, sixths, octaves`;}
 --- scales
 Scales3: [key] three octaves: [pick(`ion dor phry lyd mix aeo loc`)]
-ScalesClimb: [key] climb on: [ss(`GDAE`).join('')] / [ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `)]
+ScalesClimb: [key] climb on: [ss(`GDAE`).join('')] / [ss(`pos 1-4s ` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `)]
 {after('2026-02-25', '')} ScalesPos: [key] [scalePositions()]
 --- scale-stops
-Scales: [key] [pick(`thirds, fourths, sixths, octaves`)] [scalePositionsDbl()]
+ScaleStopsRun: [key] [pick(stops)] [ss(`1234`)]
+ScaleStopsPart: [key] [pick(stops)] [scalePositionsDbl()]
+ScaleStopsString: [key] [pick(stops)] [ss(``)]
 --- bowing
 Bowing: [key] arches over [pick(`dim sixths ysaye`)], p{divide(zip(ss(`1234`), shuffleX(s(`uudd`), 2), shuffleX(s(`↑↑↓↓`), 2)), 2)}
 --- shifting
-0x Shifting: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [s(`G D A E`)]
-Slides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
-1x Shifting: [key] Sevcik, no gliss [ss(`G D A E`).slice(0, 2)]
+ShiftingFourth: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [s(`G D A E`)]
+ShiftingSlides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
+ShiftingSevcik: [key] Sevcik, no gliss [ss(`G D A E`).slice(0, 2)]
 --- warmup-key
-{zipInterleave(scheduleBlocks('scales'), block('scale-stops'), block('bowing'), block('shifting')).flat().flat()}
+{zipInterleave(scheduleBlocks('scales'), scheduleBlocks('scale-stops'), block('bowing'), scheduleBlocks('shifting')).flat().flat()}
 --- warmup
 {keys.flatMap(k => { key = k; return block('warmup-key') \})}
 ---

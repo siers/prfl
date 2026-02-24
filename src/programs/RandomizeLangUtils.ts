@@ -25,6 +25,7 @@ export type Interface = {
   jj: <A>(as: A[][]) => string,
   zip: (...as: string[][]) => string[],
   zipSpace: (...as: string[][]) => string[],
+  zipSlash: (...as: string[][]) => string[],
   zipT: <A>(...ass: A[][]) => A[][],
   zipInterleave: <A>(...args: A[][]) => A[],
   intersperse: <A>(arr: A[], sep: A) => A[],
@@ -158,6 +159,10 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function zipSpace(...ass: string[][]): string[] {
     return zipSep(ass, ' ')
+  }
+
+  function zipSlash(...ass: string[][]): string[] {
+    return zipSep(ass, '/')
   }
 
   function zipInterleave<A>(...args: A[][]): A[] {
@@ -491,6 +496,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     jj,
     zip,
     zipSpace,
+    zipSlash,
     zipT,
     zipInterleave,
     intersperse,
