@@ -293,6 +293,7 @@ export default Randomize
 // TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
+// TODO: scheduling: check that scheduleBlocks picks from all tasks, if there are multiples
 
 // TODO: content: write a task selection picker without refering to the contents (I have no idea what this means any more)
 // TODO: content: make programmable scales

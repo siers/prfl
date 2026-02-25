@@ -56,6 +56,7 @@ export type Interface = {
   indexPyramid: (totalLength: number) => number[][][],
   phrasePyramid(phrases: string | string[]): string[][],
   pyramid(phrases: string | string[], roughness?: number): string[][],
+  phraseKey(phrase: string): string,
 
   // block operations
   context: Map<string, any> | null,
@@ -361,6 +362,11 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     })
   }
 
+  // for scheduleBlocks
+  function phraseKey(phrase: string): string {
+    return `${phrase.replaceAll(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '')}: play`
+  }
+
   // block utilities
 
   function block(name: string, ...args: any): any {
@@ -522,6 +528,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     indexPyramid,
     phrasePyramid,
     pyramid,
+    phraseKey,
 
     context,
     block,
