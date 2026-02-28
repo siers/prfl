@@ -212,3 +212,18 @@ describe('memory', () => {
     expect(mem2).toStrictEqual(new Map([["a", 2]]))
   })
 })
+
+describe('evaling items inside a block', () => {
+  test('evalItem', () => {
+    const text = `
+      -=- a
+      a
+      b
+      c
+      -=-
+      {blockItems('a').map(evalItem).flat()}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual(['a', 'b', 'c'])
+  })
+})

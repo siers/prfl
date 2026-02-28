@@ -5,6 +5,7 @@ import _ from 'lodash'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import murmur from 'murmurhash3js'
 import { roundToNaive } from '../lib/Math'
+import { Item, errorLine } from './RandomizeLangTypes'
 
 export type Interface = {
   // DSL
@@ -61,6 +62,7 @@ export type Interface = {
   // block operations
   context: Map<string, any> | null,
   block: (name: string, ...args: any) => any | undefined,
+  blockItems(name: string, ...args: any): Item[],
   aba: (as: string[], bs: string[]) => string[],
   pickBlock: (name: string, n?: number) => any[],
   scheduleBlocks: (sentence: string) => string[],
@@ -377,10 +379,17 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   // block utilities
 
-  function block(name: string, ...args: any): any {
+  function block(name: string, ...args: any): string[] {
     const lookup = context.get(name)
     if (!lookup) return [`error: block('${name}') == ${lookup}`]
     const lookupChecked = lookup as (...args: any) => string[]
+    return lookupChecked(...args)
+  }
+
+  function blockItems(name: string, ...args: any): Item[] {
+    const lookup = context.get(`items-${name}`)
+    if (!lookup) return [errorLine(`block('${name}') == ${lookup}`)]
+    const lookupChecked = lookup as (...args: any) => Item[]
     return lookupChecked(...args)
   }
 
@@ -540,6 +549,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     context,
     block,
+    blockItems,
     aba,
     pickBlock,
     scheduleBlocks,

@@ -1,3 +1,5 @@
+import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block } from './RandomizeLangTypes'
+
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -59,62 +61,6 @@ export const initSequences = <A>(lines: A[], finder: (_: A) => boolean): A[][] =
 
   return groups
 }
-
-// types
-
-type Interpolate = {
-  kind: 'interpolate',
-  command: string,
-}
-
-type Explode = {
-  kind: 'explode',
-  command: string,
-}
-
-type Eval = Interpolate | Explode
-type Evals = [Marker, Eval][]
-
-type Line = {
-  kind: 'line',
-  contents: string,
-  evals: Evals,
-  times: number,
-}
-
-type Header = {
-  kind: 'header',
-  name: string | null,
-  shuffle: boolean,
-}
-
-const isMainHeader: (h: Header) => boolean = (h: Header) => h.name === null
-
-type Item = Header | Line
-
-type Block = {
-  kind: 'block',
-  header: Header,
-  items: Item[],
-}
-
-// export type ContextBlock = (...args: any) => string[]
-
-type Blocks = Block[]
-
-type Parsed = Blocks
-type Context = Map<string, any> // contains both blocks as function and memory
-export type Memory = Map<string, any>
-
-const defaultMarker = '!!!'
-
-type Marker = string
-
-const header = (shuffle: Boolean, name: string | null) => ({ kind: 'header', name, shuffle }) as Header
-const interpolate = (command: string) => ({ kind: 'interpolate', command }) as Interpolate
-const explode = (command: string) => ({ kind: 'explode', command }) as Explode
-const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
-const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
 
 // parser
 
@@ -216,7 +162,11 @@ function substituteExplode(line: string, marker: string, subst: any) {
 
 function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
   const memory = context.get('memory') as Memory
-  const fullContext = { ...randomizeLangUtils(context, memory), memory }
+  const additionalContext = {
+    memory,
+    evalItem: context.get('evalItem'),
+  }
+  const fullContext = { ...randomizeLangUtils(context, memory), ...additionalContext }
 
   const subst: any = executeInContext(fullContext, e.command)
   if (subst?.kind === 'error') return [`error: failed to compile: ${subst?.contents}}`]
@@ -258,12 +208,19 @@ export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [E
   const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const evaluationInit: EvaluationContext = [[], new Map<string, any>([['memory', memory]])]
+  const initContext = new Map<string, any>([
+    ['memory', memory],
+    ['evalItem', (i: Item) => evalItem(i, initContext)],
+  ])
+
+  const evaluationInit: EvaluationContext = [[], initContext]
   const [mainBlocks, context]: EvaluationContext = blocks.reduce(([mainBlocks, context], b) => {
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
-    else
-      context.set(b.header.name || '', () => evalBlock(b, context))
+    else {
+      context.set(b.header.name || 'impossiblè', () => evalBlock(b, context))
+      context.set(`items-${b.header.name || 'impossiblè'}`, () => b.items)
+    }
 
     return [mainBlocks, context] satisfies EvaluationContext
   }, evaluationInit)
