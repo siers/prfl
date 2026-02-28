@@ -225,7 +225,7 @@ export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [E
     return [mainBlocks, context] satisfies EvaluationContext
   }, evaluationInit)
 
-  return [intersperse(mainBlocks, ['---']).flat(), context.get('memory') as Memory]
+  return [intersperse(mainBlocks.filter(b => b.length > 0), ['---']).flat(), context.get('memory') as Memory]
 }
 
 export function evalContents(text: string): string[] {
