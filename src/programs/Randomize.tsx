@@ -44,11 +44,19 @@ type Timers = (Timer | null)[]
 type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global'
 
 const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
+
+const freshTimerOrRestart: (start: number, t: Timer | null) => Timer =
+  (start: number, t: Timer | null) => {
+    if (t?.running != false) return ({ kind: 'started', start, running: true })
+    else return ({ kind: 'stopped', length: 0, running: false })
+  }
+
 const toStoppedTimer: (t: Timer, stop: number) => Timer = (t: Timer, stop: number) => {
   if (t.kind == 'stopped') return t
   if (t.kind == 'started') return ({ kind: 'stopped', length: stop - t.start, running: false })
   return freshTimer(0) // t.kind is `never` here
 }
+
 const toStartedTimer: (t: Timer, start: number) => Timer = (t: Timer, start: number) => {
   if (t.kind == 'started') return t
   if (t.kind == 'stopped') return freshTimer(start - t.length)
@@ -168,7 +176,7 @@ function Randomize(controls: any): JSX.Element {
     now: number,
   ): Timer {
     if (command == 'start' || command == 'restart') {
-      return (!t || command == 'restart') ? freshTimer(now) : toStartedTimer(t, now)
+      return (!t || command == 'restart') ? freshTimerOrRestart(now, t) : toStartedTimer(t, now)
     }
 
     if (command == 'stop') {
