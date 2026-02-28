@@ -140,7 +140,7 @@ describe('scheduleBlocks', () => {
       {scheduleBlocks('tasks')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toHaveLength(1)
+    expect(evalContents(text)).toHaveLength(3)
   })
 
   test('dash suffix picks n', () => {
@@ -177,19 +177,6 @@ describe('scheduleBlocks', () => {
     `.replaceAll(/^ */mg, '')
 
     expect(evalContents(text)).toHaveLength(1)
-  })
-
-  test('schedule all by wildcard', () => {
-    const text = `
-      -=- tasks2
-      one
-      two
-      three
-      -=-
-      {scheduleBlocks('tasks2-*')}
-    `.replaceAll(/^ */mg, '')
-
-    expect(evalContents(text)).toHaveLength(3)
   })
 })
 

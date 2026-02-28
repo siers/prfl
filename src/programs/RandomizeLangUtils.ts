@@ -411,7 +411,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
       if (!match) err = "block name not found"
       if (!match![1]) err = "cannot parse block name"
 
-      const count: number | 'full' = match![2] == '*' ? 'full' : parseInt(match![2] || '1', 10)
+      const count: number | 'full' = match![2] === undefined ? 'full' : parseInt(match![2] || '1', 10)
 
       return [match![1], count] satisfies [string, number | 'full']
     })
