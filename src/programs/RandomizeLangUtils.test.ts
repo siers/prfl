@@ -47,17 +47,37 @@ test('parts', () => {
 })
 
 test('divide', () => {
+  expect(divide([], 1)).toStrictEqual([[]])
   expect(divide([], 2)).toStrictEqual([[], []])
+
+  expect(divide([1], 0)).toStrictEqual([])
+  expect(divide([1], 1)).toStrictEqual([[1]])
   expect(divide([1], 2)).toStrictEqual([[1], []])
-  expect(divide([1], 5)).toStrictEqual([[1], [], [], [], []])
-  expect(divide([1, 2], 5)).toStrictEqual([[1], [2], [], [], []])
+  expect(divide([1], 3)).toStrictEqual([[], [1], []])
+  expect(divide([1], 4)).toStrictEqual([[], [1], [], []])
+  expect(divide([1], 5)).toStrictEqual([[], [], [1], [], []])
+
+  expect(divide([1, 2], 0)).toStrictEqual([])
+  expect(divide([1, 2], 1)).toStrictEqual([[1, 2]])
+  expect(divide([1, 2], 2)).toStrictEqual([[1], [2]])
+  expect(divide([1, 2], 3)).toStrictEqual([[1], [], [2]])
+  expect(divide([1, 2], 4)).toStrictEqual([[1], [], [2], []])
+  expect(divide([1, 2], 5)).toStrictEqual([[], [1], [], [2], []])
+
+  expect(divide([1, 2, 3], 0)).toStrictEqual([])
+  expect(divide([1, 2, 3], 1)).toStrictEqual([[1, 2, 3]])
   expect(divide([1, 2, 3], 2)).toStrictEqual([[1, 2], [3]])
-  expect(divide([1, 2, 3, 4], 3)).toStrictEqual([[1], [2], [3, 4]])
-  expect(divide([1, 2, 3, 4, 5], 5)).toStrictEqual([[1], [2], [3], [4], [5]])
-  expect(divide([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2, 3], [4, 5]])
-  expect(divide([1, 2, 3, 4, 5, 6, 7, 8], 3)).toStrictEqual([[1, 2, 3], [4, 5, 6], [7, 8]])
-  expect(divide([1, 2, 3, 4, 5, 6, 7, 8, 9], 3)).toStrictEqual([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-  expect(divide([1, 2, 3, 4, 5, 6, 7, 8, 9], 2)).toStrictEqual([[1, 2, 3, 4, 5], [6, 7, 8, 9]])
+  expect(divide([1, 2, 3], 3)).toStrictEqual([[1], [2], [3]])
+  expect(divide([1, 2, 3], 4)).toStrictEqual([[1], [2], [], [3]])
+  expect(divide([1, 2, 3], 5)).toStrictEqual([[1], [], [2], [], [3]])
+
+  expect(divide([1, 2, 3, 4], 0)).toStrictEqual([])
+  expect(divide([1, 2, 3, 4], 1)).toStrictEqual([[1, 2, 3, 4]])
+  expect(divide([1, 2, 3, 4], 2)).toStrictEqual([[1, 2], [3, 4]])
+  expect(divide([1, 2, 3, 4], 3)).toStrictEqual([[1], [2, 3], [4]])
+  expect(divide([1, 2, 3, 4], 4)).toStrictEqual([[1], [2], [3], [4]])
+  expect(divide([1, 2, 3, 4], 5)).toStrictEqual([[1], [2], [], [3], [4]])
+  expect(divide([1, 2, 3, 4], 6)).toStrictEqual([[1], [], [2], [3], [], [4]])
 })
 
 // test('partChunks', () => {
@@ -112,7 +132,7 @@ test('zip', () => {
 
 test('zipInterleave', () => {
   expect(zipInterleave(s('1 2 3'), s('a b c'))).toStrictEqual(s('1 a 2 b 3 c'))
-  expect(zipInterleave(s('1 2 3 4 5 6'), s('a b c'))).toStrictEqual(s('1 2 a 3 4 b 5 6 c'))
+  expect(zipInterleave(s('1 2 3 4 5 6'), s('a b c'))).toStrictEqual(s('1 a 2 3 b 4 5 c 6'))
   expect(zipInterleave(s('a b c'), s('1 2 3 4 5 6'))).toStrictEqual(s('a 1 2 b 3 4 c 5 6'))
 })
 

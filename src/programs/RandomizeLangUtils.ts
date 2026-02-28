@@ -121,10 +121,18 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return shuffle(parts(ps, offset))
   }
 
+  // sublists aren't guaranteed to be of the same size
+  // no elements should be lost
   function divide<A>(as: A[], parts: number): A[][] {
-    const part = Math.max(1, Math.round(as.length / parts))
-    const starts = Array(parts).fill(null).map((_, idx) => idx * part)
-    return starts.map((start, idx) => as.slice(start, idx + 1 == starts.length ? undefined : start + part))
+    return Array(parts).fill(null).map((_, idx) => {
+      const idxScaled = idx / parts
+      const idxScaledP = (idx + 1) / parts
+
+      const start = Math.round(idxScaled * as.length)
+      const end = Math.round(idxScaledP * as.length)
+
+      return as.slice(start, end)
+    })
   }
 
   function partChunks(part: number, chunk: number, offset?: number): string[][] {
@@ -168,7 +176,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function zipInterleave<A>(...args: A[][]): A[] {
     const lengths = args.map(l => l.length)
-    const div = _.min(lengths) as number
+    const div = _.max(lengths) as number
     const zipped = zipT(...args.map(l => divide(l, div)))
     return zipped.flat().flat()
   }
