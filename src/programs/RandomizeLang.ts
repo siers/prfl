@@ -148,17 +148,20 @@ function extractEvals(l: string): [string, Evals] {
   return [template, evals]
 }
 
-function parseLine(lineRaw: string): Item {
+function parseLine(lineRaw: string): Item[] {
   const headerMatch = lineRaw.match(/^-([-=])- ?(.*) *$/)
-  if (headerMatch) {
-    return header(headerMatch[1] == '-', headerMatch[2] && headerMatch[2] != '' ? headerMatch[2] : null)
+
+  if (lineRaw.match(/^#/)) {
+    return []
+  } else if (headerMatch) {
+    return [header(headerMatch[1] == '-', headerMatch[2] && headerMatch[2] != '' ? headerMatch[2] : null)]
   } else {
     const timesMatch = lineRaw.match(/^(\d+)x /)
     const times = timesMatch ? parseInt(timesMatch[0], 10) : 1
     const lineRawUntimed = lineRaw.replace(/^\d+x /, '')
 
     const [contents, evals] = extractEvals(lineRawUntimed)
-    return line(contents, evals, times)
+    return [line(contents, evals, times)]
   }
 }
 
@@ -172,7 +175,7 @@ function parseBlock(items: Item[]): Block {
 
 export function parseContents(text: string): Parsed {
   const lines = text.split('\n').filter(x => !x.match(/^ *$/))
-  const parsed = lines.map(parseLine)
+  const parsed = lines.flatMap(parseLine)
   return initSequences(parsed, i => i.kind! == 'header').map(parseBlock)
 }
 

@@ -21,6 +21,21 @@ describe('evalContents', () => {
     expect(evalContents('a')).toStrictEqual(['a'])
   })
 
+  test('comments', () => {
+    const text = `
+      -=-
+      a
+      #b
+      # b
+      c
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual([
+      'a',
+      'c',
+    ])
+  })
+
   test('blocks without initial header', () => {
     const text = `
       a
