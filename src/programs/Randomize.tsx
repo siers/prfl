@@ -288,7 +288,7 @@ export default Randomize
 
 // TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
 // TODO: util: the save button should save the memory from the current rendered content
-// TODO: util: scheduleBlocks syntax for pyramidPhrases.map
+// TODO: util: cross inside utils with cross on generic arrays + https://www.npmjs.com/package/string-format
 
 // TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
