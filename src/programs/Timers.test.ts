@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { hm, ms } from './Randomize.js'
+import { hm, ms } from './Timers.js'
 
 test('hm', () => {
   expect(hm(1)).toStrictEqual('1m')

@@ -3,35 +3,10 @@ import { mapParse, mapSerialize } from '../lib/Map.js'
 import { evalContentsMem } from './RandomizeLang.js'
 import { Memory } from './RandomizeLangTypes.js'
 import murmur from 'murmurhash3js'
-import { roundToNaive } from '../lib/Math.js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
 import { directRange } from '../lib/Array.js'
 
-function padRight(str: string, size: number, with_: string): string {
-  var s = str
-  while (s.length < size) s = with_ + s
-  return s
-}
-
-export function hm(a: number): string {
-  const h = Math.floor(a / 60)
-  const m = roundToNaive(a % 60, 2)
-  const mPad = padRight('' + m, 2, '0')
-  return h == 0 ? `${m}m` : `${h}h${mPad}`
-}
-
-export function ms(a: number): string {
-  const h = Math.floor(a / 3600)
-  const m = Math.floor((a / 60) % 60)
-  const s = roundToNaive(a % 60, 2).toFixed(2)
-  const mPad = padRight('' + m, 2, '0')
-  const sPad = padRight(s, 5, '0')
-  return h != 0
-    ? `${h}h${mPad}m${sPad}`
-    : m != 0
-      ? `${m}m${sPad}`
-      : `${s}s`
-}
+import { Timer, Timers, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
 
 type RState = {
   text?: string,
@@ -47,35 +22,6 @@ type RState = {
   timers?: Timers,
 }
 
-type Timer = { kind: 'started', start: number, running: true } | { kind: 'stopped', length: number, running: false }
-type Timers = (Timer | null)[]
-type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global'
-
-const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
-
-const freshTimerOrRestart: (start: number, t: Timer | null) => Timer =
-  (start: number, t: Timer | null) => {
-    if (t?.running != false) return ({ kind: 'started', start, running: true })
-    else return ({ kind: 'stopped', length: 0, running: false })
-  }
-
-const toStoppedTimer: (t: Timer, stop: number) => Timer = (t: Timer, stop: number) => {
-  if (t.kind == 'stopped') return t
-  if (t.kind == 'started') return ({ kind: 'stopped', length: stop - t.start, running: false })
-  return freshTimer(0) // t.kind is `never` here
-}
-
-const toStartedTimer: (t: Timer, start: number) => Timer = (t: Timer, start: number) => {
-  if (t.kind == 'started') return t
-  if (t.kind == 'stopped') return freshTimer(start - t.length)
-  return freshTimer(0) // t.kind is `never` here
-}
-
-function timerLength(t: Timer, now: number): number {
-  if (t.kind == 'started') return (now - t.start) / 1000
-  if (t.kind == 'stopped') return t.length / 1000
-  return 0
-}
 
 type Args = {
   eval?: boolean,
@@ -317,7 +263,6 @@ export default Randomize
 // TODO: scheduling: check that scheduleBlocks picks from all tasks, if there are multiples
 // TODO: scheduleBlocks: don't touch memory, just sort by queue
 
-// TODO: content: write a task selection picker without refering to the contents (I have no idea what this means any more)
 // TODO: content: make programmable scales
 // TODO: content: random note while inside position
 // TODO: content: bow articulations tasks
