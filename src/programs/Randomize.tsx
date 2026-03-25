@@ -18,6 +18,7 @@ type RState = {
 
   execute: boolean,
   current?: number,
+  hideDone?: boolean,
   totalTimer?: Timer,
   timers?: Timers,
 }
@@ -29,6 +30,7 @@ type Args = {
   save?: boolean,
   execute?: boolean,
   advance?: number,
+  hideDone?: boolean,
 }
 
 
@@ -49,6 +51,8 @@ function Randomize(controls: any): JSX.Element {
 
   const inExecution: boolean = state?.execute === true
   const inPlanning: boolean = state?.execute !== true
+
+  const hideDone = state?.hideDone === true
 
   function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | null) {
     ref.current && (ref.current.innerHTML = renderToString(timerContent(timer)))
@@ -79,10 +83,42 @@ function Randomize(controls: any): JSX.Element {
     }
   }, [output, current, timers, inExecution])
 
+  // ocne we have structured items, this should be easier to write
+  function itemLongRunning(index: number, now: number): boolean {
+    const t = timers && timers[index]
+    return !t || timerLength(t, now) > 90
+  }
+
+  function seekCurrent(
+    current: number,
+    advance: number,
+    lineCount: number,
+    hideDone: boolean,
+    items: string[],
+  ): number {
+    if (hideDone) {
+      const now = Date.now()
+      let recursionGuard = 500
+
+      while (hideDone && Math.abs(advance) == 1 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
+        current += advance
+        const longRunning = itemLongRunning(current, now)
+        const separator = items[current] && items[current] == '---'
+        const skipped = separator || longRunning
+        if (!skipped) break
+      }
+
+      advance = 0
+    }
+
+    return Math.max(0, Math.min(current + advance, lineCount - 1))
+  }
+
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
       const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
       const execute = a.execute === undefined ? state?.execute : a.execute
+      const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
       let output = (s?.output || '')
       let newMemory: Memory | undefined = undefined
@@ -105,7 +141,7 @@ function Randomize(controls: any): JSX.Element {
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
       const nextMemory = ((s?.nextMemory && a.save) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
 
-      const nextCurrent = Math.max(0, Math.min((s?.current || 0) + (a.advance || 0), lineCount - 1))
+      const nextCurrent = seekCurrent(s?.current || 0, a.advance || 0, lineCount, hideDone, items)
 
       return {
         ...s,
@@ -118,6 +154,7 @@ function Randomize(controls: any): JSX.Element {
 
         execute: execute,
         current: a.eval ? 0 : nextCurrent,
+        hideDone: hideDone,
         totalTimer: nextTotalTimer,
         timers: nextTimers || timers,
       } satisfies RState
@@ -177,6 +214,12 @@ function Randomize(controls: any): JSX.Element {
     </>
   }
 
+  function executionControlButtons(): JSX.Element {
+    return <>
+      <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => newAndRecalculate({ hideDone: !hideDone, })}>👁️</a>
+    </>
+  }
+
   function editor(): JSX.Element {
     return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh)" })}>
       <div className="grow p-[10px]">
@@ -192,9 +235,11 @@ function Randomize(controls: any): JSX.Element {
   function executionItems(): JSX.Element {
     const show = directRange(-2, 2)
 
-    return <div className="w-full flex flex-col flex-grow justify-center">
+    return <div className="w-full flex flex-col flex-grow justify-center select-none">
       {show.map(s => s + current).map(index =>
-        <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>{items[index]}</div>
+        <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>
+          {items[index]}
+        </div>
       )}
     </div>
   }
@@ -221,6 +266,7 @@ function Randomize(controls: any): JSX.Element {
       <div className="pl-[10px]">
         <a className="pr-3 select-none" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '⏸️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
+        {inExecution && executionControlButtons()}
       </div>
 
       {inPlanning && editor()}
@@ -245,7 +291,6 @@ export default Randomize
 // TODO: execution: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
 // TODO: execution: memory impact only per-item
 // TODO: execution: scrollable execution items
-// TODO: execution: remove all items with at least 2 minutes on the clock
 // TODO: execution: render blocks as distinct, so you could rerandomize whole blocks
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
