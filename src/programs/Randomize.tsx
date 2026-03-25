@@ -315,7 +315,6 @@ export default Randomize
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
 // TODO: scheduling: check that scheduleBlocks picks from all tasks, if there are multiples
-// TODO: zipScheduleBlocks
 // TODO: scheduleBlocks: don't touch memory, just sort by queue
 
 // TODO: content: write a task selection picker without refering to the contents (I have no idea what this means any more)

@@ -67,6 +67,7 @@ export type Interface = {
   pickBlock: (name: string, n?: number) => any[],
   scheduleBlocks: (sentence: string) => string[],
   zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
+  zipScheduleBlocks(sentence: string): string[],
 
   pickKey: (n?: number) => string | string[],
   pickNKeys: (cacheKey: string, n: number) => string[],
@@ -410,6 +411,10 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return pickTasks(name, block(name), n)
   }
 
+  function zipScheduleBlocks(sentence: string): string[] {
+    return zipInterleave(...s(sentence).map(x => shuffle(scheduleBlocks(x))))
+  }
+
   function scheduleBlocks(sentence: string): string[] {
     let err
 
@@ -556,6 +561,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     pickBlock,
     scheduleBlocks,
     zipBlocksDiv,
+    zipScheduleBlocks,
 
     pickKey,
     pickNKeys,
