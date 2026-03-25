@@ -1,28 +1,36 @@
 import { renderToString } from 'react-dom/server'
 import { mapParse, mapSerialize } from '../lib/Map.js'
-import { evalContentsMem, Memory } from './RandomizeLang.js'
+import { evalContentsMem } from './RandomizeLang.js'
+import { Memory } from './RandomizeLangTypes.js'
 import murmur from 'murmurhash3js'
 import { roundToNaive } from '../lib/Math.js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
 import { directRange } from '../lib/Array.js'
 
-function pad(str: string, size: number, with_: string): string {
+function padRight(str: string, size: number, with_: string): string {
   var s = str
   while (s.length < size) s = with_ + s
   return s
 }
 
-function hm(a: number): string {
+export function hm(a: number): string {
   const h = Math.floor(a / 60)
   const m = roundToNaive(a % 60, 2)
-  return h == 0 ? `${m}m` : `${h}h${m}`
+  const mPad = padRight('' + m, 2, '0')
+  return h == 0 ? `${m}m` : `${h}h${mPad}`
 }
 
-function ms(a: number): string {
+export function ms(a: number): string {
   const h = Math.floor(a / 3600)
   const m = Math.floor((a / 60) % 60)
   const s = roundToNaive(a % 60, 2).toFixed(2)
-  return pad(h != 0 ? `${h}h${m}m${s}` : m != 0 ? `${m}m${s}` : `${s}s`, 10, ' ')
+  const mPad = padRight('' + m, 2, '0')
+  const sPad = padRight(s, 5, '0')
+  return h != 0
+    ? `${h}h${mPad}m${sPad}`
+    : m != 0
+      ? `${m}m${sPad}`
+      : `${s}s`
 }
 
 type RState = {
@@ -204,7 +212,8 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function timerContent(timer: Timer | null): string {
-    return (timer && (ms(timerLength(timer, Date.now())))) || ''
+    const formatted = (timer: Timer) => padRight(ms(timerLength(timer, Date.now())), 10, ' ')
+    return (timer && (formatted(timer))) || ''
   }
 
   function planningControlButtons(): JSX.Element {
