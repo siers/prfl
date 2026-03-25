@@ -432,6 +432,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   // practical calculations
 
+  // key picking features: cache, count (offsets / equal divisions), mode
+
   function pickKey(n?: number): string | string[] {
     const shufflePick = (a: number[]) => (shuffleArray(a).slice(0, 1))
 

@@ -282,12 +282,16 @@ function Randomize(controls: any): JSX.Element {
 
 export default Randomize
 
+// TODO: lang: mark blocks that must require keyified items only
+
 // TODO: execution: a view for the rendered program
 // TODO: execution: show contents in a split view (renderProgram as a function from the App.tsx)
 // TODO: execution: can update tasks (comments, params) (blocker: required that the list is actually just a list of indexes, not items themselves)
 // TODO: execution: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
 // TODO: execution: memory impact only per-item
 // TODO: execution: scrollable execution items
+// TODO: execution: remove all items with at least 2 minutes on the clock
+// TODO: execution: render blocks as distinct, so you could rerandomize whole blocks
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: 2x = (1/2) + (2/2) (combine with execution mode: the view is just an index of the item + some decoration)
@@ -302,9 +306,12 @@ export default Randomize
 // TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
 // TODO: scheduling: check that scheduleBlocks picks from all tasks, if there are multiples
+// TODO: zipScheduleBlocks
+// TODO: scheduleBlocks: don't touch memory, just sort by queue
 
 // TODO: content: write a task selection picker without refering to the contents (I have no idea what this means any more)
 // TODO: content: make programmable scales
 // TODO: content: random note while inside position
 // TODO: content: bow articulations tasks
 // TODO: content: maybeEvery derived from memory (make it work on indices)
+// TODO: content: sequence of bow spots until 1/8th resolution with bowing directions
