@@ -1,5 +1,5 @@
 import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from "../lib/Random"
-import { intersperse, interspersing, interleavingEvery, zipT, directRange } from '../lib/Array'
+import { intersperse, interspersing, interleavingEvery, zipT, directRange, arrayShift } from '../lib/Array'
 import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import _ from 'lodash'
 import { chromaticSlide } from '../lib/ToneLibViolin'
@@ -32,6 +32,7 @@ export type Interface = {
   intersperse: <A>(arr: A[], sep: A) => A[],
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
+  arrayRotate<A>(arr: A[], count: number): A[],
 
   shuffle: <A>(a: A[]) => A[],
   shuffleM: <A>(a: A[]) => A[],
@@ -532,6 +533,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     intersperse,
     interspersing,
     interleavingEvery,
+    arrayRotate: arrayShift,
 
     shuffle,
     shuffleM,
