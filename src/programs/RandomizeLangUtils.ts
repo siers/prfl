@@ -45,6 +45,7 @@ export type Interface = {
   pickTasks: (key: string, items: string[], n?: number) => any[],
 
   dayRandom: (modulo?: number) => number,
+  daysModulo: (days: number, modulo: number) => number,
   maybeEvery: (nthDayXOffset: number | string, item: string | string[]) => string[],
   after: (date: string, items: string | string[]) => string[],
 
@@ -289,6 +290,10 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   // [0..modulo-1]
   function dayRandom(modulo?: number): number {
     return murmur.x86.hash32(new Date().toISOString().slice(0, 10)) % (modulo || 100000)
+  }
+
+  function daysModulo(days: number, modulo: number): number {
+    return Math.floor(Math.floor(Date.now() / 86400000) / days) % modulo
   }
 
   function maybeEvery(nthDayXOffset: number | string, itemsIn: string | string[]): string[] {
@@ -545,6 +550,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     pickTasks,
 
     dayRandom,
+    daysModulo,
     maybeEvery,
     after,
 
