@@ -351,25 +351,17 @@ export default Randomize
 // TODO: execution: a view for the rendered program
 // TODO: execution: show contents in a split view (renderProgram as a function from the App.tsx)
 // TODO: execution: can update tasks (comments, params) (blocker: required that the list is actually just a list of indexes, not items themselves)
-// TODO: execution: [] must remain parsable, to show current item, so the item must instead be structured (with render to string)
-// TODO: execution: memory impact only per-item
 // TODO: execution: scrollable execution items
 // TODO: execution: render blocks as distinct, so you could rerandomize whole blocks
 
 // TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: interpret: 2x = (1/2) + (2/2) (combine with execution mode: the view is just an index of the item + some decoration)
 // TODO: interpret: either text-blocks or text-only line syntax
-// TODO: interpret: use fancy <> for rendering to string, so that it can simply be taken in as a text line, if reinterpreted
 
 // TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
-// TODO: util: the save button should save the memory from the current rendered content
 // TODO: util: cross inside utils with cross on generic arrays + https://www.npmjs.com/package/string-format
 
-// TODO: scheduling: memory gets wiped, if a keyed slot has more options, because the technical key is key+(items.join)
-// TODO: scheduling: commit task memory only in execution (problem: multiple transactions in the same program per different items)
 // TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
-// TODO: scheduling: check that scheduleBlocks picks from all tasks, if there are multiples
-// TODO: scheduling: scheduleBlocks: don't touch memory, just sort by queue
 
 // TODO: content: make programmable scales
 // TODO: content: random note while inside position
