@@ -85,10 +85,22 @@ function Randomize(controls: any): JSX.Element {
   // ocne we have structured items, this should be easier to write
   function itemLongRunning(index: number, now: number): boolean {
     const t = timers && timers[index]
-    return !t || timerLength(t, now) > 90
+    return !t || timerLength(t, now) > 10
   }
 
   function seekCurrent(
+    current: number,
+    advance: number,
+    lineCount: number,
+    hideDone: boolean,
+    items: RenderLine[],
+  ): number {
+    const index = seekCurrentUnbounded(current, advance, lineCount, hideDone, items)
+
+    return Math.max(0, Math.min(index, lineCount - 1))
+  }
+
+  function seekCurrentUnbounded(
     current: number,
     advance: number,
     lineCount: number,
@@ -99,18 +111,31 @@ function Randomize(controls: any): JSX.Element {
       const now = Date.now()
       let recursionGuard = 500
 
-      while (hideDone && Math.abs(advance) == 1 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
-        current += advance
-        const longRunning = itemLongRunning(current, now)
-        const separator = items[current]?.separator
-        const skipped = separator || longRunning
-        if (!skipped) break
-      }
+      while (advance) {
+        while (hideDone && Math.abs(advance) > 0 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
+          current += Math.sign(advance)
+          const longRunning = itemLongRunning(current, now)
+          const separator = items[current]?.separator
+          const skipped = separator || longRunning
+          if (!skipped) break
+        }
 
-      advance = 0
+        advance -= Math.sign(advance)
+      }
     }
 
-    return Math.max(0, Math.min(current + advance, lineCount - 1))
+    return current + advance
+  }
+
+  function seekCurrentItem(
+    current: number,
+    advance: number,
+    lineCount: number,
+    hideDone: boolean,
+    items: RenderLine[],
+  ): { item: RenderLine | null, index: number, unbounded: boolean } {
+    const index = seekCurrentUnbounded(current, advance, lineCount, hideDone, items)
+    return { item: items[index], index, unbounded: !items[index] }
   }
 
   function newAndRecalculate(a: Args) {
@@ -237,10 +262,14 @@ function Randomize(controls: any): JSX.Element {
     const show = directRange(-2, 2)
 
     return <div className="w-full flex flex-col flex-grow justify-center select-none">
-      {show.map(s => s + current).map(index =>
-        <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>
-          {items[index]?.contents}
-        </div>
+      {show.map(s => {
+        return seekCurrentItem(current, s, outLineCount, hideDone, items)
+      }).map(({ item, index, unbounded }) =>
+        !unbounded
+          ? <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>
+            {item?.contents}
+          </div>
+          : null
       )}
     </div>
   }
