@@ -57,3 +57,14 @@ export function arrayShift<A>(arr: A[], count: number): A[] {
   arr.push(...arr.splice(0, (-c % len + len) % len))
   return arr
 }
+
+export function arrayMove<A>(arr1: A[], fromIndex: number, toIndex: number) {
+  if (arr1.length <= fromIndex) return arr1
+  if (arr1.length <= toIndex) return arr1
+
+  const arr = [...arr1]
+  const element = arr[fromIndex]
+  arr.splice(fromIndex, 1)
+  arr.splice(toIndex, 0, element)
+  return arr
+}

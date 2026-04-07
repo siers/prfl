@@ -4,12 +4,13 @@ import { evalContentsMem } from './RandomizeLang.js'
 import { Memory, RenderLine } from './RandomizeLangTypes.js'
 import murmur from 'murmurhash3js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
-import { directRange } from '../lib/Array.js'
+import { arrayMove, directRange } from '../lib/Array.js'
 
 import { Timer, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
 
 type UserItemData = {
   timer: Timer | null
+  done?: boolean,
 }
 
 type UserItem = RenderLine & UserItemData
@@ -94,11 +95,6 @@ function Randomize(controls: any): JSX.Element {
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
   }, [items, current, inExecution])
 
-  // ocne we have structured items, this should be easier to write
-  function itemLongRunning(item: UserItem, now: number): boolean {
-    return !item.timer || timerLength(item.timer, now) > 10
-  }
-
   function seekCurrent(
     current: number,
     advance: number,
@@ -119,15 +115,12 @@ function Randomize(controls: any): JSX.Element {
     items: UserItem[],
   ): number {
     if (hideDone) {
-      const now = Date.now()
       let recursionGuard = 500
 
       while (advance) {
         while (hideDone && Math.abs(advance) > 0 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
           current += Math.sign(advance)
-          const longRunning = itemLongRunning(items[current], now)
-          const separator = items[current]?.separator
-          const skipped = separator || longRunning
+          const skipped = items[current]?.separator == true || items[current]?.done == true
           if (!skipped) break
         }
 
@@ -176,7 +169,6 @@ function Randomize(controls: any): JSX.Element {
 
       const nextCurrent = seekCurrent(s?.current || 0, a.advance || 0, lineCount, hideDone, items)
 
-      console.log(`recalculating state: ${currentStateVersion}`)
       return {
         version: currentStateVersion,
 
@@ -232,6 +224,27 @@ function Randomize(controls: any): JSX.Element {
     })
   }
 
+  function modifyItem(controls: { done: boolean }) {
+    setState((s: RState | undefined) => {
+      if (!s) return s
+
+      const items = controls.done ? s.items || [] : arrayMove(s.items || [], current, (s?.items?.length || 0) - 1)
+
+      return {
+        ...s,
+        items: items.map((item, index) => {
+          if (index != current) return item
+          else return { ...item, done: controls.done }
+        }),
+      }
+    })
+
+    if (controls.done) advanceRef.current('next')
+    else modifyTimer('local-as-global')
+  }
+
+  // UI
+
   function timerContent(timer: Timer | null): string {
     const formatted = (timer: Timer) => padRight(ms(timerLength(timer, Date.now())), 10, ' ')
     return (timer && (formatted(timer))) || ''
@@ -255,6 +268,9 @@ function Randomize(controls: any): JSX.Element {
   function executionControlButtons(): JSX.Element {
     return <>
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => newAndRecalculate({ hideDone: !hideDone, })}>👁️</a>
+      &nbsp; &nbsp; &nbsp;
+      <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
+      <a className="pr-3 select-none" onClick={() => modifyItem({ done: false })}>✘</a>
     </>
   }
 
