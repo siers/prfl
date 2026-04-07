@@ -1,21 +1,15 @@
 import { renderToString } from 'react-dom/server'
-import { mapParse, mapSerialize } from '../lib/Map.js'
-import { evalContentsMem } from './RandomizeLang.js'
-import { Memory, RenderLine } from './RandomizeLangTypes.js'
-import murmur from 'murmurhash3js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
-import { arrayMove, directRange } from '../lib/Array.js'
 
+import { evalContentsMem } from './RandomizeLang.js'
+import { Memory } from './RandomizeLangTypes.js'
+import { UserItem, toUserItem } from './RandomizeTypes.js'
 import { Timer, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
 
-type UserItemData = {
-  timer: Timer | null
-  done?: boolean,
-}
+import { mapParse, mapSerialize } from '../lib/Map.js'
+import { arrayMove, directRange } from '../lib/Array.js'
 
-type UserItem = RenderLine & UserItemData
-
-const toUserItem: (rl: RenderLine) => UserItem = rl => ({ ...rl, timer: null })
+import murmur from 'murmurhash3js'
 
 const currentStateVersion = 3
 

@@ -137,7 +137,7 @@ function substituteInterpolate(line: string, marker: string, subst: any) {
       out = subst.toString()
     }
   } catch (e) {
-    out = 'x'
+    out = `exc: ${e}`
   }
 
   return [line.replace(marker, `[${out}]`)]
