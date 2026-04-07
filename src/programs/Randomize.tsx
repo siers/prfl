@@ -268,10 +268,6 @@ function Randomize(controls: any): JSX.Element {
   function executionControlButtons(): JSX.Element {
     return <>
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => newAndRecalculate({ hideDone: !hideDone, })}>👁️</a>
-      &nbsp; &nbsp; &nbsp;
-      <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
-      <a className="pr-3 select-none" onClick={() => modifyItem({ done: false })}>✘</a>
-      <a className="pr-3 select-none" onClick={() => modifyItem({ done: false, bury: true })}>📚</a>
     </>
   }
 
@@ -313,6 +309,12 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className="w-full pb-2 text-center font-mono">
       <div className="text-[#888]">{current + 1}/{outLineCount}</div>
+
+      <div className="flex flex-row justify-center">
+        <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ done: false })}>✘</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ done: false, bury: true })}>📚</a>
+      </div>
 
       <div className="flex flex-row justify-center">
         <div className="w-[7em] p-3 text-right" ref={totalTimerRef}></div>
