@@ -90,6 +90,5 @@ export const explode = (command: string) => ({ kind: 'explode', command }) as Ex
 export const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
 export const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
 
-export type LineKey = string | null
 export type EvaluationResult = RenderLine[]
 export type EvaluationContext = [EvaluationResult[], Context]

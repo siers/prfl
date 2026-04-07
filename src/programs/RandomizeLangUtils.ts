@@ -308,7 +308,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     if (items.length == 0) return []
 
     const sorted = (_.sortBy(items, item => {
-      const cards = cardMemory(memory) || {}
+      const cards = cardMemory(memory)
       const otherwiseOrder = murmur.x86.hash32(item.contents)
       return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))

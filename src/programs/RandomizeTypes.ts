@@ -16,11 +16,11 @@ export type CardData = {
 }
 
 export function cardMemory(memory: any): Record<string, CardData> {
-  return memory.get('cards') as Record<string, CardData>
+  return (memory.get('cards') as Record<string, CardData>) || {}
 }
 
 export function cardReviewed(memory: any, key: string, now: number) {
-  const cards = cardMemory(memory) || {}
+  const cards = cardMemory(memory)
   cards[key] = { ...cards[key], reviewed: now, }
   memory.set('cards', cards)
 }
