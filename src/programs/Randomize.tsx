@@ -6,12 +6,23 @@ import murmur from 'murmurhash3js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
 import { directRange } from '../lib/Array.js'
 
-import { Timer, Timers, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
+import { Timer, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
+
+type UserItemData = {
+  timer: Timer | null
+}
+
+type UserItem = RenderLine & UserItemData
+
+const toUserItem: (rl: RenderLine) => UserItem = rl => ({ ...rl, timer: null })
+
+const currentStateVersion = 3
 
 type RState = {
+  version: 3,
   text?: string,
 
-  items_?: RenderLine[],
+  items?: UserItem[],
   outLineCount?: number,
   memory?: string,
   nextMemory?: string,
@@ -20,7 +31,6 @@ type RState = {
   current?: number,
   hideDone?: boolean,
   totalTimer?: Timer,
-  timers?: Timers,
 }
 
 
@@ -33,18 +43,21 @@ type Args = {
   hideDone?: boolean,
 }
 
-
 function Randomize(controls: any): JSX.Element {
-  const { state, setState, advanceRef } = controls
+  const { setState, advanceRef } = controls
+
+  let state = controls.state // one mutation only for checking the version and invalidating the whole state
+  const stateVersion = state && state.version || 0
+
+  if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
 
   const current = state?.current || 0
-  const timers: Timers = state?.timers || []
 
-  const items: RenderLine[] = state?.items_ || []
+  const items: UserItem[] = state?.items || []
   const outLineCount: number = state?.outLineCount || 0
 
   const globalTimer = state?.totalTimer
-  const localTimer = timers[current]
+  const localTimer = items[current]?.timer
   const localTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
   const totalTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
 
@@ -61,7 +74,7 @@ function Randomize(controls: any): JSX.Element {
     if (state?.execute !== true) return () => { }
     const id = setInterval(() => { renderTimerToRef(totalTimerRef, globalTimer); renderTimerToRef(localTimerRef, localTimer) }, 45.33)
     return () => clearInterval(id)
-  }, [items, current, globalTimer, timers, state?.execute])
+  }, [items, current, globalTimer, state?.execute])
 
   advanceRef.current = (advance: string | boolean, _event: any) => {
     const advanceDelta =
@@ -77,15 +90,13 @@ function Randomize(controls: any): JSX.Element {
   }
 
   useEffect(() => {
-    if (current < timers.length) {
-      if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
-    }
-  }, [items, current, timers, inExecution])
+    if (state === null) return () => { }
+    if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
+  }, [items, current, inExecution])
 
   // ocne we have structured items, this should be easier to write
-  function itemLongRunning(index: number, now: number): boolean {
-    const t = timers && timers[index]
-    return !t || timerLength(t, now) > 10
+  function itemLongRunning(item: UserItem, now: number): boolean {
+    return !item.timer || timerLength(item.timer, now) > 10
   }
 
   function seekCurrent(
@@ -93,7 +104,7 @@ function Randomize(controls: any): JSX.Element {
     advance: number,
     lineCount: number,
     hideDone: boolean,
-    items: RenderLine[],
+    items: UserItem[],
   ): number {
     const index = seekCurrentUnbounded(current, advance, lineCount, hideDone, items)
 
@@ -105,7 +116,7 @@ function Randomize(controls: any): JSX.Element {
     advance: number,
     lineCount: number,
     hideDone: boolean,
-    items: RenderLine[],
+    items: UserItem[],
   ): number {
     if (hideDone) {
       const now = Date.now()
@@ -114,7 +125,7 @@ function Randomize(controls: any): JSX.Element {
       while (advance) {
         while (hideDone && Math.abs(advance) > 0 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
           current += Math.sign(advance)
-          const longRunning = itemLongRunning(current, now)
+          const longRunning = itemLongRunning(items[current], now)
           const separator = items[current]?.separator
           const skipped = separator || longRunning
           if (!skipped) break
@@ -132,8 +143,8 @@ function Randomize(controls: any): JSX.Element {
     advance: number,
     lineCount: number,
     hideDone: boolean,
-    items: RenderLine[],
-  ): { item: RenderLine | null, index: number, unbounded: boolean } {
+    items: UserItem[],
+  ): { item: UserItem | null, index: number, unbounded: boolean } {
     const index = seekCurrentUnbounded(current, advance, lineCount, hideDone, items)
     return { item: items[index], index, unbounded: !items[index] }
   }
@@ -144,9 +155,8 @@ function Randomize(controls: any): JSX.Element {
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
-      let items: RenderLine[] = (s?.items_ || [])
+      let items: UserItem[] = s?.items || []
       let newMemory: Memory | undefined = undefined
-      let nextTimers: Timers | undefined = undefined
       let nextTotalTimer: Timer | undefined = state?.totalTimer
 
       if (a.eval) {
@@ -154,12 +164,11 @@ function Randomize(controls: any): JSX.Element {
         // console.clear()
         const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
         newMemory = memory
-        items = lines
+        items = lines.map(rl => toUserItem(rl))
         nextTotalTimer = undefined
-        nextTimers = lines.map(_ => null)
       }
 
-      const nextItems = items === undefined ? s?.items_ : items
+      const nextItems = items === undefined ? s?.items : items
       const lineCount = items.length
 
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
@@ -167,11 +176,14 @@ function Randomize(controls: any): JSX.Element {
 
       const nextCurrent = seekCurrent(s?.current || 0, a.advance || 0, lineCount, hideDone, items)
 
+      console.log(`recalculating state: ${currentStateVersion}`)
       return {
+        version: currentStateVersion,
+
         ...s,
         text: contentsOr,
 
-        items_: nextItems,
+        items: nextItems,
         outLineCount: lineCount,
         ...savedMemory,
         ...nextMemory,
@@ -180,7 +192,6 @@ function Randomize(controls: any): JSX.Element {
         current: a.eval ? 0 : nextCurrent,
         hideDone: hideDone,
         totalTimer: nextTotalTimer,
-        timers: nextTimers || timers,
       } satisfies RState
     })
   }
@@ -211,8 +222,11 @@ function Randomize(controls: any): JSX.Element {
       return {
         ...s,
         totalTimer: target != 'local' ? modifyTimerPure(s?.totalTimer || null, command, now) : s?.totalTimer,
-        timers: (s.timers || []).map((timer, index) => {
-          return modifyTimerPure(timer, index == s?.current ? command : 'stop', now)
+        items: (s.items || []).map((item, index) => {
+          return {
+            ...item,
+            timer: modifyTimerPure(item.timer, index == s?.current ? command : 'stop', now),
+          }
         })
       }
     })
