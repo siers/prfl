@@ -1,5 +1,5 @@
 import { RenderLine, errorLine } from './RandomizeLangTypes'
-import { CardData, toUserItem, UserItem } from './RandomizeTypes'
+import { cardMemory } from './RandomizeTypes'
 
 import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
@@ -70,16 +70,16 @@ export type Interface = {
   blockLines(name: string, ...args: any): RenderLine[],
   aba: (as: string[], bs: string[]) => string[],
   pickBlock: (name: string, n?: number) => any[],
-  scheduleBlocks: (sentence: string) => string[],
+  scheduleBlocks: (sentence: string) => RenderLine[],
   zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
-  zipScheduleBlocks(sentence: string): string[],
+  zipScheduleBlocks(sentence: string): RenderLine[],
 
   pickKey: (n?: number) => string | string[],
   pickNKeys: (cacheKey: string, n: number) => string[],
   pickKeys: (cacheKey: string, n: number) => string[],
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
-  pickOldestBias<A>(as: A[]): A,
-  picksOldestBias<A>(as: A[]): A[],
+  pickEarlyBias<A>(as: A[]): A,
+  picksEarlyBias<A>(as: A[]): A[],
 
   // domain specific
   scalePositions: (opts: { arrows?: boolean }) => string,
@@ -221,9 +221,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // stores pick order (incrementing index), picks by linear weight:
-  // oldest gets weight 2x, middle gets x, past middle gets 0
+  // earliest gets weight 2x, middle gets x, past middle gets 0
   // TODO: rename pickWeightedOldestBias
-  function pickWeightedOldestBias(ordered: [any, number][]): any {
+  function pickWeightedEarlyBias(ordered: [any, number][]): any {
     if (ordered.length == 1) return ordered[0][0]
     const mid = Math.ceil(ordered.length / 2)
     const weights = ordered.map((_, i) => i < mid ? 2 * (mid - 1 - i) + 1 : 0)
@@ -236,16 +236,16 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return ordered[mid - 1][0]
   }
 
-  function pickOldestBias<A>(as: A[]): A {
-    return pickWeightedOldestBias(as.map((a, index) => [a, index]))
+  function pickEarlyBias<A>(as: A[]): A {
+    return pickWeightedEarlyBias(as.map((a, index) => [a, index]))
   }
 
-  function picksOldestBias<A>(as: A[]): A[] {
+  function picksEarlyBias<A>(as: A[]): A[] {
     if (as.length == 0) return []
 
-    const [next, ...rest] = arrayMove(as, pickOldestBias(arrayIndices(as)), 0)
+    const [next, ...rest] = arrayMove(as, pickEarlyBias(arrayIndices(as)), 0)
 
-    return [next, ...picksOldestBias(rest)]
+    return [next, ...picksEarlyBias(rest)]
   }
 
   // Note: uses memory
@@ -270,7 +270,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
       return [item, storedStats[item] ?? minOrder - 1] satisfies [any, number]
     })
     const ordersSorted = _.sortBy(orders, 1)
-    const item = pickWeightedOldestBias(ordersSorted)
+    const item = pickWeightedEarlyBias(ordersSorted)
 
     const nextStats = { ...storedStats, ...Object.fromEntries(orders) }
     nextStats[item] = maxOrder + 1
@@ -307,12 +307,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   function pickTasksStateless(items: RenderLine[]): RenderLine[] {
     if (items.length == 0) return []
 
-    const seed = memory.get('seed') || Date.now() * 100
-
-    return picksOldestBias(_.sortBy(items, item => {
-      const cards = memory.get('cards') as Record<string, CardData>
-      return cards[item.key || ''].reviewed || seed
+    const sorted = (_.sortBy(items, item => {
+      const cards = cardMemory(memory) || {}
+      const otherwiseOrder = murmur.x86.hash32(item.contents)
+      return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
+
+    return picksEarlyBias(sorted)
   }
 
   // scheduling
@@ -450,15 +451,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return pickTasksStateless(lines).slice(0, n == 'full' ? 10000 : n)
   }
 
-  function zipScheduleBlocks(sentence: string): string[] {
+  function zipScheduleBlocks(sentence: string): RenderLine[] {
     return zipInterleave(...s(sentence).map(x => shuffle(scheduleBlocks(x))))
   }
 
-  function scheduleBlocks(sentence: string): string[] {
+  function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full'][] {
     let err
 
-    const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0])
-    const blocks = parsed.map(s => {
+    const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0]).map(s => {
       const match = s.match(/^([a-z0-9-]+?)(?:-(\d+|\*))?$/i)
 
       if (!match) err = "block name not found"
@@ -469,29 +469,15 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
       return [match![1], count] satisfies [string, number | 'full']
     })
 
-    if (err) return [`scheduleBlockks: ${err}`]
+    if (err) return `scheduleBlockks: ${err}`
 
-    return blocks.flatMap(([name, amount]) => pickBlock(name, amount))
+    return parsed
   }
 
-  function scheduleBlocksUI(sentence: string): RenderLine[] {
-    let err
-
-    const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0])
-    const blocks = parsed.map(s => {
-      const match = s.match(/^([a-z0-9-]+?)(?:-(\d+|\*))?$/i)
-
-      if (!match) err = "block name not found"
-      if (!match![1]) err = "cannot parse block name"
-
-      const count: number | 'full' = match![2] === undefined ? 'full' : parseInt(match![2] || '1', 10)
-
-      return [match![1], count] satisfies [string, number | 'full']
-    })
-
-    if (err) return [errorLine(`scheduleBlockks: ${err}`)]
-
-    return blocks.flatMap(([name, amount]) => pickBlockStateless(name, amount))
+  function scheduleBlocks(sentence: string): RenderLine[] {
+    const parsed = parseScheduleBlocksSentence(sentence)
+    if (typeof parsed == 'string') return [errorLine(parsed)]
+    return parsed.flatMap(([name, amount]) => pickBlockStateless(name, amount))
   }
 
   // practical calculations
@@ -628,8 +614,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     pickNKeys,
     pickKeys,
     pickKeysOffset,
-    pickOldestBias,
-    picksOldestBias,
+    pickEarlyBias,
+    picksEarlyBias,
 
     scalePositions,
     scalePositionsDbl,

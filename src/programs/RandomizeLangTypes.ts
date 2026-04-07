@@ -45,6 +45,8 @@ type Assert<T extends true> = T
 
 type _ = Assert<Equals<RenderLine, RenderLineDerived>>
 
+export function ignore(_: _) { }
+
 // pattern for rendered lines that denotes their flashcard identificator
 export const LineKeyPattern = /^ *([a-zA-Z0-9\-]+):/
 
@@ -77,6 +79,8 @@ export type Context = Map<string, any> // contains both blocks as function and m
 export type Memory = Map<string, any>
 
 export const defaultMarker = '!!!'
+
+export const makeEmptyMemory = () => new Map()
 
 export type Marker = string
 

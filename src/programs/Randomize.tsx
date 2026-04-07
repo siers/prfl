@@ -2,8 +2,8 @@ import { renderToString } from 'react-dom/server'
 import { JSX, RefObject, useEffect, useRef } from 'react'
 
 import { evalContentsMem } from './RandomizeLang.js'
-import { Memory } from './RandomizeLangTypes.js'
-import { UserItem, toUserItem } from './RandomizeTypes.js'
+import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
+import { UserItem, cardReviewed, toUserItem } from './RandomizeTypes.js'
 import { Timer, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
@@ -11,10 +11,10 @@ import { arrayMove, directRange } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
 
-const currentStateVersion = 3
+const currentStateVersion = 4
 
 type RState = {
-  version: 3,
+  version: 4,
   text?: string,
 
   items?: UserItem[],
@@ -85,7 +85,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   useEffect(() => {
-    if (state === null) return () => { }
+    if (state === null || state?.items?.length == 0) return () => { }
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
   }, [items, current, inExecution])
 
@@ -147,7 +147,7 @@ function Randomize(controls: any): JSX.Element {
       let nextTotalTimer: Timer | undefined = state?.totalTimer
 
       if (a.eval) {
-        const oldMemory = (state?.memory && mapParse(state.memory)) || new Map()
+        const oldMemory = (state?.memory && mapParse(state.memory)) || makeEmptyMemory()
         // console.clear()
         const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
         newMemory = memory
@@ -218,14 +218,20 @@ function Randomize(controls: any): JSX.Element {
     })
   }
 
-  function modifyItem(controls: { done: boolean }) {
+  function modifyItem(controls: { done: boolean, bury?: boolean }) {
     setState((s: RState | undefined) => {
       if (!s) return s
 
       const items = controls.done ? s.items || [] : arrayMove(s.items || [], current, (s?.items?.length || 0) - 1)
 
+      const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
+
+      if (!controls.bury && items[current].key) cardReviewed(memory, items[current].key, Date.now())
+      // else console.log(`card burried, can't mark ${JSON.stringify(items[current])} reviewed`)
+
       return {
         ...s,
+        memory: mapSerialize(memory),
         items: items.map((item, index) => {
           if (index != current) return item
           else return { ...item, done: controls.done }
@@ -265,6 +271,7 @@ function Randomize(controls: any): JSX.Element {
       &nbsp; &nbsp; &nbsp;
       <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
       <a className="pr-3 select-none" onClick={() => modifyItem({ done: false })}>✘</a>
+      <a className="pr-3 select-none" onClick={() => modifyItem({ done: false, bury: true })}>📚</a>
     </>
   }
 
