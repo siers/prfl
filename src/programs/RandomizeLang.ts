@@ -1,5 +1,4 @@
-import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block } from './RandomizeLangTypes'
-
+import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, renderLine, EvaluationResult, EvaluationContext } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -177,32 +176,35 @@ function evalEvals(line: string, marker: string, e: Eval, context: Context): str
   return [] // e.kind is never and both if branches are full, so this shouldn't be possible
 }
 
-function evalItem(item: Item, context: Context): string[] {
+function parseRenderLine(line: string): RenderLine {
+  return renderLine<string | null>(line, null)
+}
+
+function evalItem(item: Item, context: Context): RenderLine[] {
   if (item.kind == 'header') return []
   if (item.kind == 'line') {
     const [is, es] = _.partition(item.evals, ([_m, e]) => e.kind == 'interpolate')
 
-    return pipe(
+    const line = pipe(
       times(item.times).map(_ => item.contents),
       lines => es.reduce((lines, [m, e]) => lines.flatMap(l => evalEvals(l, m, e, context)), lines),
       lines => is.reduce((lines, [m, i]) => lines.flatMap(l => evalEvals(l, m, i, context)), lines),
     )
+
+    return line.map(parseRenderLine)
   }
   return []
 }
 
-function evalBlock(block: Block, context: Context): string[] {
+function evalBlock(block: Block, context: Context): RenderLine[] {
   const items = block.header.shuffle ? shuffleMinDistance(block.items, 1) : block.items
 
-  const lines: [number, string][] = items.flatMap((item, index) => {
-    return evalItem(item, context).map<[number, string]>(l => [index, l])
+  const lines: [number, RenderLine][] = items.flatMap((item, index) => {
+    return evalItem(item, context).map<[number, RenderLine]>(l => [index, l])
   })
 
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
-
-type EvaluationResult = string[]
-type EvaluationContext = [EvaluationResult[], Context]
 
 export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [EvaluationResult, Memory] {
   const blocks = parseContents(text)
@@ -225,9 +227,13 @@ export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [E
     return [mainBlocks, context] satisfies EvaluationContext
   }, evaluationInit)
 
-  return [intersperse(mainBlocks.filter(b => b.length > 0), ['---']).flat(), context.get('memory') as Memory]
+  return [intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(), context.get('memory') as Memory]
 }
 
-export function evalContents(text: string): string[] {
+export function evalContents(text: string): RenderLine[] {
   return evalContentsMem(text)[0]
+}
+
+export function evalContentsS(text: string): string[] {
+  return evalContentsMem(text)[0].map(rl => rl.contents)
 }

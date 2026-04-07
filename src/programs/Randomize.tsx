@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { evalContentsMem } from './RandomizeLang.js'
-import { Memory } from './RandomizeLangTypes.js'
+import { Memory, RenderLine } from './RandomizeLangTypes.js'
 import murmur from 'murmurhash3js'
 import { JSX, RefObject, useEffect, useRef } from 'react'
 import { directRange } from '../lib/Array.js'
@@ -11,7 +11,7 @@ import { Timer, Timers, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOr
 type RState = {
   text?: string,
 
-  output?: string,
+  items_?: RenderLine[],
   outLineCount?: number,
   memory?: string,
   nextMemory?: string,
@@ -40,10 +40,9 @@ function Randomize(controls: any): JSX.Element {
   const current = state?.current || 0
   const timers: Timers = state?.timers || []
 
-  const output: string = state?.output || ''
+  const items: RenderLine[] = state?.items_ || []
   const outLineCount: number = state?.outLineCount || 0
 
-  const items = (state?.output || '').split('\n')
   const globalTimer = state?.totalTimer
   const localTimer = timers[current]
   const localTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
@@ -62,7 +61,7 @@ function Randomize(controls: any): JSX.Element {
     if (state?.execute !== true) return () => { }
     const id = setInterval(() => { renderTimerToRef(totalTimerRef, globalTimer); renderTimerToRef(localTimerRef, localTimer) }, 45.33)
     return () => clearInterval(id)
-  }, [output, current, globalTimer, timers, state?.execute])
+  }, [items, current, globalTimer, timers, state?.execute])
 
   advanceRef.current = (advance: string | boolean, _event: any) => {
     const advanceDelta =
@@ -81,7 +80,7 @@ function Randomize(controls: any): JSX.Element {
     if (current < timers.length) {
       if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
     }
-  }, [output, current, timers, inExecution])
+  }, [items, current, timers, inExecution])
 
   // ocne we have structured items, this should be easier to write
   function itemLongRunning(index: number, now: number): boolean {
@@ -94,7 +93,7 @@ function Randomize(controls: any): JSX.Element {
     advance: number,
     lineCount: number,
     hideDone: boolean,
-    items: string[],
+    items: RenderLine[],
   ): number {
     if (hideDone) {
       const now = Date.now()
@@ -103,7 +102,7 @@ function Randomize(controls: any): JSX.Element {
       while (hideDone && Math.abs(advance) == 1 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
         current += advance
         const longRunning = itemLongRunning(current, now)
-        const separator = items[current] && items[current] == '---'
+        const separator = items[current]?.separator
         const skipped = separator || longRunning
         if (!skipped) break
       }
@@ -120,7 +119,7 @@ function Randomize(controls: any): JSX.Element {
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
-      let output = (s?.output || '')
+      let items: RenderLine[] = (s?.items_ || [])
       let newMemory: Memory | undefined = undefined
       let nextTimers: Timers | undefined = undefined
       let nextTotalTimer: Timer | undefined = state?.totalTimer
@@ -130,13 +129,13 @@ function Randomize(controls: any): JSX.Element {
         // console.clear()
         const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
         newMemory = memory
-        output = lines.join('\n')
+        items = lines
         nextTotalTimer = undefined
         nextTimers = lines.map(_ => null)
       }
 
-      const nextOutput = output === undefined ? s?.output : output
-      const lineCount = output.split('\n').length
+      const nextItems = items === undefined ? s?.items_ : items
+      const lineCount = items.length
 
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
       const nextMemory = ((s?.nextMemory && a.save) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
@@ -147,7 +146,7 @@ function Randomize(controls: any): JSX.Element {
         ...s,
         text: contentsOr,
 
-        output: nextOutput,
+        items_: nextItems,
         outLineCount: lineCount,
         ...savedMemory,
         ...nextMemory,
@@ -221,13 +220,15 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function editor(): JSX.Element {
+    const lines = items.map(rl => rl.contents).join('\n')
+
     return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh)" })}>
       <div className="grow p-[10px]">
         <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
       </div>
 
       <div className="grow p-[10px]">
-        <textarea className="block w-full h-full p-[5px] border font-mono" cols={130} value={state?.output} readOnly></textarea>
+        <textarea className="block w-full h-full p-[5px] border font-mono" cols={130} value={lines} readOnly></textarea>
       </div>
     </div>
   }
@@ -238,7 +239,7 @@ function Randomize(controls: any): JSX.Element {
     return <div className="w-full flex flex-col flex-grow justify-center select-none">
       {show.map(s => s + current).map(index =>
         <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>
-          {items[index]}
+          {items[index]?.contents}
         </div>
       )}
     </div>

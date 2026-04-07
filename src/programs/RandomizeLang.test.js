@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContents, evalContentsMem } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContentsMem } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -17,8 +17,8 @@ test('initSequences', () => {
 
 describe('evalContents', () => {
   test('basic', () => {
-    expect(evalContents('')).toStrictEqual([])
-    expect(evalContents('a')).toStrictEqual(['a'])
+    expect(evalContentsS('')).toStrictEqual([])
+    expect(evalContentsS('a')).toStrictEqual(['a'])
   })
 
   test('comments', () => {
@@ -30,7 +30,7 @@ describe('evalContents', () => {
       c
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual([
+    expect(evalContentsS(text)).toStrictEqual([
       'a',
       'c',
     ])
@@ -44,7 +44,7 @@ describe('evalContents', () => {
       c
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual([
+    expect(evalContentsS(text)).toStrictEqual([
       'a',
       '---',
       'b',
@@ -62,7 +62,7 @@ describe('evalContents', () => {
       d
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual([
+    expect(evalContentsS(text)).toStrictEqual([
       'a',
       'b',
       '---',
@@ -80,7 +80,7 @@ describe('evalContents', () => {
       [block('a')]
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual(['[a b]'])
+    expect(evalContentsS(text)).toStrictEqual(['[a b]'])
   })
 
   test('block context explode', () => {
@@ -94,7 +94,7 @@ describe('evalContents', () => {
       {block('a')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual(['a', 'b', '-', 'a', 'b'])
+    expect(evalContentsS(text)).toStrictEqual(['a', 'b', '-', 'a', 'b'])
   })
 
   test('copies', () => {
@@ -104,7 +104,7 @@ describe('evalContents', () => {
       2x b
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual([
+    expect(evalContentsS(text)).toStrictEqual([
       'a',
       'b',
       'b',
@@ -112,20 +112,20 @@ describe('evalContents', () => {
   })
 
   test('eval interpolate', () => {
-    expect(evalContents('item [1]')).toStrictEqual(['item [1]'])
-    expect(evalContents('item ["a"]')).toStrictEqual(['item [a]'])
-    expect(evalContents('item [s("a b")]')).toStrictEqual(['item [a b]'])
+    expect(evalContentsS('item [1]')).toStrictEqual(['item [1]'])
+    expect(evalContentsS('item ["a"]')).toStrictEqual(['item [a]'])
+    expect(evalContentsS('item [s("a b")]')).toStrictEqual(['item [a b]'])
   })
 
   test('eval explode', () => {
-    expect(evalContents('-=-\nitem {s("abc")}')).toStrictEqual(['item a', 'item b', 'item c'])
-    expect(evalContents('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])
-    expect(evalContents('-=-\nitem {divide(s("abcd"), 2)}')).toStrictEqual(['item [a b]', 'item [c d]'])
+    expect(evalContentsS('-=-\nitem {s("abc")}')).toStrictEqual(['item a', 'item b', 'item c'])
+    expect(evalContentsS('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])
+    expect(evalContentsS('-=-\nitem {divide(s("abcd"), 2)}')).toStrictEqual(['item [a b]', 'item [c d]'])
   })
 
   test('escaped brackets', () => {
-    expect(evalContents('item ["a\\]b"]')).toStrictEqual(['item [a]b]'])
-    expect(evalContents('-=-\nitem {s("a\\}b c")}')).toStrictEqual(['item a}b', 'item c'])
+    expect(evalContentsS('item ["a\\]b"]')).toStrictEqual(['item [a]b]'])
+    expect(evalContentsS('-=-\nitem {s("a\\}b c")}')).toStrictEqual(['item a}b', 'item c'])
   })
 })
 
@@ -140,7 +140,7 @@ describe('scheduleBlocks', () => {
       {scheduleBlocks('tasks')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toHaveLength(3)
+    expect(evalContentsS(text)).toHaveLength(3)
   })
 
   test('dash suffix picks n', () => {
@@ -153,7 +153,7 @@ describe('scheduleBlocks', () => {
       {scheduleBlocks('tasks-2')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toHaveLength(2)
+    expect(evalContentsS(text)).toHaveLength(2)
   })
 
   test('dash suffix 0 picks 0', () => {
@@ -165,7 +165,7 @@ describe('scheduleBlocks', () => {
       {scheduleBlocks('tasks-0')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual([])
+    expect(evalContentsS(text)).toStrictEqual([])
   })
 
   test('digits without dash are part of name', () => {
@@ -176,7 +176,7 @@ describe('scheduleBlocks', () => {
       {scheduleBlocks('tasks2')}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toHaveLength(1)
+    expect(evalContentsS(text)).toHaveLength(1)
   })
 })
 
@@ -193,10 +193,9 @@ describe('integration', () => {
       {[a1,a2]=divide(block('a'), 2); return [...a1, ...block('b'), ...a2];}
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual(['1', '3', '4', '2'])
+    expect(evalContentsS(text)).toStrictEqual(['1', '3', '4', '2'])
   })
 })
-
 
 describe('memory', () => {
   test('basic', () => {
@@ -213,17 +212,18 @@ describe('memory', () => {
   })
 })
 
-describe('evaling items inside a block', () => {
-  test('evalItem', () => {
-    const text = `
-      -=- a
-      a
-      b
-      c
-      -=-
-      {blockItems('a').map(evalItem).flat()}
-    `.replaceAll(/^ */mg, '')
+// Not used in any of the scripts, so we can leave this for now.
+// describe('evaling items inside a block', () => {
+//   test('evalItem', () => {
+//     const text = `
+//       -=- a
+//       a
+//       b
+//       c
+//       -=-
+//       {blockItems('a').map(evalItem).flat()}
+//     `.replaceAll(/^ */mg, '')
 
-    expect(evalContents(text)).toStrictEqual(['a', 'b', 'c'])
-  })
-})
+//     expect(evalContentsS(text)).toStrictEqual(['a', 'b', 'c'])
+//   })
+// })

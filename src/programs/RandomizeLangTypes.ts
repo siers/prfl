@@ -20,6 +20,15 @@ export type Line = {
   times: number,
 }
 
+export type RenderLineK<Key> = {
+  kind: 'renderline',
+  contents: string,
+  key: Key,
+  separator?: boolean,
+}
+
+export type RenderLine = RenderLineK<LineKey>
+
 export type Header = {
   kind: 'header',
   name: string | null,
@@ -36,7 +45,9 @@ export type Block = {
   items: Item[],
 }
 
-export const errorLine: (msg: string) => Item = msg => line(`error: ${msg}`, [], 1)
+export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null)
+export const renderLine: <K>(contents: string, key: K) => RenderLineK<K> = (contents, key) => ({ kind: 'renderline', contents, key })
+export const renderLineSep: () => RenderLineK<null> = () => ({ ...renderLine('---', null), separator: true })
 
 // export type ContextBlock = (...args: any) => string[]
 
@@ -55,3 +66,7 @@ export const interpolate = (command: string) => ({ kind: 'interpolate', command 
 export const explode = (command: string) => ({ kind: 'explode', command }) as Explode
 export const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
 export const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
+
+export type LineKey = string | null
+export type EvaluationResult = RenderLine[]
+export type EvaluationContext = [EvaluationResult[], Context]
