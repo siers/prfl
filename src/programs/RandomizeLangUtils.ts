@@ -67,7 +67,7 @@ export type Interface = {
   // block operations
   context: Map<string, any> | null,
   block: (name: string, ...args: any) => any | undefined,
-  blockRLines(name: string, ...args: any): RenderLine[],
+  blockLines(name: string, ...args: any): RenderLine[],
   aba: (as: string[], bs: string[]) => string[],
   pickBlock: (name: string, n?: number) => any[],
   scheduleBlocks: (sentence: string) => string[],
@@ -417,10 +417,10 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   // block utilities
 
   function block(name: string, ...args: any): string[] {
-    return blockRLines(name, ...args).map(rl => rl.contents)
+    return blockLines(name, ...args).map(rl => rl.contents)
   }
 
-  function blockRLines(name: string, ...args: any): RenderLine[] {
+  function blockLines(name: string, ...args: any): RenderLine[] {
     const lookup = context.get(`${name}`)
     if (!lookup) return [errorLine(`block('${name}') == ${lookup}`)]
     const lookupChecked = lookup as (...args: any) => RenderLine[]
@@ -445,7 +445,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function pickBlockStateless(name: string, n: number | 'full'): RenderLine[] {
-    const lines = blockRLines(name)
+    const lines = blockLines(name)
     if (!lines) return [errorLine(`pickBlockStateless: cannot find ${name}`)]
     return pickTasksStateless(lines).slice(0, n == 'full' ? 10000 : n)
   }
@@ -617,7 +617,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     context,
     block,
-    blockRLines,
+    blockLines,
     aba,
     pickBlock,
     scheduleBlocks,

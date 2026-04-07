@@ -1,4 +1,4 @@
-import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, renderLine, EvaluationResult, EvaluationContext } from './RandomizeLangTypes'
+import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, renderLine, EvaluationResult, EvaluationContext, RenderLineSchema, LineKeyPattern } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -145,7 +145,17 @@ function substituteInterpolate(line: string, marker: string, subst: any) {
   // else return [`interpolate requires string, got ${typeof subst}`]
 }
 
-function substituteExplode(line: string, marker: string, subst: any) {
+function isRenderLines(subst: any): RenderLine[] | undefined {
+  return RenderLineSchema.array().safeParse(subst).data
+}
+
+function substituteExplode(line: string, marker: string, subst: any): string[] {
+  const renderLines = isRenderLines(subst)
+
+  if (renderLines) {
+    return renderLines.map(r => line.replace(marker, `${r.contents}`))
+  }
+
   if (isStringArray(subst)) {
     return (subst as string[]).map(r => line.replace(marker, `${r}`))
   }
@@ -177,7 +187,8 @@ function evalEvals(line: string, marker: string, e: Eval, context: Context): str
 }
 
 function parseRenderLine(line: string): RenderLine {
-  return renderLine<string | null>(line, null)
+  const key = line.match(LineKeyPattern)
+  return renderLine(line, key && key[1])
 }
 
 function evalItem(item: Item, context: Context): RenderLine[] {

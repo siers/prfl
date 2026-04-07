@@ -1,4 +1,4 @@
-// types
+import { z } from 'zod'
 
 export type Interpolate = {
   kind: 'interpolate',
@@ -20,14 +20,33 @@ export type Line = {
   times: number,
 }
 
-export type RenderLineK<Key> = {
+export type RenderLine = {
   kind: 'renderline',
   contents: string,
-  key: Key,
-  separator?: boolean,
+  key: string | null,
+  separator: boolean | null,
 }
 
-export type RenderLine = RenderLineK<LineKey>
+export const RenderLineSchema = z.object({
+  kind: z.literal('renderline'),
+  contents: z.string(),
+  key: z.string().nullable(),
+  separator: z.boolean().nullable(),
+})
+
+// if derived directly, the debugger shows the expanded definition, not the type alias
+export type RenderLineDerived = z.infer<typeof RenderLineSchema>
+
+type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2)
+  ? true
+  : false;
+
+type Assert<T extends true> = T
+
+type _ = Assert<Equals<RenderLine, RenderLineDerived>>
+
+// pattern for rendered lines that denotes their flashcard identificator
+export const LineKeyPattern = /^ *([a-zA-Z0-9\-]+):/
 
 export type Header = {
   kind: 'header',
@@ -46,8 +65,8 @@ export type Block = {
 }
 
 export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null)
-export const renderLine: <K>(contents: string, key: K) => RenderLineK<K> = (contents, key) => ({ kind: 'renderline', contents, key })
-export const renderLineSep: () => RenderLineK<null> = () => ({ ...renderLine('---', null), separator: true })
+export const renderLine: (contents: string, key: string | null) => RenderLine = (contents, key) => ({ kind: 'renderline', contents, key, separator: null })
+export const renderLineSep: () => RenderLine = () => ({ ...renderLine('---', null), separator: true })
 
 // export type ContextBlock = (...args: any) => string[]
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContentsS, evalContentsMem } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContents, evalContentsMem } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -212,18 +212,32 @@ describe('memory', () => {
   })
 })
 
-// Not used in any of the scripts, so we can leave this for now.
-// describe('evaling items inside a block', () => {
-//   test('evalItem', () => {
-//     const text = `
-//       -=- a
-//       a
-//       b
-//       c
-//       -=-
-//       {blockItems('a').map(evalItem).flat()}
-//     `.replaceAll(/^ */mg, '')
+describe('evaling items inside a block', () => {
+  test('evalItem', () => {
+    const text = `
+      -=- a
+      a
+      b
+      c
+      -=-
+      {blockLines('a')}
+    `.replaceAll(/^ */mg, '')
 
-//     expect(evalContentsS(text)).toStrictEqual(['a', 'b', 'c'])
-//   })
-// })
+    expect(evalContentsS(text)).toStrictEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('keys', () => {
+  test('check IR for key parsing', () => {
+    const text = `DoTheLaundry: do it`
+
+    expect(evalContents(text)).toStrictEqual([
+      {
+        "contents": "DoTheLaundry: do it",
+        "key": "DoTheLaundry",
+        "kind": "renderline",
+        "separator": null,
+      }
+    ])
+  })
+})
