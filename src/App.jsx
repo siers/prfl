@@ -64,7 +64,7 @@ function App() {
   const ProgramComponent = programs[programName]
 
   const setItem = (advance, event) => {
-    if (advance && advanceRef.current) advanceRef.current(advance, event)
+    if (advanceRef.current) advanceRef.current(advance, event)
     flash()
   }
 
