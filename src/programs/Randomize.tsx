@@ -314,6 +314,7 @@ function Randomize(controls: any): JSX.Element {
         <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
         <a className="pr-3 select-none" onClick={() => modifyItem({ done: false })}>✘</a>
         <a className="pr-3 select-none" onClick={() => modifyItem({ done: false, bury: true })}>📚</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ done: true, bury: true })}>💤</a>
       </div>
 
       <div className="flex flex-row justify-center">
