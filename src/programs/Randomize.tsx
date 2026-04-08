@@ -348,25 +348,20 @@ function Randomize(controls: any): JSX.Element {
 
 export default Randomize
 
-// TODO: lang: mark blocks that must require keyified items only
+// TODO: execution: items embed metronome (or sheet music)
+// TODO: execution: rerandomizeable blocks
+// TODO: execution: rerandomizeable items (doable)
 
-// TODO: execution: a view for the rendered program
-// TODO: execution: show contents in a split view (renderProgram as a function from the App.tsx)
-// TODO: execution: can update tasks (comments, params) (blocker: required that the list is actually just a list of indexes, not items themselves)
-// TODO: execution: scrollable execution items
-// TODO: execution: render blocks as distinct, so you could rerandomize whole blocks
-
-// TODO: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
-// TODO: interpret: 2x = (1/2) + (2/2) (combine with execution mode: the view is just an index of the item + some decoration)
-// TODO: interpret: either text-blocks or text-only line syntax
-
-// TODO: util: if an item is rendered, but not included in a main block, it impacts the memory
-// TODO: util: cross inside utils with cross on generic arrays + https://www.npmjs.com/package/string-format
-
-// TODO: scheduling: give "gas" to tasks, so they get temporarily bumped
-
-// TODO: content: make programmable scales
-// TODO: content: random note while inside position
+// TODO: content: display programmable scales
+// TODO: content: random notes within position
 // TODO: content: bow articulations tasks
 // TODO: content: maybeEvery derived from memory (make it work on indices)
-// TODO: content: sequence of bow spots until 1/8th resolution with bowing directions
+// TODO: content: random bowing exercises
+
+// TODO: hard: scheduling: give "gas" to tasks, so they get temporarily bumped
+// TODO: hard: util: if an item is rendered, but not included in a main block, it impacts the memory
+// TODO: hard: lang: mark blocks that must require keyified items only
+
+// TODO: backlog: util: cross inside utils with cross on generic arrays + https://www.npmjs.com/package/string-format
+// TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
+// TODO: backlog: execution: scrollable items in execution
