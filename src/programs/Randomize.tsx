@@ -50,6 +50,7 @@ function Randomize(controls: any): JSX.Element {
 
   const items: UserItem[] = state?.items || []
   const outLineCount: number = state?.outLineCount || 0
+  const doneCount: number = items.filter(i => i.done !== true).length
 
   const globalTimer = state?.totalTimer
   const localTimer = items[current]?.timer
@@ -308,7 +309,7 @@ function Randomize(controls: any): JSX.Element {
     </>
 
     return <div className="w-full pb-2 text-center font-mono">
-      <div className="text-[#888]">{current + 1}/{outLineCount}</div>
+      <div className="text-[#888]">{current + 1}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</div>
 
       <div className="flex flex-row justify-center">
         <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
