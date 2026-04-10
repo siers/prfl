@@ -6,6 +6,7 @@ const {
   s,
   cross,
   times,
+  product,
   parts,
   divide,
   indexPyramid,
@@ -35,6 +36,13 @@ test('cross', () => {
 test('times', () => {
   expect(times(3, 'f')).toStrictEqual(['f', 'f', 'f'])
   expect(times(3, x => (x || 0) + 1)).toStrictEqual([1, 2, 3])
+})
+
+test('product', () => {
+  expect(product()).toStrictEqual([[]])
+  expect(product(['a', 'b'])).toStrictEqual([['a'], ['b']])
+  expect(product(['a', 'b'], [1, 2])).toStrictEqual([['a', 1], ['a', 2], ['b', 1], ['b', 2]])
+  expect(product(['x'], ['y'], ['z'])).toStrictEqual([['x', 'y', 'z']])
 })
 
 test('parts', () => {

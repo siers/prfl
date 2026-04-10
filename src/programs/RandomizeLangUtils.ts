@@ -18,6 +18,7 @@ export type Interface = {
 
   // array
   times: <A>(n: number, a: A | ((idx?: number) => A)) => A[],
+  product: <A>(...arrays: A[][]) => A[][],
   indices: (until: number) => string[],
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
@@ -115,6 +116,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   function times<A>(n: number, a: A | ((idx?: number) => A)): A[] {
     if (typeof a === 'function') return Array(n).fill(0).map((_, i) => (a as (idx?: number) => A)(i))
     else return Array(n).fill(a)
+  }
+
+  function product<A>(...arrays: A[][]): A[][] {
+    if (arrays.length === 0) return [[]]
+    const [first, ...rest] = arrays
+    const restProduct = product(...rest)
+    return first.flatMap(a => restProduct.map(rs => [a, ...rs]))
   }
 
   function indices(until: number): string[] {
@@ -561,6 +569,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     cross,
 
     times,
+    product,
     indices,
     parts,
     partsShuf,
