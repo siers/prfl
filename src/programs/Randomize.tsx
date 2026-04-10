@@ -102,6 +102,10 @@ function Randomize(controls: any): JSX.Element {
     return Math.max(0, Math.min(index, lineCount - 1))
   }
 
+  function itemSkipped(item?: UserItem) {
+    return item?.separator == true || item?.done == true
+  }
+
   function seekCurrentUnbounded(
     current: number,
     advance: number,
@@ -115,8 +119,7 @@ function Randomize(controls: any): JSX.Element {
       while (advance) {
         while (hideDone && Math.abs(advance) > 0 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
           current += Math.sign(advance)
-          const skipped = items[current]?.separator == true || items[current]?.done == true
-          if (!skipped) break
+          if (!itemSkipped(items[current])) break
         }
 
         advance -= Math.sign(advance)
@@ -308,8 +311,12 @@ function Randomize(controls: any): JSX.Element {
       <span onClick={() => modifyTimer('restart', 'local')} className="pt-3 pb-3 pl-2 pr-2 select-none">🔄</span>
     </>
 
+    const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
+    const shownItemNr = Object.fromEntries(currentMap)[current]
+    const currentItemNr = 1 + (hideDone ? shownItemNr : current)
+
     return <div className="w-full pb-2 text-center font-mono">
-      <div className="text-[#888]">{current + 1}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</div>
+      <div className="text-[#888]">{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</div>
 
       <div className="flex flex-row justify-center">
         <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
