@@ -60,7 +60,7 @@ function Randomize(controls: any): JSX.Element {
   const inExecution: boolean = state?.execute === true
   const inPlanning: boolean = state?.execute !== true
 
-  const hideDone = state?.hideDone === true
+  const hideDone = state?.hideDone !== false
 
   function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | null) {
     ref.current && (ref.current.innerHTML = renderToString(timerContent(timer)))
