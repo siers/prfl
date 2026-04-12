@@ -1,5 +1,5 @@
 import { renderToString } from 'react-dom/server'
-import { JSX, RefObject, useEffect, useRef } from 'react'
+import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
 import { evalContentsMem } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
@@ -289,19 +289,28 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
+  function itemStyle(item: UserItem, index: number): React.CSSProperties {
+    const color = item.done ? '#4caf50'
+      : timerLength(item.timer, Date.now()) >= 180 ? 'orange'
+        : index == current ? undefined : '#bbb'
+    return {
+      ...(index == current && { fontSize: '2rem' }),
+      ...(color && { color })
+    }
+  }
+
   function executionItems(): JSX.Element {
     const show = directRange(-2, 2)
 
     return <div className="w-full flex flex-col flex-grow justify-center select-none">
       {show.map(s => {
         return seekCurrentItem(current, s, outLineCount, hideDone, items)
-      }).map(({ item, index, unbounded }) =>
-        !unbounded
-          ? <div key={index} className="w-full text-center text-wrap" style={index == current ? { fontSize: '2rem' } : { color: '#bbb' }}>
-            {item?.contents}
-          </div>
-          : null
-      )}
+      }).map(({ item, index, unbounded }) => {
+        if (unbounded || !item) return null
+        return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
+          {item.contents}
+        </div>
+      })}
     </div>
   }
 

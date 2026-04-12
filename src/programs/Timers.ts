@@ -24,7 +24,8 @@ export const toStartedTimer: (t: Timer, start: number) => Timer = (t: Timer, sta
   return freshTimer(0) // t.kind is `never` here
 }
 
-export function timerLength(t: Timer, now: number): number {
+export function timerLength(t: Timer | null, now: number): number {
+  if (!t) return 0
   if (t.kind == 'started') return (now - t.start) / 1000
   if (t.kind == 'stopped') return t.length / 1000
   return 0
