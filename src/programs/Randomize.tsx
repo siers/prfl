@@ -163,7 +163,8 @@ function Randomize(controls: any): JSX.Element {
       const lineCount = items.length
 
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
-      const nextMemory = ((s?.nextMemory && a.save) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
+      // saving memory with the global button is superseded by review buttons
+      const nextMemory = ((s?.nextMemory && false) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
 
       const nextCurrent = seekCurrent(s?.current || 0, a.advance || 0, lineCount, hideDone, items)
 
@@ -373,9 +374,7 @@ function Randomize(controls: any): JSX.Element {
 export default Randomize
 
 // TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
-// TODO: content: rewrite key picker without memory on compilation
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
-// TODO: execution: remove memory save button, because it is overwriting
 // TODO: execution: rerandomizeable items (doable)
 // TODO: content: a simple permutation function (for cells or skips)
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
@@ -390,6 +389,7 @@ export default Randomize
 // TODO: execution: items embed metronome (or sheet music)
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this)
 
+// TODO: content: rewrite key picker without memory on compilation
 // TODO: content: display programmable scales
 // TODO: content: random notes within position
 // TODO: content: bow articulations tasks
