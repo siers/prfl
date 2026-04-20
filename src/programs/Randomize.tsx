@@ -222,24 +222,29 @@ function Randomize(controls: any): JSX.Element {
     })
   }
 
-  function modifyItem(controls: { done: boolean, bury?: boolean }) {
+  function modifyItem(controls: { reviewed: boolean, done: boolean, bury: boolean }) {
     setState((s: RState | undefined) => {
       if (!s) return s
 
-      const items = controls.done ? s.items || [] : arrayMove(s.items || [], current, (s?.items?.length || 0) - 1)
+      const items = s.items || []
+      const move = controls.bury === true
 
       const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
 
-      if (!controls.bury && items[current].key) cardReviewed(memory, items[current].key, Date.now())
+      if (controls.reviewed === true && items[current].key) cardReviewed(memory, items[current].key, Date.now())
       // else console.log(`card burried, can't mark ${JSON.stringify(items[current])} reviewed`)
+
+      const updatedItems = items.map((item, index) => {
+        if (index != current) return item
+        else return { ...item, done: controls.done }
+      })
+
+      const updatedItems2 = move ? arrayMove(updatedItems, current, (s?.items?.length || 0) - 1) : updatedItems
 
       return {
         ...s,
         memory: mapSerialize(memory),
-        items: items.map((item, index) => {
-          if (index != current) return item
-          else return { ...item, done: controls.done }
-        }),
+        items: updatedItems2,
       }
     })
 
@@ -290,9 +295,11 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemStyle(item: UserItem, index: number): React.CSSProperties {
-    const color = item.done ? '#4caf50'
-      : timerLength(item.timer, Date.now()) >= 180 ? 'orange'
-        : index == current ? undefined : '#bbb'
+    const color =
+      index == current ? undefined
+        : item.done ? '#4caf50'
+          : timerLength(item.timer, Date.now()) >= 180 ? 'orange'
+            : '#bbb'
     return {
       ...(index == current && { fontSize: '2rem' }),
       ...(color && { color })
@@ -328,10 +335,11 @@ function Randomize(controls: any): JSX.Element {
       <div className="text-[#888]">{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</div>
 
       <div className="flex flex-row justify-center">
-        <a className="pr-3 select-none" onClick={() => modifyItem({ done: true })}>✅</a>
-        <a className="pr-3 select-none" onClick={() => modifyItem({ done: false })}>✘</a>
-        <a className="pr-3 select-none" onClick={() => modifyItem({ done: false, bury: true })}>📚</a>
-        <a className="pr-3 select-none" onClick={() => modifyItem({ done: true, bury: true })}>💤</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
+        <a className="pr-3 select-none text-[#000]">&nbsp;</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
+        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
       </div>
 
       <div className="flex flex-row justify-center">
@@ -369,7 +377,6 @@ export default Randomize
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: execution: remove memory save button, because it is overwriting
 // TODO: execution: rerandomizeable items (doable)
-// TODO: double check ok/no/suspend/zzz buttons, make some space between the "done" button and the others
 // TODO: content: a simple permutation function (for cells or skips)
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
 // TODO: execution: indicate tasks which are fresh
