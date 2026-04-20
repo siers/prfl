@@ -16,6 +16,9 @@ const {
   zip,
   zipInterleave,
   shuffle,
+  perm,
+  power,
+  powerInner,
   interleavingEvery,
   after,
 } = randomizeLangUtils(new Map(), new Map())
@@ -131,6 +134,19 @@ test('shuffle', () => {
   expect(shuffle(s('a'))).toStrictEqual(s('a'))
   expect(Array(...shuffle(s(long))).toSorted()).toStrictEqual(Array(...s(long)).toSorted())
   expect(shuffle(s(long))).not.toStrictEqual(s(long))
+})
+
+test('power', () => {
+  expect(power(s('123')).map(x => x.map(x => parseInt(x)))).toStrictEqual([
+    [],
+    [1],
+    [2],
+    [3],
+    [1, 2],
+    [1, 3],
+    [2, 3],
+    [1, 2, 3]
+  ])
 })
 
 test('zip', () => {

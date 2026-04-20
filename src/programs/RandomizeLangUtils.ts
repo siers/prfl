@@ -6,6 +6,7 @@ import { intersperse, interspersing, interleavingEvery, zipT, directRange, array
 import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
+import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
 import murmur from 'murmurhash3js'
@@ -14,11 +15,9 @@ export type Interface = {
   // DSL
   s: (s: string) => string[],
   ss: (s: string) => string[],
-  cross: (sentence: string) => string[],
 
   // array
   times: <A>(n: number, a: A | ((idx?: number) => A)) => A[],
-  product: <A>(...arrays: A[][]) => A[][],
   indices: (until: number) => string[],
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
@@ -38,9 +37,15 @@ export type Interface = {
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
   arrayRotate<A>(arr: A[], count: number): A[],
 
+  // combinatorics
+  cross: (sentence: string) => string[],
+  product: <A>(...arrays: A[][]) => A[][],
   shuffle: <A>(a: A[]) => A[],
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
+  perm<A>(a: A[]): A[][],
+  power<A>(a: A[]): A[][],
+  powerInner<A>(a: A[]): A[][],
 
   pick: <A>(array: A[] | string) => A | string,
   pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined, stats?: any) => any[],
@@ -226,6 +231,10 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   function pick<A>(array: A[] | string): A | string {
     if (typeof array === 'string') return pickArray(ss(array))
     else return pickArray(array)
+  }
+
+  function power<A>(a: A[]): A[][] {
+    return Object.values(_.groupBy([...(new Comb.PowerSet(a))], 'length')).flat()
   }
 
   // stores pick order (incrementing index), picks by linear weight:
@@ -566,10 +575,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   return {
     s,
     ss,
-    cross,
 
     times,
-    product,
     indices,
     parts,
     partsShuf,
@@ -588,9 +595,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     interleavingEvery,
     arrayRotate: arrayShift,
 
+    cross,
+    product,
     shuffle,
     shuffleM,
     shuffleX,
+    perm: <A>(a: A[]) => [...new Comb.Permutation(a)],
+    power,
+    powerInner: <A>(a: A[]) => power(a).slice(1, -1),
 
     pick,
     pickMemK,

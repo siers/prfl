@@ -376,7 +376,6 @@ export default Randomize
 // TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: execution: rerandomizeable items (doable)
-// TODO: content: a simple permutation function (for cells or skips)
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
 // TODO: execution: indicate tasks which are fresh
 // TODO: execution: save all reviews
