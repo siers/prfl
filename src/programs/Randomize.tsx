@@ -364,19 +364,33 @@ function Randomize(controls: any): JSX.Element {
 
 export default Randomize
 
-// TODO: execution: items embed metronome (or sheet music)
-// TODO: execution: rerandomizeable blocks
+// TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
+// TODO: content: rewrite key picker without memory on compilation
+// TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
+// TODO: execution: remove memory save button, because it is overwriting
 // TODO: execution: rerandomizeable items (doable)
+// TODO: double check ok/no/suspend/zzz buttons, make some space between the "done" button and the others
+// TODO: content: a simple permutation function (for cells or skips)
+// TODO: scheduling: weights should be proportional to how long ago the task was last picked
+// TODO: execution: indicate tasks which are fresh
+// TODO: execution: save all reviews
+// TODO: lang: add tags to block, only main blocks may have items without keys
+
+// TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
+// TODO: parametrization: enable subsets of a column, allow shuffling per-column
+// TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
+
+// TODO: execution: items embed metronome (or sheet music)
+// TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this)
 
 // TODO: content: display programmable scales
 // TODO: content: random notes within position
 // TODO: content: bow articulations tasks
 // TODO: content: maybeEvery derived from memory (make it work on indices)
 // TODO: content: random bowing exercises
+// TODO: content: bowing pattern generator for detache notes (partition refinement)
 
 // TODO: hard: scheduling: give "gas" to tasks, so they get temporarily bumped
-// TODO: hard: util: if an item is rendered, but not included in a main block, it impacts the memory
-// TODO: hard: lang: mark blocks that must require keyified items only
 
 // TODO: backlog: util: cross inside utils with cross on generic arrays + https://www.npmjs.com/package/string-format
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
