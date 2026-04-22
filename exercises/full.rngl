@@ -1,30 +1,42 @@
-0x Warmup
-Focus: [pickMemK(`focus`, `intonation intonation tone tone contact text`)] harmonics tasto
-Keys: [keys=pickKeysOffset('scales', 6)]
---- scales
-Scales3: [key] three octaves: [pick(`ion dor phry lyd mix aeo loc`)]
-ScalesClimb: [key] climb on: [ss(`GDAE`).join('')] / [ss(`pos scale 1-4s` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `)]
-{after('2026-02-25', '')} ScalesPos: [key] [scalePositions()]
---- scale-stops
-Scales: [key] [pick(`thirds, fourths, sixths, octaves`)] [scalePositionsDbl()]
---- bowing
-Bowing: [key] arches over [pick(`dim sixths ysaye`)], p{divide(zip(ss(`1234`), shuffleX(s(`uudd`), 2), shuffleX(s(`↑↑↓↓`), 2)), 2)}
---- shifting
-0x Shifting: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [s(`G D A E`)]
-Slides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
-1x Shifting: [key] Sevcik, no gliss [ss(`G D A E`).slice(0, 2)]
---- warmup-key
-{zipInterleave(scheduleBlocks('scales'), block('scale-stops'), block('bowing'), block('shifting')).flat().flat()}
---- warmup
-{keys.flatMap(k => { key = k; return block('warmup-key') \})}
-0x Technique
+# Violin
+# V, Warmup
+# Focus: [pickMemK(`focus`, `intonation tone`)]
+{stops=`thirds, fourths, sixths, octaves`;}
+{shapes=`dim sixths ysaye tonic squares`;}
+{modes=`1 2 3 4 5 6 7`;}
+-=- scales
+Scales3-{ss(`ion dor phry lyd mix aeo loc`)}: [key] three octaves
+ScalesClimb: [key], [pick('dia, dia, dia, dia, dia, dim, whole')], climb on: [ss(`GDAE`).join('')] / [ss(`pos 1-4s ` + ss(`12 21 123 231 312`).slice(0, 2)).join(` `)]
+{after('2026-04-05', '')} ScalesPos: [key] [scalePositions()]
+-=- scale-stops
+ScaleStopsRun: [key] [pick(stops)] [ss(`1234`)]
+ScaleStopsPart: [key] [pick(stops)] [scalePositionsDbl()]
+ScaleStopsString: [key] [pick(stops)] [zipSpace(ss(`DAE`).slice(0, 2), ss(`0+H-W+H, 0+W-H, 0+H-W+H, 0+W-H`))] [ss(`1234`)]
+-=- bowing
+0x Bowing-{ss(modes)}: [key]
+Bowing-{ss(shapes)}: [key] run
+0x Bowing-{ss(shapes)}: [key], p{divide(zip(ss(`1234`), shuffleX(s(`uudd`), 2), shuffleX(s(`↑↑↓↓`), 2)), 1)}
+ArtificialHarmonics: vibrate [ss(`GDAE`)] [ss(`up down`)]
+BowingBackIntoWall: shoulder blades together [ss(`snake, scale, ysaye`)]
+-=- shifting
+#{after('2026-03-16', '')} ShiftingFourth: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [ss(`G D A E`)]
+0x ShiftingSlides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
+ShiftingSlides: quartertone [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
+{after('2026-04-05', '')} ShiftingSevcik: [key] Sevcik, no gliss [ss(`G D A E`)]
+ShiftingSnake: [key] position: [ss(`2 3 4 5 6 7`)], [ss(`G D A E`)]
+SemitoneFrame: [ss(`GDEA`)] +[ss(`1 2 3 4 5 6 7`)]sem [ss(`lyd maj, min, phyr, `)]
+ShiftingAgainstWall: [ss(`snake, scale, ysaye`)]
+--- dims
+Dim-{pickNKeys('dims', 12).map(s=>s.replace(/#/, 's'))}: play
+# V, Technique
 --- extensions
-Ext1: 4 finger: [zip(shuffleX(`3rd/, 4th/, 4#/, 5th/`, 2), ss(scalePositions({arrows: false})))]
+# Ext1: 4 finger: [zip(shuffleX(`3rd/, 4th/, 4#/, 5th/`, 2), ss(scalePositions({arrows: false})))]
 --- bowings
-Bowing1: sautille, {ss(`DG AD EA`).map(str => str + ` ` + ss(`40 31 22 13`).join(':'))}
+# Bowing1: sautille, {ss(`DG AD EA`).map(str => str + ` ` + ss(`40 31 22 13`).join(':'))}
 Bowing2: E-G connection [divide(shuffleX(`GEu EGd`, 4), 2).join(' | ')] (arches)
-Bowing3: marcato with control over [pick(`dim sixths`)], p{divide(ss(`1 2 3 4 5 6`), 2)}
-Bowing4: fast draws [pick(`dim sixths ysaye`)]
+Bowing3: marcato with control over [pick(shapes)], p{divide(ss(`1 2 3 4 5 6`), 2)}
+Bowing4: fast draws [pick(shapes)]
+Bowing5: contact point randomization (circles)
 --- stops
 Stop1: Bowing: 4-stops
 Stop2: Bowing: sixths on EA, GD intersperesed 
@@ -33,49 +45,128 @@ Stop3: Fingerboard: sixths: sliding fingers over fifths, flat pads
 Entr1: bow ends clicks exercise [ss(`GDAE`)]
 Entr2: entrances in tips [ss(`GDAE`)]
 Entr3: entrances down, with stability and power
---- technique
-{scheduleBlocks('extensions bowings stops-1 entrances reading-0')}
-0x Ensemble
---- ensemble
-0x Ensemble: Sibelius, Impromptu (fuck it, we ball)
-2x Ensemble: Por una cabeza (determine spots, metered)
-2x Ensemble: eine kleine Nachtmusik (number spots, run under metronome)
-Ensemble: He's a pirate (read-through, metronome)
---- duets
-BachDoppelLargo: make tasks
-0x Pieces
---- reading
-Sitt6912x: Sitt op69/12: read
-Sitt3212x: Sitt op32/12: read
-Sitt3286x: Sitt op32/86 (double-stops 6): read
---- kreutzer4
-Kreutzer4: (60bpm), martele mirror, reengage check, avoid ponticello, melodic&dyn&retakes {partChunksShuf(10, 2)}
---- kreutzer14
-Kreutzer14-1: line 1, no ritardando & bow arm ergo
-Kreutzer14-2: line 2 stick D and smooth D#-D♮
-Kreutzer14-3: line 3, forks
-Kreutzer14-4: line 4, stick the shift
-Kreutzer14-5: line 4-5, stick rising fifths
-Kreutzer14-71: line 7 bow stability on extensions in A
-Kreutzer14-72: line 7 clear chromatics
-Kreutzer14-13: line 13, stick extension with guide
-Kreutzer14-14: line 14, run memorized
-Kreutzer14-17: line 17, stick the two extensions
-Kreutzer14-18: line 18, connect run
-Kreutzer14-19: line 19, improve run
-Kreutzer14-20: line 20th sticks (@120/16ths)
---- kreisler-full
-{pyramid('AMM Dyn DynP VLCa VLCb VLCc Fa Fb DrawsA DrawsB ZZa ZZb ZZP Low Tight Six1 Six4 Six7 Six11 Six14 Chr1 Chr2 Chr3 Chr4 Outro', 3).flat()}
---- kreisler-spots
-Kreisler: {ss(`Chr2, VLCa, Fourths`)}
+# V, Pieces
 --- gluck
 Gluck: {ss(`first tranquillo 32ths-run poco-accel tranquillo2 espr 28 32`)}
---- accolay
-Accolay: page {ss(`1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5`)}
-0x Main
---- violin
-{scheduleBlocks(`technique-* kreisler-spots gluck-0 accolay-*`)}
+--- violin-pieces
+Kreutzer29-{ss(`p11 p12 p21`)}: play
+Kayser10: play
+RachRom: play
+SchumannRom1: play
+# MatteisFantasia
+# V, Orchestra
+--- orchestra
+OrchBizet: play
+OrchPiazolla: play
+OrchGerschwin: play
+OrchBolero: play
+OrchBrahms: Hungarian Dance
+OrchRosen: play 
+# OrchArabian: play (low, done)
+OrchEgypt: play (high)
+OrchSibelius: play (low)
+# Piano
+# P, Exercises
+--- piano-exercises
+{maybeEvery(5, 'ExerciseMin251: ' + j(pickNKeys('minor', 3)) + ', ' + j(ss(`24 36 24 36`).slice(0, 3)))}
+{maybeEvery(3, 'ExerciseMaj251: ' + j(pickNKeys('major', 3)) + ', ' + j(ss(`32 7b5 32 7b5`).slice(0, 3)))}
+{maybeEvery(`3,1`, 'ExerciseFlipflops: 35/34' + j(pickNKeys('flipflops', 3)))}
+{maybeEvery(`4,1`, 'ExerciseStepwiseDia: ' +  pick(`5 6 7 56 34 24`) + ': ' + j(pickNKeys('chords-diatonic', 3)))}
+TriadPairs: 1 & 2 (write parametrization)
+# Comping: {ss(`shell 3, shell 7, 37, 73, rootless 2, rootless 5, call letters`)}
+HWLicks: pick three
+Scale-alt: play alt resolutions (678910 is flat)
+ChromaticBassline: try accompanying
+# P, Main
+--- piano
+#--- piano-jazz
+Oleo: [ss(`head-metred, two-free-runs, comping`)]
+BirksWorks: [ss(`head-metred, solo-1-metered, solo-2-metered`)]
+BluesForAlice: [ss(`head-metered, comping, two-free-runs`)]
+Blue-Train: play
+JazzFutter: play
+GluckAccomp: play
+Entertainer-page{ss(`A B1 B2 C D`)}: with metronome
+BWV18: learn [powerInnerBuckets('SATB').map(x => shuffle(x)).flat().map(x=>x.join('')).join(' ')] 
+BrahmsWiegelied: play
+Satisfied: play
+Song1: write a sketch, analyze comp, analyze prechorus
+Song2: write a polka with movements
+PiaScale: G minor, [ss(`regular, russian, thirds`)], [ss(`I, Im, VIb, VIm, IV, IVm, I7, VIb7, IV7, II7, Idim7`)]
+--- write
+--- futter
+Futter: {ss(`38 39 40`)} {pickNKeys('futter', 3)}
+--- futter2
+Futter: {ss(`41 42 43 44`)} {pickNKeys('futter', 3)}
+-=- oct
+# oct chunks: degree+direction, thirds, skips, whole (chunks + lick), both whole indexes
+{shuffle(pickNKeys('a', 12))}-{ss(`6b-up, 4-down`)}
+-=- cells
+{zipSpace(s(`B Gm Cm F7`), shuffle(perm(s('1234'))).map(x=>x.join('')))}
+-=- SATB
+{powerInner('SATB')}
+# Physio
+--- physio0
+Pistols: touch the foot
+SideLunges: do it
+HandsBehindBackBend: intertwine fingers
+SinkArmsInTable: do it
+KneelingHipThrusts: do it (eh)
+SquatBentSquat: do it
+SquattingCalfRaises: do it
+SquattingButterfly: pushes
+PushupTwists: do it (eh)
+Bridges: touch, extend, touch | tabletop
+BehindHammers: do it
+BellyLyingHipExternalRotation: do it
+LyingLegRaises: separate or continuous
+InnerThighRotation: while squatting
+HipFlexorStretchLunge: do it
+HipCARs: do it
+InnerThighLift: leg over other, lift self or leg (eh)
+BackLyingHipExternalRotations: do it
+RH45Throw: throw ball (+ skull crushers)
+ProneScorpion: do it
+--- physio1
+SidePlank: switch from plank, copenhagen crunches
+Butterfly: pull in legs
+StandingPancake: press ankle, pull other, sidelunges
+FlippingKnees: crossing while on the ground
+RecliningHero: do it
+LateralRaises: with back-mirror & weighted
+LegRaises: in front of a table, leg angle: directly back & 45°
+ReverseBirdDog: do it
+ArmCirclesWeighted: on back, weighted, with leg extensions
+TableOppositeCorners: touch opposite table corner, + lift leg
+HipStretch: on back, cross leg over, pull other leg into
+--- physio2
+Hamstring: stretches on each leg (similar to standing pancake), lift opposite
+ReverseCurls: reverse biceps curls
+RotatedKnucklesBehind: rokas aiz muguras, rotēt abos virzienos līdz galam
+Deadlift: feel the connection in the back, one side is weaker
+FakePlanche: do it
+BicepsPoses: standing: above head (proper posture + extend), at hips (check symmetry)
+Triceps: [arrayRotate(s(`behind the head`), daysModulo(7, 2))]
+# {scheduleBlocks('physio0 physio1 physio2')}
+# Main
+---
+#Keys: {keys=pickKeysOffset('scales', 4)}
+Keys: {keys=new Array(`D`);}
+--- juggling
+3x Juggling: 5 balls
+-=- warmup-key
+{scheduleBlocks('scales-2 scale-stops-0 bowing-1 shifting-1').flat().flat()}
+--- warmup
+{keys.flatMap(k => { key = k; return scheduleBlocks('warmup-key') \})}
+{scheduleBlocks(`dims-2`)}
+--- technique
+{scheduleBlocks('extensions-0 bowings-4 stops-3 entrances-3')}
+#--- piano-main
+#{scheduleBlocks(`piano piano-exer`)}
+# {scheduleBlocks(`exercises piano-jazz-0 piano-classical entertainer`)}
 -=-
-{block('warmup')}
+{scheduleBlocks(`warmup`)}
+-=- all
+{scheduleBlocks(`piano piano-exercises violin-pieces technique-2 orchestra juggling-0`)}
 -=-
-{interleavingEvery(interleavingEvery(block(`violin`), [`- situps: 10x`], 5), [`-- walk around`], 12)}
+{scheduleBlocks(`all`)}
