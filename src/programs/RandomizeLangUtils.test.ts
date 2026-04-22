@@ -18,7 +18,9 @@ const {
   shuffle,
   perm,
   power,
+  powerBuckets,
   powerInner,
+  powerInnerBuckets,
   interleavingEvery,
   after,
 } = randomizeLangUtils(new Map(), new Map())
@@ -44,7 +46,7 @@ test('times', () => {
 test('product', () => {
   expect(product()).toStrictEqual([[]])
   expect(product(['a', 'b'])).toStrictEqual([['a'], ['b']])
-  expect(product(['a', 'b'], [1, 2])).toStrictEqual([['a', 1], ['a', 2], ['b', 1], ['b', 2]])
+  expect(product(['a', 'b'], ['1', '2'])).toStrictEqual([['a', '1'], ['a', '2'], ['b', '1'], ['b', '2']])
   expect(product(['x'], ['y'], ['z'])).toStrictEqual([['x', 'y', 'z']])
 })
 
@@ -136,6 +138,38 @@ test('shuffle', () => {
   expect(shuffle(s(long))).not.toStrictEqual(s(long))
 })
 
+test('perm', () => {
+  expect(perm(s('123'))).toStrictEqual([
+    ["1", "2", "3"],
+    ["1", "3", "2"],
+    ["2", "1", "3"],
+    ["2", "3", "1"],
+    ["3", "1", "2"],
+    ["3", "2", "1"],
+  ])
+})
+
+test('powerBuckets', () => {
+  expect(powerBuckets(s('123')).map(x => x.map(x => x.map(x => parseInt(x))))).toStrictEqual([
+    [
+      [],
+    ],
+    [
+      [1],
+      [2],
+      [3],
+    ],
+    [
+      [1, 2],
+      [1, 3],
+      [2, 3],
+    ],
+    [
+      [1, 2, 3],
+    ],
+  ])
+})
+
 test('power', () => {
   expect(power(s('123')).map(x => x.map(x => parseInt(x)))).toStrictEqual([
     [],
@@ -146,6 +180,32 @@ test('power', () => {
     [1, 3],
     [2, 3],
     [1, 2, 3]
+  ])
+})
+
+test('powerInnerBuckets', () => {
+  expect(powerInnerBuckets(s('123')).map(x => x.map(x => x.map(x => parseInt(x))))).toStrictEqual([
+    [
+      [1],
+      [2],
+      [3],
+    ],
+    [
+      [1, 2],
+      [1, 3],
+      [2, 3],
+    ],
+  ])
+})
+
+test('powerInner', () => {
+  expect(powerInner(s('123')).map(x => x.map(x => parseInt(x)))).toStrictEqual([
+    [1],
+    [2],
+    [3],
+    [1, 2],
+    [1, 3],
+    [2, 3],
   ])
 })
 

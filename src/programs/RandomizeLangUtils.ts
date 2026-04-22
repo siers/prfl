@@ -44,7 +44,9 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   perm<A>(a: A[]): A[][],
+  powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
+  powerInnerBuckets<A>(a: A[]): A[][][],
   powerInner<A>(a: A[]): A[][],
 
   pick: <A>(array: A[] | string) => A | string,
@@ -233,8 +235,12 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     else return pickArray(array)
   }
 
+  function powerBuckets<A>(a: A[]): A[][][] {
+    return Object.values(_.groupBy([...(new Comb.PowerSet(a))], 'length'))
+  }
+
   function power<A>(a: A[]): A[][] {
-    return Object.values(_.groupBy([...(new Comb.PowerSet(a))], 'length')).flat()
+    return powerBuckets(a).flat()
   }
 
   // stores pick order (incrementing index), picks by linear weight:
@@ -602,6 +608,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     shuffleX,
     perm: <A>(a: A[]) => [...new Comb.Permutation(a)],
     power,
+    powerBuckets,
+    powerInnerBuckets: <A>(a: A[]) => powerBuckets(a).slice(1, -1),
     powerInner: <A>(a: A[]) => power(a).slice(1, -1),
 
     pick,
