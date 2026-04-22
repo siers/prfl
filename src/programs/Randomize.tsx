@@ -262,7 +262,7 @@ function Randomize(controls: any): JSX.Element {
 
   function planningControlButtons(): JSX.Element {
     return <>
-      <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a>
+      { /* <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a> */}
       <a className="pr-3 select-none" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
       <a className="pr-3 select-none" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
 
@@ -377,9 +377,12 @@ export default Randomize
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: execution: rerandomizeable items (doable)
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
-// TODO: execution: indicate tasks which are fresh
-// TODO: execution: save all reviews
+// TODO: execution: save all reviews in the card data, along with all lengths
 // TODO: lang: add tags to block, only main blocks may have items without keys
+// TODO: content: rewrite key picker without memory (divmod on day of the week, use rem for shuffling the array, but sucks, because of day skipping)
+// TODO: execution: indicate tasks which are fresh
+// TODO: seek: add aan array of valid visited routes, starting with the current route
+// TODO: utils: this should be less complicated: [shuffle(pickNKeys('x', 12))]
 
 // TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
@@ -388,7 +391,6 @@ export default Randomize
 // TODO: execution: items embed metronome (or sheet music)
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this)
 
-// TODO: content: rewrite key picker without memory on compilation
 // TODO: content: display programmable scales
 // TODO: content: random notes within position
 // TODO: content: bow articulations tasks
