@@ -99,16 +99,24 @@ describe('timerSubtract', () => {
     expect(timerSubtract(a, b, 0)).toStrictEqual({ kind: 'stopped', length: 3000, running: false })
   })
 
-  test('subtracts stopped from running', () => {
+  test('subtracts stopped from running → stays running, virtual start adjusted', () => {
     const a = freshTimer(0)                          // 10000ms elapsed at now=10000
     const b = toStoppedTimer(freshTimer(0), 3000)   // 3000ms
-    expect(timerSubtract(a, b, 10000)).toStrictEqual({ kind: 'stopped', length: 7000, running: false })
+    // result = 7000ms running → virtual start = 10000 - 7000 = 3000
+    expect(timerSubtract(a, b, 10000)).toStrictEqual({ kind: 'started', start: 3000, running: true })
   })
 
-  test('clamps to 0 when minus exceeds t', () => {
+  test('clamps to 0 when minus exceeds t (stopped)', () => {
     const a = toStoppedTimer(freshTimer(0), 1000)   // 1000ms
     const b = toStoppedTimer(freshTimer(0), 5000)   // 5000ms
     expect(timerSubtract(a, b, 0)).toStrictEqual({ kind: 'stopped', length: 0, running: false })
+  })
+
+  test('clamps to 0 when minus exceeds t (running)', () => {
+    const a = freshTimer(9000)                       // 1000ms elapsed at now=10000
+    const b = toStoppedTimer(freshTimer(0), 5000)   // 5000ms
+    // clamped to 0 → virtual start = now
+    expect(timerSubtract(a, b, 10000)).toStrictEqual({ kind: 'started', start: 10000, running: true })
   })
 
   test('undefined minus is a no-op', () => {

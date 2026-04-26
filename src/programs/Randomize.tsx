@@ -4,7 +4,7 @@ import React, { JSX, RefObject, useEffect, useRef } from 'react'
 import { evalContentsMem } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { UserItem, cardReviewed, toUserItem } from './RandomizeTypes.js'
-import { Timer, TimerCommand, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength } from './Timers.ts'
+import { Timer, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { arrayMove, directRange } from '../lib/Array.js'
@@ -37,6 +37,9 @@ type Args = {
   advance?: number,
   hideDone?: boolean,
 }
+
+type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
+type TimerAction = 'start' | 'stop' | 'restart' | ['subtract', Timer | null] | 'no-op'
 
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
@@ -188,16 +191,24 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function modifyTimerPure(
-    t: Timer | null,
-    command: TimerCommand,
+    tIn: Timer | null,
+    command: TimerAction,
     now: number,
   ): Timer {
+    const t: Timer = tIn || freshTimer(now)
+
+    if (command == 'no-op') return t
+
     if (command == 'start' || command == 'restart') {
       return (!t || command == 'restart') ? freshTimerOrRestart(now, t) : toStartedTimer(t, now)
     }
 
     if (command == 'stop') {
-      return toStoppedTimer(t || freshTimer(now), now)
+      return toStoppedTimer(t, now)
+    }
+
+    if (command[0] == 'subtract') {
+      return timerSubtract(t, command[1], now)
     }
 
     return freshTimer(0) // impossible
@@ -208,15 +219,28 @@ function Randomize(controls: any): JSX.Element {
       const now = Date.now()
       if (!s) return s
 
-      const command = commandIn == 'local-as-global' ? s?.totalTimer?.kind == 'started' ? 'start' : 'stop' : commandIn
+      let commandGlobal: TimerAction | undefined
+      let commandLocal: TimerAction
+
+      if (commandIn == 'local-as-global') {
+        commandLocal = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
+        commandGlobal = 'no-op'
+      } else if (commandIn == 'subtract-and-restart') {
+        const currentItem = s?.items ? s?.items[current] : null
+        commandGlobal = ['subtract', currentItem?.timer || null]
+        commandLocal = 'restart'
+      } else {
+        if (target != 'local') commandGlobal = commandIn
+        commandLocal = commandIn
+      }
 
       return {
         ...s,
-        totalTimer: target != 'local' ? modifyTimerPure(s?.totalTimer || null, command, now) : s?.totalTimer,
+        totalTimer: modifyTimerPure(s?.totalTimer || null, commandGlobal || 'no-op', now),
         items: (s.items || []).map((item, index) => {
           return {
             ...item,
-            timer: modifyTimerPure(item.timer, index == s?.current ? command : 'stop', now),
+            timer: modifyTimerPure(item.timer, index == s?.current ? commandLocal : 'stop', now),
           }
         })
       }
@@ -326,6 +350,7 @@ function Randomize(controls: any): JSX.Element {
     const timerControls = <>
       <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pt-3 pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
       <span onClick={() => modifyTimer('restart', 'local')} className="pt-3 pb-3 pl-2 pr-2 select-none">🔄</span>
+      <span onClick={() => modifyTimer('subtract-and-restart')} className="pt-3 pb-3 pl-2 pr-2 select-none">↩️</span>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
@@ -384,7 +409,6 @@ export default Randomize
 // TODO: seek: add aan array of valid visited routes, starting with the current route
 // TODO: utils: this should be less complicated: [shuffle(pickNKeys('x', 12))]
 // TODO: interpolate: format: join "" inner, join " " outer
-// TODO: execution: minus button for tasks that were forgotten to be paused
 
 // TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column

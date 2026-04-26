@@ -57,6 +57,7 @@ export const timerSubtract: (t: Timer, minus: Timer | null | undefined, now: num
   const tMs = logicalTimerLength(t, now)
   const minusMs = minus ? logicalTimerLength(minus, now) : 0
   const resultMs = Math.max(0, tMs - minusMs)
+  if (t.kind == 'started') return { kind: 'started', start: now - resultMs, running: true }
   return { kind: 'stopped', length: resultMs, running: false }
 }
 
