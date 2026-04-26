@@ -1,4 +1,4 @@
-import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, renderLine, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, InterpolableLine, Interpolate, RenderLineSchema } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, InterpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -128,7 +128,7 @@ const StringArray = z.array(z.string())
 const StringArrayArray = z.array(z.array(z.string()))
 type InterpolateSubst = z.infer<typeof StringArray> | z.infer<typeof StringArrayArray> | unknown
 
-function substituteInterpolate(line: string, marker: string, subst: InterpolateSubst) {
+function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubst): RenderLine {
   let out
 
   try {
@@ -146,34 +146,35 @@ function substituteInterpolate(line: string, marker: string, subst: InterpolateS
     out = `exc: ${e}`
   }
 
-  return [line.replace(marker, `[${out}]`)]
+  return renderLine1(line.contents.replace(marker, `[${out}]`))
 }
 
 function isRenderLines(subst: any): RenderLine[] | undefined {
   return RenderLineSchema.array().safeParse(subst).data
 }
 
-function substituteExplode(line: string, marker: string, subst: any): string[] {
+function substituteExplode(line: RenderLine, marker: string, subst: any): RenderLine[] {
   const renderLines = isRenderLines(subst)
 
   if (renderLines) {
-    return renderLines.map(r => line.replace(marker, `${r.contents}`))
+    // NOTE: products of render lines not supported because of this line
+    return renderLines // .map(r => line.replace(marker, `${r.contents}`))
   }
 
   if (isStringArray(subst)) {
-    return (subst as string[]).map(r => line.replace(marker, `${r}`))
+    return (subst as string[]).map(r => renderLine1(line.contents.replace(marker, `${r}`)))
   }
 
   if (isArrayStringArray(subst)) {
-    return (subst.map(c => c.join(' '))).map(r => line.replace(marker, `[${r}]`))
+    return (subst.map(c => c.join(' '))).map(r => renderLine1(line.contents.replace(marker, `[${r}]`)))
   }
 
   if (subst === undefined) return []
 
-  else return [`explode requires string[], got ${typeof subst}`]
+  else return [errorLine(`explode requires string[], got ${typeof subst}`)]
 }
 
-function evalEvals(line: string, marker: string, e: Eval, context: Context): string[] {
+function executeCommand(command: string, context: Context): any {
   const memory = context.get('memory') as Memory
   const additionalContext = {
     memory,
@@ -181,18 +182,7 @@ function evalEvals(line: string, marker: string, e: Eval, context: Context): str
   }
   const fullContext = { ...randomizeLangUtils(context, memory), ...additionalContext }
 
-  const subst: any = executeInContext(fullContext, e.command)
-  if (subst?.kind === 'error') return [`error: failed to compile: ${subst?.contents}}`]
-
-  if (e.kind == 'interpolate') return substituteInterpolate(line, marker, subst)
-  if (e.kind == 'explode') return substituteExplode(line, marker, subst)
-
-  return [] // e.kind is never and both if branches are full, so this shouldn't be possible
-}
-
-function toRenderLine(contents: string, iLine: InterpolableLine): RenderLine {
-  const key = contents.match(LineKeyPattern)
-  return renderLine(contents, key && key[1], iLine)
+  return executeInContext(fullContext, command)
 }
 
 function evalItem(item: Item, context: Context): RenderLine[] {
@@ -201,17 +191,34 @@ function evalItem(item: Item, context: Context): RenderLine[] {
     const thisLine = item
     const [is, es] = _.partition(thisLine.evals, e => e.kind == 'interpolate')
 
-    const lines = pipe(
-      times(thisLine.times).map(_ => thisLine.contents),
-      lines => es.reduce((lines, e) => lines.flatMap(l => evalEvals(l, e.marker, e, context)), lines),
-    )
+    return pipe(
+      times(thisLine.times).map(_ => renderLine1(thisLine.contents)),
+      lines => es.reduce((lines, e) => lines.flatMap(l => {
+        const subst: any = executeCommand(e.command, context)
+        if (subst?.kind === 'error') return [errorLine(`error: failed to compile: ${subst?.contents}}`)]
 
-    const evalInterpolateUnsafe = (l: string, i: Interpolate) => evalEvals(l, i.marker, i, context)[0]
+        return substituteExplode(l, e.marker, subst)
+      }), lines),
+      lines => lines.map(line => {
+        if (line.source) return line
 
-    return lines.map(line =>
-      toRenderLine(is.reduce((line, i) => {
-        return evalInterpolateUnsafe(line, i)
-      }, line), interpolableLine(line, is))
+        const interpolated = is.reduce((l: RenderLine, i: Interpolate) => {
+          const subst: any = executeCommand(i.command, context)
+          if (subst?.kind === 'error') return errorLine(`error: failed to compile: $subst?.contents}`)
+
+          if (l.source) return (l satisfies RenderLine)
+          return substituteInterpolate(l, i.marker, subst)
+        }, line)
+
+        return {
+          ...interpolated,
+          source: is.length > 0 ? interpolableLine(line.contents, is) : null
+        }
+      }),
+      lines => lines.map(line => {
+        const key = line.contents.match(LineKeyPattern)
+        return { ...line, key: key && key[1] }
+      }),
     )
   }
 
@@ -228,16 +235,20 @@ function evalBlock(block: Block, context: Context): RenderLine[] {
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
+function initContext(memory: Memory): Map<string, any> {
+  const ic = new Map<string, any>([
+    ['memory', memory],
+    ['evalItem', (i: Item) => evalItem(i, ic)],
+  ])
+
+  return ic
+}
+
 export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [EvaluationResult, Memory] {
   const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const initContext = new Map<string, any>([
-    ['memory', memory],
-    ['evalItem', (i: Item) => evalItem(i, initContext)],
-  ])
-
-  const evaluationInit: EvaluationContext = [[], initContext]
+  const evaluationInit: EvaluationContext = [[], initContext(memory)]
   const [mainBlocks, context]: EvaluationContext = blocks.reduce(([mainBlocks, context], b) => {
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
@@ -258,4 +269,12 @@ export function evalContents(text: string): RenderLine[] {
 
 export function evalContentsS(text: string): string[] {
   return evalContentsMem(text)[0].map(rl => rl.contents)
+}
+
+export function evalInterpolableLine(l: InterpolableLine, mem: Memory = new Map()): RenderLine {
+  const i = line(l.contents, l.interpols, 1)
+
+  const evalItemUnsafe = (i: Item) => evalItem(i, initContext(mem))[0]
+
+  return evalItemUnsafe(i)
 }
