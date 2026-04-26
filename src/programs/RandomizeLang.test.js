@@ -229,6 +229,40 @@ describe('evaling items inside a block', () => {
 
     expect(evalContentsS(text)).toStrictEqual(['a', 'b', 'c'])
   })
+
+  test('blockLines preserve source', () => {
+    const text = `
+      -=- a
+      a: [s('12')] [s('34')]
+      -=-
+      {blockLines('a')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual([
+      {
+        "contents": "a: [1 2] [3 4]",
+        "key": "a",
+        "kind": "renderline",
+        "separator": null,
+        "source": {
+          "contents": "a: !!!1 !!!2",
+          "interpols": [
+            {
+              "command": "s('12')",
+              "kind": "interpolate",
+              "marker": "!!!1",
+            },
+            {
+              "command": "s('34')",
+              "kind": "interpolate",
+              "marker": "!!!2",
+            },
+          ],
+          "kind": "interpolable-line",
+        },
+      },
+    ])
+  })
 })
 
 describe('keys', () => {
@@ -241,11 +275,7 @@ describe('keys', () => {
         "key": "DoTheLaundry",
         "kind": "renderline",
         "separator": null,
-        "source": {
-          "contents": "DoTheLaundry: do it",
-          "interpols": [],
-          "kind": "interpolable-line",
-        },
+        "source": null,
       }
     ])
   })
@@ -259,11 +289,7 @@ describe('keys', () => {
         "key": "DoTheLaundry",
         "kind": "renderline",
         "separator": null,
-        "source": {
-          "contents": "DoTheLaundry",
-          "interpols": [],
-          "kind": "interpolable-line",
-        },
+        "source": null,
       }
     ])
   })

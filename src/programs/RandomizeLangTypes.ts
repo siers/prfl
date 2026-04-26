@@ -115,4 +115,5 @@ export const interpolableLine: (contents: string, interpols: Interpolate[]) => I
 
 export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null, null)
 export const renderLine: (contents: string, key: string | null, source: InterpolableLine | null) => RenderLine = (contents, key, source) => ({ kind: 'renderline', contents, key, separator: null, source })
+export const renderLine1: (contents: string) => RenderLine = (contents: string) => ({ kind: 'renderline', contents, key: null, separator: null, source: null })
 export const renderLineSep: () => RenderLine = () => ({ ...renderLine('---', null, null), separator: true })

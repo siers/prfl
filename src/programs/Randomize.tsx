@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { evalContentsMem } from './RandomizeLang.js'
+import { evalContentsMem, evalInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { UserItem, cardReviewed, toUserItem } from './RandomizeTypes.js'
 import { Timer, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract } from './Timers.ts'
@@ -40,6 +40,13 @@ type Args = {
 
 type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
 type TimerAction = 'start' | 'stop' | 'restart' | ['subtract', Timer | null] | 'no-op'
+
+type ItemActions = {
+  reviewed?: boolean,
+  done?: boolean,
+  bury?: boolean,
+  regenerate?: boolean,
+}
 
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
@@ -143,6 +150,10 @@ function Randomize(controls: any): JSX.Element {
     return { item: items[index], index, unbounded: !items[index] }
   }
 
+  function memoryFromState(s: RState | undefined) {
+    return (state?.memory && mapParse(state.memory)) || makeEmptyMemory()
+  }
+
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
       const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
@@ -154,9 +165,8 @@ function Randomize(controls: any): JSX.Element {
       let nextTotalTimer: Timer | undefined = state?.totalTimer
 
       if (a.eval) {
-        const oldMemory = (state?.memory && mapParse(state.memory)) || makeEmptyMemory()
         // console.clear()
-        const [lines, memory] = evalContentsMem(contentsOr, oldMemory)
+        const [lines, memory] = evalContentsMem(contentsOr, memoryFromState(s))
         newMemory = memory
         items = lines.map(rl => toUserItem(rl))
         nextTotalTimer = undefined
@@ -247,7 +257,7 @@ function Randomize(controls: any): JSX.Element {
     })
   }
 
-  function modifyItem(controls: { reviewed: boolean, done: boolean, bury: boolean }) {
+  function modifyItem(controls: ItemActions) {
     setState((s: RState | undefined) => {
       if (!s) return s
 
@@ -257,19 +267,24 @@ function Randomize(controls: any): JSX.Element {
       const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
 
       if (controls.reviewed === true && items[current].key) cardReviewed(memory, items[current].key, Date.now())
-      // else console.log(`card burried, can't mark ${JSON.stringify(items[current])} reviewed`)
 
       const updatedItems = items.map((item, index) => {
         if (index != current) return item
-        else return { ...item, done: controls.done }
+        if (controls.regenerate === true) {
+          if (!item.source) return item
+          console.log('regenrate and has source:', item.source)
+          return {
+            ...item, ...(evalInterpolableLine(item.source, memoryFromState(s)))
+          }
+        } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 
-      const updatedItems2 = move ? arrayMove(updatedItems, current, (s?.items?.length || 0) - 1) : updatedItems
+      const movedItems = move ? arrayMove(updatedItems, current, (s?.items?.length || 0) - 1) : updatedItems
 
       return {
         ...s,
         memory: mapSerialize(memory),
-        items: updatedItems2,
+        items: movedItems,
       }
     })
 
@@ -341,6 +356,9 @@ function Randomize(controls: any): JSX.Element {
         if (unbounded || !item) return null
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {item.contents}
+          {index != current ? <></> : <>
+            <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: true })}>🔄</a>
+          </>}
         </div>
       })}
     </div>
@@ -398,12 +416,10 @@ function Randomize(controls: any): JSX.Element {
 export default Randomize
 
 // TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
-// TODO: execution: rerandomizeable items (doable)
 // TODO: execution: save all reviews in the card data, along with all lengths
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add an array of valid visited routes, starting with the current route
-// TODO: interpolate: format: join "" inner, join " " outer
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
@@ -416,7 +432,7 @@ export default Randomize
 // TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 
 // TODO: execution: items embed metronome (or sheet music)
-// TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this)
+// TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
 
 // TODO: content: display programmable scales
 // TODO: content: random notes within position
