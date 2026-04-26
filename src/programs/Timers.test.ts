@@ -1,5 +1,5 @@
 import { expect, test, describe } from 'vitest'
-import { hm, ms, freshTimer, freshTimerOrRestart, toStoppedTimer, toStartedTimer, timerLength } from './Timers.js'
+import { hm, ms, freshTimer, freshTimerOrRestart, toStoppedTimer, toStartedTimer, timerLength, logicalTimerLength, timerSubtract } from './Timers.js'
 
 describe('hm', () => {
   test('minutes only', () => { expect(hm(1)).toStrictEqual('1m') })
@@ -69,6 +69,51 @@ describe('timerLength', () => {
 
   test('stopped timer returns recorded length in seconds', () => {
     expect(timerLength(toStoppedTimer(freshTimer(1000), 4000), 9999)).toBe(3)
+  })
+})
+
+describe('logicalTimerLength', () => {
+  test('null returns 0', () => {
+    expect(logicalTimerLength(null, 5000)).toBe(0)
+  })
+
+  test('running timer returns elapsed ms', () => {
+    expect(logicalTimerLength(freshTimer(1000), 3000)).toBe(2000)
+  })
+
+  test('stopped timer returns recorded length in ms', () => {
+    expect(logicalTimerLength(toStoppedTimer(freshTimer(1000), 4000), 9999)).toBe(3000)
+  })
+})
+
+describe('timerSubtract', () => {
+  test('subtracts running from stopped', () => {
+    const a = toStoppedTimer(freshTimer(0), 5000)   // 5000ms
+    const b = freshTimer(8000)                       // 2000ms elapsed at now=10000
+    expect(timerSubtract(a, b, 10000)).toStrictEqual({ kind: 'stopped', length: 3000, running: false })
+  })
+
+  test('subtracts stopped from stopped', () => {
+    const a = toStoppedTimer(freshTimer(0), 5000)   // 5000ms
+    const b = toStoppedTimer(freshTimer(0), 2000)   // 2000ms
+    expect(timerSubtract(a, b, 0)).toStrictEqual({ kind: 'stopped', length: 3000, running: false })
+  })
+
+  test('subtracts stopped from running', () => {
+    const a = freshTimer(0)                          // 10000ms elapsed at now=10000
+    const b = toStoppedTimer(freshTimer(0), 3000)   // 3000ms
+    expect(timerSubtract(a, b, 10000)).toStrictEqual({ kind: 'stopped', length: 7000, running: false })
+  })
+
+  test('clamps to 0 when minus exceeds t', () => {
+    const a = toStoppedTimer(freshTimer(0), 1000)   // 1000ms
+    const b = toStoppedTimer(freshTimer(0), 5000)   // 5000ms
+    expect(timerSubtract(a, b, 0)).toStrictEqual({ kind: 'stopped', length: 0, running: false })
+  })
+
+  test('undefined minus is a no-op', () => {
+    const a = toStoppedTimer(freshTimer(0), 4000)
+    expect(timerSubtract(a, undefined, 0)).toStrictEqual({ kind: 'stopped', length: 4000, running: false })
   })
 })
 
