@@ -361,8 +361,7 @@ function Randomize(controls: any): JSX.Element {
       <div className="text-[#888]">{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</div>
 
       <div className="flex flex-row justify-center">
-        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
-        <a className="pr-3 select-none text-[#000]">&nbsp;</a>
+        <a className="pr-6 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
         <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
         <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
         <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
