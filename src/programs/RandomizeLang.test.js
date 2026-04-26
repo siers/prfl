@@ -241,6 +241,11 @@ describe('keys', () => {
         "key": "DoTheLaundry",
         "kind": "renderline",
         "separator": null,
+        "source": {
+          "contents": "DoTheLaundry: do it",
+          "interpols": [],
+          "kind": "interpolable-line",
+        },
       }
     ])
   })
@@ -254,6 +259,11 @@ describe('keys', () => {
         "key": "DoTheLaundry",
         "kind": "renderline",
         "separator": null,
+        "source": {
+          "contents": "DoTheLaundry",
+          "interpols": [],
+          "kind": "interpolable-line",
+        },
       }
     ])
   })

@@ -1,4 +1,4 @@
-import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, renderLine, EvaluationResult, EvaluationContext, RenderLineSchema, LineKeyPattern } from './RandomizeLangTypes'
+import { Eval, Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, renderLine, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, InterpolableLine, Interpolate, RenderLineSchema } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -83,12 +83,9 @@ function extractEvals(l: string): [string, Evals] {
   const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]/g, defaultMarker)
 
   const evals: Evals = matches.map(([marker, m]) => {
-    const ev = (function () {
-      if (m[0] == '[') return interpolate(m.slice(1, m.length - 1).replace(/\\([\[\]])/g, '$1'))
-      if (m[0] == '{') return explode(m.slice(1, m.length - 1).replace(/\\([\{\}])/g, '$1'))
-      return interpolate('unlikely')
-    })()
-    return [marker, ev]
+    if (m[0] == '[') return interpolate(m.slice(1, m.length - 1).replace(/\\([\[\]])/g, '$1'), marker)
+    if (m[0] == '{') return explode(m.slice(1, m.length - 1).replace(/\\([\{\}])/g, '$1'), marker)
+    return interpolate('unlikely', '')
   })
 
   return [template, evals]
@@ -193,24 +190,31 @@ function evalEvals(line: string, marker: string, e: Eval, context: Context): str
   return [] // e.kind is never and both if branches are full, so this shouldn't be possible
 }
 
-function parseRenderLine(line: string): RenderLine {
-  const key = line.match(LineKeyPattern)
-  return renderLine(line, key && key[1])
+function toRenderLine(contents: string, iLine: InterpolableLine): RenderLine {
+  const key = contents.match(LineKeyPattern)
+  return renderLine(contents, key && key[1], iLine)
 }
 
 function evalItem(item: Item, context: Context): RenderLine[] {
   if (item.kind == 'header') return []
   if (item.kind == 'line') {
-    const [is, es] = _.partition(item.evals, ([_m, e]) => e.kind == 'interpolate')
+    const thisLine = item
+    const [is, es] = _.partition(thisLine.evals, e => e.kind == 'interpolate')
 
-    const line = pipe(
-      times(item.times).map(_ => item.contents),
-      lines => es.reduce((lines, [m, e]) => lines.flatMap(l => evalEvals(l, m, e, context)), lines),
-      lines => is.reduce((lines, [m, i]) => lines.flatMap(l => evalEvals(l, m, i, context)), lines),
+    const lines = pipe(
+      times(thisLine.times).map(_ => thisLine.contents),
+      lines => es.reduce((lines, e) => lines.flatMap(l => evalEvals(l, e.marker, e, context)), lines),
     )
 
-    return line.map(parseRenderLine)
+    const evalInterpolateUnsafe = (l: string, i: Interpolate) => evalEvals(l, i.marker, i, context)[0]
+
+    return lines.map(line =>
+      toRenderLine(is.reduce((line, i) => {
+        return evalInterpolateUnsafe(line, i)
+      }, line), interpolableLine(line, is))
+    )
   }
+
   return []
 }
 

@@ -3,15 +3,17 @@ import { z } from 'zod'
 export type Interpolate = {
   kind: 'interpolate',
   command: string,
+  marker: string,
 }
 
 export type Explode = {
   kind: 'explode',
   command: string,
+  marker: string,
 }
 
 export type Eval = Interpolate | Explode
-export type Evals = [Marker, Eval][]
+export type Evals = Eval[]
 
 export type Line = {
   kind: 'line',
@@ -20,18 +22,38 @@ export type Line = {
   times: number,
 }
 
+export type InterpolableLine = {
+  kind: 'interpolable-line',
+  contents: string,
+  interpols: Interpolate[],
+}
+
 export type RenderLine = {
   kind: 'renderline',
   contents: string,
   key: string | null,
   separator: boolean | null,
+  source: InterpolableLine | null,
 }
+
+export const InterpolateSchema = z.object({
+  kind: z.literal('interpolate'),
+  command: z.string(),
+  marker: z.string(),
+})
+
+export const InterpolableLineSchema = z.object({
+  kind: z.literal('interpolable-line'),
+  contents: z.string(),
+  interpols: z.array(InterpolateSchema),
+})
 
 export const RenderLineSchema = z.object({
   kind: z.literal('renderline'),
   contents: z.string(),
   key: z.string().nullable(),
   separator: z.boolean().nullable(),
+  source: InterpolableLineSchema.nullable(),
 })
 
 // if derived directly, the debugger shows the expanded definition, not the type alias
@@ -43,9 +65,9 @@ type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B
 
 type Assert<T extends true> = T
 
-type _ = Assert<Equals<RenderLine, RenderLineDerived>>
+type _assertOut = Assert<Equals<RenderLine, RenderLineDerived>>
 
-export function ignore(_: _) { }
+export function ignore(_: _assertOut) { }
 
 // pattern for rendered lines that denotes their flashcard identificator
 export const LineKeyPattern = /^ *([a-zA-Z0-9\-]+)(: .*|)$/
@@ -66,10 +88,6 @@ export type Block = {
   items: Item[],
 }
 
-export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null)
-export const renderLine: (contents: string, key: string | null) => RenderLine = (contents, key) => ({ kind: 'renderline', contents, key, separator: null })
-export const renderLineSep: () => RenderLine = () => ({ ...renderLine('---', null), separator: true })
-
 // export type ContextBlock = (...args: any) => string[]
 
 export type Blocks = Block[]
@@ -85,10 +103,16 @@ export const makeEmptyMemory = () => new Map()
 export type Marker = string
 
 export const header = (shuffle: Boolean, name: string | null) => ({ kind: 'header', name, shuffle }) as Header
-export const interpolate = (command: string) => ({ kind: 'interpolate', command }) as Interpolate
-export const explode = (command: string) => ({ kind: 'explode', command }) as Explode
+export const interpolate = (command: string, marker: string) => ({ kind: 'interpolate', command, marker }) as Interpolate
+export const explode = (command: string, marker: string) => ({ kind: 'explode', command, marker }) as Explode
 export const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
 export const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
 
 export type EvaluationResult = RenderLine[]
 export type EvaluationContext = [EvaluationResult[], Context]
+
+export const interpolableLine: (contents: string, interpols: Interpolate[]) => InterpolableLine = (contents, interpols) => ({ kind: 'interpolable-line', contents, interpols })
+
+export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null, null)
+export const renderLine: (contents: string, key: string | null, source: InterpolableLine | null) => RenderLine = (contents, key, source) => ({ kind: 'renderline', contents, key, separator: null, source })
+export const renderLineSep: () => RenderLine = () => ({ ...renderLine('---', null, null), separator: true })
