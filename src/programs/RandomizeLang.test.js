@@ -240,4 +240,17 @@ describe('keys', () => {
       }
     ])
   })
+
+  test('parse keys without a colon', () => {
+    const text = `DoTheLaundry`
+
+    expect(evalContents(text)).toStrictEqual([
+      {
+        "contents": "DoTheLaundry",
+        "key": "DoTheLaundry",
+        "kind": "renderline",
+        "separator": null,
+      }
+    ])
+  })
 })

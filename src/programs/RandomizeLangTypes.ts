@@ -48,7 +48,7 @@ type _ = Assert<Equals<RenderLine, RenderLineDerived>>
 export function ignore(_: _) { }
 
 // pattern for rendered lines that denotes their flashcard identificator
-export const LineKeyPattern = /^ *([a-zA-Z0-9\-]+):/
+export const LineKeyPattern = /^ *([a-zA-Z0-9\-]+)(: .*|)$/
 
 export type Header = {
   kind: 'header',

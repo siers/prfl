@@ -383,6 +383,8 @@ export default Randomize
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add aan array of valid visited routes, starting with the current route
 // TODO: utils: this should be less complicated: [shuffle(pickNKeys('x', 12))]
+// TODO: interpolate: format: join "" inner, join " " outer
+// TODO: execution: minus button for tasks that were forgotten to be paused
 
 // TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
