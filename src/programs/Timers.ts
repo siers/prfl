@@ -2,7 +2,6 @@ import { roundToNaive } from '../lib/Math.js'
 
 export type Timer = { kind: 'started', start: number, running: true } | { kind: 'stopped', length: number, running: false }
 export type Timers = (Timer | null)[]
-export type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global'
 
 export const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
 
