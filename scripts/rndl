@@ -8,9 +8,7 @@ import fs from 'node:fs'
 
 const argv = process.argv.slice(2)
 
-argv.map((file, idx) => {
-  if (idx === 0) console.log()
-
+argv.map(file => {
   const contents = fs.readFileSync(file, 'utf-8')
   const lines = evalContentsS(contents)
   console.log()

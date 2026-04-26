@@ -117,6 +117,10 @@ describe('evalContents', () => {
     expect(evalContentsS('item [s("a b")]')).toStrictEqual(['item [a b]'])
   })
 
+  test('eval interpolate 2d', () => {
+    expect(evalContentsS('item [divide(s("abcd"), 2)]')).toStrictEqual(['item [ab cd]'])
+  })
+
   test('eval explode', () => {
     expect(evalContentsS('-=-\nitem {s("abc")}')).toStrictEqual(['item a', 'item b', 'item c'])
     expect(evalContentsS('-=-\nitem {divide(s("ab"), 2)}')).toStrictEqual(['item [a]', 'item [b]'])

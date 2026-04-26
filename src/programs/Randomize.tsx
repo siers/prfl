@@ -398,16 +398,18 @@ function Randomize(controls: any): JSX.Element {
 export default Randomize
 
 // TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
-// TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: execution: rerandomizeable items (doable)
-// TODO: scheduling: weights should be proportional to how long ago the task was last picked
 // TODO: execution: save all reviews in the card data, along with all lengths
 // TODO: lang: add tags to block, only main blocks may have items without keys
-// TODO: content: rewrite key picker without memory (divmod on day of the week, use rem for shuffling the array, but sucks, because of day skipping)
 // TODO: execution: indicate tasks which are fresh
-// TODO: seek: add aan array of valid visited routes, starting with the current route
-// TODO: utils: this should be less complicated: [shuffle(pickNKeys('x', 12))]
+// TODO: seek: add an array of valid visited routes, starting with the current route
 // TODO: interpolate: format: join "" inner, join " " outer
+
+// TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
+// TODO: scheduling: weights should be proportional to how long ago the task was last picked
+
+// TODO: utils: this should be less complicated: [shuffle(pickNKeys('x', 12))]
+// TODO: content: rewrite key picker without memory (divmod on day of the week, use rem for shuffling the array, but sucks, because of day skipping)
 
 // TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
@@ -425,6 +427,5 @@ export default Randomize
 
 // TODO: hard: scheduling: give "gas" to tasks, so they get temporarily bumped
 
-// TODO: backlog: util: cross inside utils with cross on generic arrays + https://www.npmjs.com/package/string-format
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: backlog: execution: scrollable items in execution

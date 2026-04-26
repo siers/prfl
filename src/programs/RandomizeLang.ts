@@ -4,6 +4,7 @@ import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
+import { z } from 'zod'
 
 // lib
 
@@ -126,23 +127,29 @@ export function parseContents(text: string): Parsed {
 
 // evaluators
 
-function substituteInterpolate(line: string, marker: string, subst: any) {
+const StringArray = z.array(z.string())
+const StringArrayArray = z.array(z.array(z.string()))
+type InterpolateSubst = z.infer<typeof StringArray> | z.infer<typeof StringArrayArray> | unknown
+
+function substituteInterpolate(line: string, marker: string, subst: InterpolateSubst) {
   let out
 
   try {
-    if (typeof subst === 'object' && subst['every'] && subst['every']((a: any) => typeof a === 'string')) {
-      out = subst.join(' ')
-    }
-    else {
-      out = subst.toString()
+    const strings = StringArray.safeParse(subst)
+    const strings2d = StringArrayArray.safeParse(subst)
+
+    if (strings.success) {
+      out = strings.data.join(' ')
+    } else if (strings2d.success) {
+      out = strings2d.data.map(a => a.join('')).join(' ')
+    } else {
+      out = (subst as any).toString()
     }
   } catch (e) {
     out = `exc: ${e}`
   }
 
   return [line.replace(marker, `[${out}]`)]
-  // if (typeof subst === 'string')
-  // else return [`interpolate requires string, got ${typeof subst}`]
 }
 
 function isRenderLines(subst: any): RenderLine[] | undefined {
