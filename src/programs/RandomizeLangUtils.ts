@@ -84,9 +84,8 @@ export type Interface = {
 
   pickKey: (n?: number) => string | string[],
   pickNKeys: (cacheKey: string, n: number) => string[],
-  pickKeys: (cacheKey: string, n: number) => string[],
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
-  keys: (settings: {
+  pickKeys: (settings: {
     count?: number,
     mode?: number,
     order?: number,
@@ -532,19 +531,19 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return pickKeysOffset(cacheKey, ...offsets)
   }
 
-  function pickKeys(cacheKey: string, n: number): string[] {
-    const semis = keySemis()
-    const key = `pickKeys|${cacheKey}`
-    const pick = pickMemK(key, semis, n)
+  // function pickKeys(cacheKey: string, n: number): string[] {
+  //   const semis = keySemis()
+  //   const key = `pickKeys|${cacheKey}`
+  //   const pick = pickMemK(key, semis, n)
 
-    return pick.map(s => {
-      const keys = keysBySemi(s)
-      const note = keys.length !== 1
-        ? JSON.parse(pickMemK(`${key}|FG`, keys.map(k => JSON.stringify(k)), 1)[0])
-        : keys[0]
-      return render(note, false)
-    })
-  }
+  //   return pick.map(s => {
+  //     const keys = keysBySemi(s)
+  //     const note = keys.length !== 1
+  //       ? JSON.parse(pickMemK(`${key}|FG`, keys.map(k => JSON.stringify(k)), 1)[0])
+  //       : keys[0]
+  //     return render(note, false)
+  //   })
+  // }
 
   function pickKeysOffsetGeneric(shufflePick: (as: number[]) => number[], ...offsets: number[]): string[] {
     const semis = keySemis()
@@ -563,7 +562,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return pickKeysOffsetGeneric(shuffler, ...offsets)
   }
 
-  function keys(settings: {
+  function pickKeys(settings: {
     count?: number,
     mode?: number,
     order?: number,
@@ -678,9 +677,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     pickKey,
     pickNKeys,
-    pickKeys,
     pickKeysOffset,
-    keys,
+    pickKeys,
 
     pickEarlyBias,
     picksEarlyBias,
