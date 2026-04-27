@@ -151,7 +151,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function memoryFromState(s: RState | undefined) {
-    return (state?.memory && mapParse(state.memory)) || makeEmptyMemory()
+    return (s?.memory && mapParse(s.memory)) || makeEmptyMemory()
   }
 
   function newAndRecalculate(a: Args) {
@@ -356,7 +356,7 @@ function Randomize(controls: any): JSX.Element {
         if (unbounded || !item) return null
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {item.contents}
-          {index != current ? <></> : <>
+          {!(index == current && (items[current]?.source?.interpols?.length || 0) > 0) ? <></> : <>
             <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: true })}>🔄</a>
           </>}
         </div>
@@ -420,6 +420,7 @@ export default Randomize
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add an array of valid visited routes, starting with the current route
+// TODO: bug: give the item rerandomizer old memory
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
