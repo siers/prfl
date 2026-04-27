@@ -217,13 +217,14 @@ export function notesMissing(k: Key, l: Key): Set<string> {
   return allNotesRendered().subtract(normalizedNotesRendered(k).union(normalizedNotesRendered(l)))
 }
 
-export function keyCenters(): Note[] {
-  return keysMajor().map(k => k[0])
+export function keyCenters(mode: number = 0): Note[] {
+  const keys = _.sortBy(keysMajor(), ks => semi(ks[0]))
+  return keys.map(k => k[mode % keys[0].length])
 }
 
 // NOTE: this really could be just [0, 11]
-export function keySemis(): number[] {
-  return _.uniq(keyCenters().map(k => semi(normalize(k))))
+export function keySemis(mode: number = 0): number[] {
+  return keyCenters(mode).map(k => semi(normalize(k)))
 }
 
 export function keysBySemi(n: number): Note[] {

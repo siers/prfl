@@ -3,7 +3,7 @@ import { cardMemory } from './RandomizeTypes'
 
 import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keysBySemi, keySemis, Note, render } from '../lib/ToneLib'
+import { keyCenters, keysBySemi, keySemis, Note, rebase, render, semi } from '../lib/ToneLib'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import * as Comb from 'ts-combinatorics'
@@ -86,6 +86,15 @@ export type Interface = {
   pickNKeys: (cacheKey: string, n: number) => string[],
   pickKeys: (cacheKey: string, n: number) => string[],
   pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
+  keys: (settings: {
+    count?: number,
+    mode?: number,
+    order?: number,
+    div?: number,
+    split?: number, // should control order/div
+    shuffle?: boolean,
+  }) => string[][],
+
   pickEarlyBias<A>(as: A[]): A,
   picksEarlyBias<A>(as: A[]): A[],
 
@@ -554,6 +563,34 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return pickKeysOffsetGeneric(shuffler, ...offsets)
   }
 
+  function keys(settings: {
+    count?: number,
+    mode?: number,
+    order?: number,
+    div?: number,
+    split?: number, // should control order/div
+    shuffle?: boolean,
+  }): string[][] {
+    const keys = keyCenters(settings?.mode || 0)
+
+    if (typeof settings.split == 'number') {
+      settings.div = Math.round(12 / settings.split)
+      settings.order = settings.split
+    }
+
+    const ordered = _.sortBy(keys, k => {
+      const base = keys[0]
+      const based = semi(rebase(k, base))
+      return ((based - semi(base)) * (settings.order || 1) % 12) + semi(base)
+    })
+
+    const shuf = settings.shuffle === true
+    const chunks = divide(ordered, settings.div || 1).map(c => shuf ? shuffle(c) : c)
+    const shufChunks = shuf ? shuffle(chunks) : chunks
+
+    return shufChunks.map(c => c.map(k => render(k, false)))
+  }
+
   // violin
 
   function scalePositions(opts: { arrows?: boolean } = {}) {
@@ -643,6 +680,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     pickNKeys,
     pickKeys,
     pickKeysOffset,
+    keys,
+
     pickEarlyBias,
     picksEarlyBias,
 

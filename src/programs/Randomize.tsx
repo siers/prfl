@@ -272,10 +272,7 @@ function Randomize(controls: any): JSX.Element {
         if (index != current) return item
         if (controls.regenerate === true) {
           if (!item.source) return item
-          console.log('regenrate and has source:', item.source)
-          return {
-            ...item, ...(evalInterpolableLine(item.source, memoryFromState(s)))
-          }
+          return { ...item, ...(evalInterpolableLine(item.source, memoryFromState(s))) }
         } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 
