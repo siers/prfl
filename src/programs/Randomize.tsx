@@ -398,10 +398,10 @@ function Randomize(controls: any): JSX.Element {
     </>
 
     const reviewControls = <>
-      <a className="pr-6 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
-      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
-      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
-      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
+      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
+      <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
+      <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
+      {/* <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a> */}
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
@@ -411,14 +411,17 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center">
-        <div className="pr-5 w-[8em] text-[#888]" ref={totalTimerRef}></div>
-        <div className="pl-5 w-[8em] text-[#888] text-right">{itemCounter}</div>
+        <div className="pr-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
+        <div className="pl-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
-      <div className="flex flex-row justify-center">
-        <div className="pt-3">{reviewControls}</div>
-        <div className="w-[7em] p-3 text-center" ref={localTimerRef}></div>
-        <div className="pt-3">{timerControls}</div>
+      <div className="flex flex-row justify-center pt-3 ">
+        <div className="">{reviewControls}</div>
+      </div>
+
+      <div className="flex flex-row justify-center pt-3">
+        <div className="w-[7em] text-center" ref={localTimerRef}></div>
+        <div className="">{timerControls}</div>
       </div>
     </div>
   }
