@@ -368,29 +368,33 @@ function Randomize(controls: any): JSX.Element {
 
   function executionStats(): JSX.Element {
     const timerControls = <>
-      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pt-3 pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
-      <span onClick={() => modifyTimer('restart', 'local')} className="pt-3 pb-3 pl-2 pr-2 select-none">🔄</span>
-      <span onClick={() => modifyTimer('subtract-and-restart')} className="pt-3 pb-3 pl-2 pr-2 select-none">↩️</span>
+      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
+      <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 pl-2 pr-2 select-none">🔄</span>
+      <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 pl-2 pr-2 select-none">↩️</span>
+    </>
+
+    const reviewControls = <>
+      <a className="pr-6 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
+      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
+      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
+      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
     const shownItemNr = Object.fromEntries(currentMap)[current]
     const currentItemNr = 1 + (hideDone ? shownItemNr : current)
+    const itemCounter = <>{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</>
 
     return <div className="w-full pb-2 text-center font-mono">
-      <div className="text-[#888]">{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</div>
-
       <div className="flex flex-row justify-center">
-        <a className="pr-6 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
-        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
-        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
-        <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
+        <div className="pr-5 w-[8em] text-[#888]" ref={totalTimerRef}></div>
+        <div className="pl-5 w-[8em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
       <div className="flex flex-row justify-center">
-        <div className="w-[7em] p-3 text-right" ref={totalTimerRef}></div>
-        {timerControls}
-        <div className="w-[7em] p-3 text-left" ref={localTimerRef}></div>
+        <div className="pt-3">{reviewControls}</div>
+        <div className="w-[7em] p-3 text-center" ref={localTimerRef}></div>
+        <div className="pt-3">{timerControls}</div>
       </div>
     </div>
   }
