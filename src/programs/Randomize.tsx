@@ -10,6 +10,7 @@ import { mapParse, mapSerialize } from '../lib/Map.js'
 import { arrayMove, directRange } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
+import { clamp } from 'lodash'
 
 const currentStateVersion = 4
 
@@ -366,6 +367,29 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
+  function microBreakTransparencyControl(e: React.MouseEvent<HTMLDivElement>) {
+    const breakMin = 10000
+    const breakMax = 15000
+    const calcOpacity = (start: number, now: number) => {
+      const value = clamp((now - start - breakMin) / (breakMax - breakMin), 0, 1)
+      return Math.pow(value, 1.6) // ease-in
+    }
+
+    const el = e.currentTarget
+    const thisKey = `${parseInt(el.dataset.animationKey || '0') + 1}`
+    el.dataset.animationKey = thisKey
+    const timeout = 50
+
+    const nextFrame = (key: string, start: number) => {
+      const opacity = calcOpacity(start, Date.now())
+      if (!(el.dataset.animationKey == key && opacity < 1)) return
+
+      el.style.opacity = `${Math.round(opacity * 100)}%`
+      setTimeout(() => nextFrame(key, start), timeout)
+    }
+    setTimeout(() => nextFrame(thisKey, Date.now()), timeout)
+  }
+
   function executionStats(): JSX.Element {
     const timerControls = <>
       <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
@@ -415,6 +439,8 @@ function Randomize(controls: any): JSX.Element {
           {executionItems()}
         </div>
       }
+
+      <div className="microbreak-button w-6 h-6 bg-[#ff6459] rounded-sm border-2 border-[#ff8078] absolute left-7 bottom-7" onClick={e => microBreakTransparencyControl(e)}></div>
     </div>
   )
 }
@@ -430,7 +456,6 @@ export default Randomize
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
 
-// TODO: utils: this should be less complicated: [shuffle(pickNKeys('x', 12))]
 // TODO: content: rewrite key picker without memory (divmod on day of the week, use rem for shuffling the array, but sucks, because of day skipping)
 
 // TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
