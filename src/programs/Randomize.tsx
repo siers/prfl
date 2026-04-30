@@ -11,6 +11,7 @@ import { arrayMove, directRange } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
 import { clamp } from 'lodash'
+import { linearSeekNext } from './LinearSeek.ts'
 
 const currentStateVersion = 4
 
@@ -138,17 +139,6 @@ function Randomize(controls: any): JSX.Element {
     }
 
     return current + advance
-  }
-
-  function seekCurrentItem(
-    current: number,
-    advance: number,
-    lineCount: number,
-    hideDone: boolean,
-    items: UserItem[],
-  ): { item: UserItem | null, index: number, unbounded: boolean } {
-    const index = seekCurrentUnbounded(current, advance, lineCount, hideDone, items)
-    return { item: items[index], index, unbounded: !items[index] }
   }
 
   function memoryFromState(s: RState | undefined, kind: string = 'old') {
@@ -346,13 +336,16 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function executionItems(): JSX.Element {
-    const show = directRange(-2, 2)
+    const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
+      const found = linearSeekNext(items, current, delta, item => hideDone && itemSkipped(item))
+        .slice(0, delta == 0 ? 1 : Math.abs(delta * 2))
+        .map(idx => [items[idx], idx] satisfies [UserItem, number])
+
+      return delta == -1 ? found.reverse() : found
+    })
 
     return <div className="w-full flex flex-col flex-grow justify-center select-none">
-      {show.map(s => {
-        return seekCurrentItem(current, s, outLineCount, hideDone, items)
-      }).map(({ item, index, unbounded }) => {
-        if (unbounded || !item) return null
+      {shownItems.map(([item, index]) => {
         const showRegenerate = index == current && (items[current]?.source?.interpols?.length || 0) > 0
         const showCheckmark = hideDone && index == current && itemSkipped(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
@@ -434,13 +427,15 @@ function Randomize(controls: any): JSX.Element {
       {inPlanning && editor()}
 
       {inExecution &&
-        <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh)" })}>
-          {executionStats()}
-          {executionItems()}
-        </div>
-      }
+        <>
+          <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh)" })}>
+            {executionStats()}
+            {executionItems()}
+          </div>
 
-      <div className="microbreak-button w-6 h-6 bg-[#ff6459] rounded-sm border-2 border-[#ff8078] absolute left-7 bottom-7" onClick={e => microBreakTransparencyControl(e)}></div>
+          <div className="microbreak-button w-6 h-6 bg-[#ff6459] rounded-sm border-2 border-[#ff8078] absolute left-7 bottom-7" onClick={e => microBreakTransparencyControl(e)}></div>
+        </>
+      }
     </div>
   )
 }
