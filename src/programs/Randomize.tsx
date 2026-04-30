@@ -4,7 +4,7 @@ import React, { JSX, RefObject, useEffect, useRef } from 'react'
 import { evalContentsMem, evalInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { UserItem, cardReviewed, toUserItem } from './RandomizeTypes.js'
-import { Timer, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract } from './Timers.ts'
+import { Timer, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { arrayMove, directRange } from '../lib/Array.js'
@@ -294,7 +294,7 @@ function Randomize(controls: any): JSX.Element {
   // UI
 
   function timerContent(timer: Timer | null): string {
-    const formatted = (timer: Timer) => padRight(ms(timerLength(timer, Date.now())), 10, ' ')
+    const formatted = (timer: Timer) => padRight(hm_ms(timerLength(timer, Date.now())), 10, ' ')
     return (timer && (formatted(timer))) || ''
   }
 

@@ -13,9 +13,9 @@ export function padRight(str: string, size: number, with_: string): string {
 
 export function hm(a: number): string {
   const h = Math.floor(a / 60)
-  const m = roundToNaive(a % 60, 2)
+  const m = Math.floor(a % 60)
   const mPad = padRight('' + m, 2, '0')
-  return h == 0 ? `${m}m` : `${h}h${mPad}`
+  return h == 0 ? `${m}m` : `${h}h${mPad}m`
 }
 
 export function ms(a: number): string {
@@ -29,6 +29,11 @@ export function ms(a: number): string {
     : m != 0
       ? `${m}m${sPad}`
       : `${s}s`
+}
+
+// if a > 10 minutes, route to hm, otherwise ms, add tests as well
+export function hm_ms(a: number): string {
+  return a >= 3600 ? hm(a / 60) : ms(a)
 }
 
 //

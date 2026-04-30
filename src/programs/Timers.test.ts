@@ -1,10 +1,19 @@
 import { expect, test, describe } from 'vitest'
-import { hm, ms, freshTimer, freshTimerOrRestart, toStoppedTimer, toStartedTimer, timerLength, logicalTimerLength, timerSubtract } from './Timers.js'
+import { hm, ms, hm_ms, freshTimer, freshTimerOrRestart, toStoppedTimer, toStartedTimer, timerLength, logicalTimerLength, timerSubtract } from './Timers.js'
+
+describe('hm_ms', () => {
+  test('seconds only', () => { expect(hm_ms(59)).toStrictEqual('59.00s') })
+  test('minutes and seconds', () => { expect(hm_ms(599)).toStrictEqual('9m59.00') })
+  test('just below 1 hour stays ms', () => { expect(hm_ms(3599)).toStrictEqual('59m59.00') })
+  test('exactly 1 hour routes to hm', () => { expect(hm_ms(3600)).toStrictEqual('1h00m') })
+  test('above 1 hour', () => { expect(hm_ms(3660)).toStrictEqual('1h01m') })
+  test('fractional minutes truncated', () => { expect(hm_ms(3750)).toStrictEqual('1h02m') })
+})
 
 describe('hm', () => {
   test('minutes only', () => { expect(hm(1)).toStrictEqual('1m') })
-  test('hours and zero minutes', () => { expect(hm(60)).toStrictEqual('1h00') })
-  test('hours and minutes', () => { expect(hm(90)).toStrictEqual('1h30') })
+  test('hours and zero minutes', () => { expect(hm(60)).toStrictEqual('1h00m') })
+  test('hours and minutes', () => { expect(hm(90)).toStrictEqual('1h30m') })
 })
 
 describe('ms', () => {
