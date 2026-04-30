@@ -352,11 +352,15 @@ function Randomize(controls: any): JSX.Element {
         return seekCurrentItem(current, s, outLineCount, hideDone, items)
       }).map(({ item, index, unbounded }) => {
         if (unbounded || !item) return null
+        const showRegenerate = index == current && (items[current]?.source?.interpols?.length || 0) > 0
+        const showCheckmark = hideDone && index == current && itemSkipped(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
-          {item.contents}
-          {!(index == current && (items[current]?.source?.interpols?.length || 0) > 0) ? <></> : <>
-            <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: true })}>🔄</a>
-          </>}
+          {
+            showCheckmark ? <>✅</> : <>
+              {item.contents}
+              {showRegenerate && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: true })}>🔄</a>}
+            </>
+          }
         </div>
       })}
     </div>
