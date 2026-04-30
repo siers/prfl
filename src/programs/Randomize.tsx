@@ -394,7 +394,7 @@ function Randomize(controls: any): JSX.Element {
     const timerControls = <>
       <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
       <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 pl-2 pr-2 select-none">🔄</span>
-      <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 pl-2 pr-2 select-none">↩️</span>
+      <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 pl-2 pr-2 select-none">⏪</span>
     </>
 
     const reviewControls = <>
@@ -412,16 +412,13 @@ function Randomize(controls: any): JSX.Element {
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center">
         <div className="pr-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
+        <div className="px-4 w-[7em] text-center" ref={localTimerRef}></div>
         <div className="pl-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
-      <div className="flex flex-row justify-center pt-3 ">
-        <div className="">{reviewControls}</div>
-      </div>
-
       <div className="flex flex-row justify-center pt-3">
-        <div className="w-[7em] text-center" ref={localTimerRef}></div>
-        <div className="">{timerControls}</div>
+        <div className="text-left px-5">{reviewControls}</div>
+        <div className="text-right px-5">{timerControls}</div>
       </div>
     </div>
   }
@@ -429,7 +426,7 @@ function Randomize(controls: any): JSX.Element {
   return (
     <div className="w-full">
       <div className="pl-[10px]">
-        <a className="pr-3 select-none" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '⏸️' : '▶️'}</a>
+        <a className="pr-3 select-none" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
         {inExecution && executionControlButtons()}
       </div>
@@ -455,6 +452,7 @@ export default Randomize
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add an array of valid visited routes, starting with the current route
+// TODO: content: utility: zip longest, shuffleX others
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
