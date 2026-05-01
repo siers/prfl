@@ -4,10 +4,10 @@ import React, { JSX, RefObject, useEffect, useRef } from 'react'
 import { evalContentsMem, evalInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { UserItem, cardReviewed, toUserItem } from './RandomizeTypes.js'
-import { Timer, hm, ms, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms } from './Timers.ts'
+import { Timer, hm, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
-import { arrayMove, directRange } from '../lib/Array.js'
+import { arrayMove } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
 import { clamp } from 'lodash'
@@ -74,13 +74,13 @@ function Randomize(controls: any): JSX.Element {
 
   const hideDone = state?.hideDone !== false
 
-  function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | null) {
-    ref.current && (ref.current.innerHTML = renderToString(timerContent(timer)))
+  function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | null, type: 'local' | 'global') {
+    ref.current && (ref.current.innerHTML = renderToString(timerContent(timer, type)))
   }
 
   useEffect(() => {
     if (state?.execute !== true) return () => { }
-    const id = setInterval(() => { renderTimerToRef(totalTimerRef, globalTimer); renderTimerToRef(localTimerRef, localTimer) }, 45.33)
+    const id = setInterval(() => { renderTimerToRef(totalTimerRef, globalTimer, 'global'); renderTimerToRef(localTimerRef, localTimer, 'local') }, 45.33)
     return () => clearInterval(id)
   }, [items, current, globalTimer, state?.execute])
 
@@ -283,8 +283,9 @@ function Randomize(controls: any): JSX.Element {
 
   // UI
 
-  function timerContent(timer: Timer | null): string {
-    const formatted = (timer: Timer) => padRight(hm_ms(timerLength(timer, Date.now())), 10, ' ')
+  function timerContent(timer: Timer | null, type: 'local' | 'global'): string {
+    const format: (a: number) => string = type == 'local' ? ms : hm_ms
+    const formatted = (timer: Timer) => padRight(format(timerLength(timer, Date.now())), 10, ' ')
     return (timer && (formatted(timer))) || ''
   }
 
