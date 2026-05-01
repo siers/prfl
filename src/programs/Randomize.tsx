@@ -391,11 +391,13 @@ function Randomize(controls: any): JSX.Element {
       <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 pl-2 pr-2 select-none">⏪</span>
     </>
 
+    const checkmarkOpacity = `${timerLength(localTimer, Date.now()) >= 30 ? 1 : 0.5}`
+
     const reviewControls = <>
-      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
+      <a className="pr-4 select-none" style={{ opacity: checkmarkOpacity }} onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
       <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
       <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
-      {/* <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a> */}
+      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
