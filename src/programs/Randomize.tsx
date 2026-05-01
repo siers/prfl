@@ -12,6 +12,7 @@ import { arrayMove } from '../lib/Array.js'
 import murmur from 'murmurhash3js'
 import { clamp } from 'lodash'
 import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
+import { Metro } from './Metro.tsx'
 
 const currentStateVersion = 4
 
@@ -316,6 +317,7 @@ function Randomize(controls: any): JSX.Element {
     shownItems.length == 0 && shownItems.push([items[current], current])
 
     return <div className="w-full flex flex-col flex-grow justify-center select-none">
+      {/*current % 2 == 0 && <Metro />*/}
       {shownItems.map(([item, index]) => {
         const showRegenerate = index == current && (items[current]?.source?.interpols?.length || 0) > 0
         const showCheckmark = index == current && itemSeekExclude(item)
