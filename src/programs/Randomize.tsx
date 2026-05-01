@@ -357,12 +357,12 @@ function Randomize(controls: any): JSX.Element {
 
   function executionStats(): JSX.Element {
     const timerControls = <>
-      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 pl-2 pr-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
-      <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 pl-2 pr-2 select-none">🔄</span>
-      <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 pl-2 pr-2 select-none">⏪</span>
+      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 px-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
+      <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 px-2 select-none">🔄</span>
+      <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 px-2 select-none">⏪</span>
     </>
 
-    const checkmarkOpacity = `${timerLength(localTimer, Date.now()) >= 30 ? 1 : 0.5}`
+    const checkmarkOpacity = `${timerLength(localTimer, Date.now()) >= 10 ? 1 : 0.5}`
 
     const reviewControls = <>
       <a className="pr-4 select-none" style={{ opacity: checkmarkOpacity }} onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
@@ -378,9 +378,9 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center pt-2">
-        <div className="pr-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
-        <div className="px-4 w-[7em] text-center" ref={localTimerRef}></div>
-        <div className="pl-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
+        <div className="px-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
+        <div className="px-2 w-[7em] text-center" ref={localTimerRef}></div>
+        <div className="px-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
       <div className="flex flex-row justify-center pt-2">
