@@ -361,10 +361,8 @@ function Randomize(controls: any): JSX.Element {
       <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 px-2 select-none">⏪</span>
     </>
 
-    const checkmarkOpacity = `${timerLength(localTimer, Date.now()) >= 10 ? 1 : 0.5}`
-
     const reviewControls = <>
-      <a className="pr-4 select-none" style={{ opacity: checkmarkOpacity }} onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
+      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
       <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
       <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
       <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
@@ -423,6 +421,7 @@ export default Randomize
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add an array of valid visited routes, starting with the current route
 // TODO: content: utility: zip longest, shuffleX others
+// TODO: execution: breakout into a subdeck by interpolation explosion (zip combos, dont explode)
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
