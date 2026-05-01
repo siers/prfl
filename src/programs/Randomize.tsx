@@ -62,7 +62,6 @@ function Randomize(controls: any): JSX.Element {
 
   const items: UserItem[] = state?.items || []
   const outLineCount: number = state?.outLineCount || 0
-  const doneCount: number = items.filter(i => i.done !== true).length
 
   const globalTimer = state?.totalTimer
   const localTimer = items[current]?.timer
@@ -374,7 +373,9 @@ function Randomize(controls: any): JSX.Element {
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
     const shownItemNr = Object.fromEntries(currentMap)[current]
     const currentItemNr = 1 + (hideDone ? shownItemNr : current)
-    const itemCounter = <>{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</>
+    const undoneCount = currentMap.length
+
+    const itemCounter = <>{currentItemNr || '-'}/{undoneCount}{outLineCount != undoneCount ? `(${outLineCount})` : ''}</>
 
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center pt-2">
