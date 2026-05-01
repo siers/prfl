@@ -406,13 +406,13 @@ function Randomize(controls: any): JSX.Element {
     const itemCounter = <>{currentItemNr}/{doneCount}{outLineCount != doneCount ? `(${outLineCount})` : ''}</>
 
     return <div className="w-full pb-2 text-center font-mono">
-      <div className="flex flex-row justify-center">
+      <div className="flex flex-row justify-center pt-2">
         <div className="pr-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
         <div className="px-4 w-[7em] text-center" ref={localTimerRef}></div>
         <div className="pl-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
-      <div className="flex flex-row justify-center pt-3">
+      <div className="flex flex-row justify-center pt-2">
         <div className="text-left px-5">{reviewControls}</div>
         <div className="text-right px-5">{timerControls}</div>
       </div>
