@@ -11,7 +11,7 @@ import { arrayMove } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
 import { clamp } from 'lodash'
-import { linearSeekNext } from './LinearSeek.ts'
+import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
 
 const currentStateVersion = 4
 
@@ -102,48 +102,17 @@ function Randomize(controls: any): JSX.Element {
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
   }, [items, current, inExecution])
 
-  function seekCurrent(
-    current: number,
-    advance: number,
-    lineCount: number,
-    hideDone: boolean,
-    items: UserItem[],
-  ): number {
-    const index = seekCurrentUnbounded(current, advance, lineCount, hideDone, items)
-
-    return Math.max(0, Math.min(index, lineCount - 1))
+  function memoryFromState(s: RState | undefined, kind: string = 'old') {
+    const mem = kind == 'new' ? s?.nextMemory : s?.memory
+    return (mem && mapParse(mem)) || makeEmptyMemory()
   }
 
   function itemSkipped(item?: UserItem) {
     return item?.separator == true || item?.done == true
   }
 
-  function seekCurrentUnbounded(
-    current: number,
-    advance: number,
-    lineCount: number,
-    hideDone: boolean,
-    items: UserItem[],
-  ): number {
-    if (hideDone) {
-      let recursionGuard = 500
-
-      while (advance) {
-        while (hideDone && Math.abs(advance) > 0 && (current >= 0 && current < lineCount) && recursionGuard-- > 0) {
-          current += Math.sign(advance)
-          if (!itemSkipped(items[current])) break
-        }
-
-        advance -= Math.sign(advance)
-      }
-    }
-
-    return current + advance
-  }
-
-  function memoryFromState(s: RState | undefined, kind: string = 'old') {
-    const mem = kind == 'new' ? s?.nextMemory : s?.memory
-    return (mem && mapParse(mem)) || makeEmptyMemory()
+  function itemSeekExclude(item: UserItem): boolean {
+    return hideDone && itemSkipped(item)
   }
 
   function newAndRecalculate(a: Args) {
@@ -171,7 +140,7 @@ function Randomize(controls: any): JSX.Element {
       // saving memory with the global button is superseded by review buttons
       const nextMemory = ((s?.nextMemory && false) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
 
-      const nextCurrent = seekCurrent(s?.current || 0, a.advance || 0, lineCount, hideDone, items)
+      const nextCurrent: number[] = linearSeekFullNext(items, s?.current || 0, a.advance || 0, itemSeekExclude)
 
       return {
         version: currentStateVersion,
@@ -185,7 +154,7 @@ function Randomize(controls: any): JSX.Element {
         ...nextMemory,
 
         execute: execute,
-        current: a.eval ? 0 : nextCurrent,
+        current: a.eval ? 0 : (nextCurrent.length > 0 ? nextCurrent[0] : s?.current),
         hideDone: hideDone,
         totalTimer: nextTotalTimer,
       } satisfies RState
@@ -338,17 +307,19 @@ function Randomize(controls: any): JSX.Element {
 
   function executionItems(): JSX.Element {
     const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
-      const found = linearSeekNext(items, current, delta, item => hideDone && itemSkipped(item))
+      const found = linearSeekNext(items, current, delta, itemSeekExclude)
         .slice(0, delta == 0 ? 1 : Math.abs(delta * 2))
         .map(idx => [items[idx], idx] satisfies [UserItem, number])
 
       return delta == -1 ? found.reverse() : found
     })
 
+    shownItems.length == 0 && shownItems.push([items[current], current])
+
     return <div className="w-full flex flex-col flex-grow justify-center select-none">
       {shownItems.map(([item, index]) => {
         const showRegenerate = index == current && (items[current]?.source?.interpols?.length || 0) > 0
-        const showCheckmark = hideDone && index == current && itemSkipped(item)
+        const showCheckmark = index == current && itemSeekExclude(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {
             showCheckmark ? <>✅</> : <>
