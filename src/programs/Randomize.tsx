@@ -293,7 +293,7 @@ function Randomize(controls: any): JSX.Element {
       <a className="pr-3 select-none" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
 
       <span className="pr-3">
-        {state?.outLineCount ? <>{state?.outLineCount} * 4min = {hm(state.outLineCount * 4)}</> : <></>}
+        {state?.outLineCount ? <>{state?.outLineCount} items</> : <></>}
       </span>
       <span className="pr-3 text-[#f4f4f4]">
         {state?.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
@@ -497,7 +497,9 @@ export default Randomize
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add an array of valid visited routes, starting with the current route
 // TODO: content: utility: zip longest, shuffleX others
-// TODO: execution: breakout into a subdeck by interpolation explosion (zip combos, dont explode)
+// TODO: execution: breakout into a subdeck by interpolation explosion
+// TODO: execution: interpolations must be orderable by frequency the same way subdecks would
+// TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
