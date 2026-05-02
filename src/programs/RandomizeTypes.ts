@@ -13,14 +13,19 @@ export const toUserItem: (rl: RenderLine) => UserItem = rl => ({ ...rl, timer: n
 // think flashcards
 export type CardData = {
   reviewed?: number, // Date.now()
+  bpm?: number,
 }
 
 export function cardMemory(memory: any): Record<string, CardData> {
   return (memory.get('cards') as Record<string, CardData>) || {}
 }
 
-export function cardReviewed(memory: any, key: string, now: number) {
+export function cardReviewed(memory: any, key: string, now: number, bpm?: number) {
   const cards = cardMemory(memory)
-  cards[key] = { ...cards[key], reviewed: now, }
+  cards[key] = { ...cards[key], reviewed: now, bpm }
   memory.set('cards', cards)
+}
+
+export function findCard(memory: any, key: string): CardData | null {
+  return cardMemory(memory)[key]
 }

@@ -3,7 +3,7 @@ import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
 import { evalContentsMem, evalInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
-import { UserItem, cardReviewed, toUserItem } from './RandomizeTypes.js'
+import { CardData, UserItem, cardReviewed, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, hm, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
@@ -25,18 +25,12 @@ type RState = {
   memory?: string,
   nextMemory?: string,
 
-  execute: boolean,
+  execute?: boolean,
   current?: number,
   hideDone?: boolean,
   totalTimer?: Timer,
 
   metro?: Metro,
-}
-
-type Metro = {
-  opened?: boolean,
-  power?: boolean,
-  bpm?: number,
 }
 
 type Args = {
@@ -46,6 +40,18 @@ type Args = {
   execute?: boolean,
   advance?: number,
   hideDone?: boolean,
+}
+
+type Metro = {
+  opened?: boolean,
+  power?: boolean,
+  bpm?: number,
+}
+
+type MetroDiff = {
+  opened?: boolean,
+  power?: boolean,
+  bpm?: number,
 }
 
 type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
@@ -130,13 +136,15 @@ function Randomize(controls: any): JSX.Element {
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
+      const initMemory = memoryFromState(s)
+
       let items: UserItem[] = s?.items || []
       let newMemory: Memory | undefined = undefined
       let nextTotalTimer: Timer | undefined = state?.totalTimer
 
       if (a.eval) {
         // console.clear()
-        const [lines, memory] = evalContentsMem(contentsOr, memoryFromState(s))
+        const [lines, memory] = evalContentsMem(contentsOr, initMemory)
         newMemory = memory
         items = lines.map(rl => toUserItem(rl))
         nextTotalTimer = undefined
@@ -146,10 +154,13 @@ function Randomize(controls: any): JSX.Element {
       const lineCount = items.length
 
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
-      // saving memory with the global button is superseded by review buttons
-      const nextMemory = ((s?.nextMemory && false) ? { memory: s?.nextMemory, nextMemory: undefined } : {})
 
-      const nextCurrent: number[] = linearSeekFullNext(items, s?.current || 0, a.advance || 0, itemSeekExclude)
+      const advance = itemSeekExclude(items[current]) ? 1 : (a.advance || 0)
+      const nextCurrent: number[] = linearSeekFullNext(items, s?.current || 0, advance, itemSeekExclude)
+
+      const newCard: CardData | null = nextCurrent.length && items[nextCurrent[0]] && items[nextCurrent[0]].key && findCard(initMemory, items[nextCurrent[0]].key || '') || null
+      const newBpm: number | undefined = nextCurrent.length && newCard && newCard.bpm ? newCard.bpm : undefined
+      const metro: Metro = recalcMetro(s?.metro || {}, { bpm: newBpm })
 
       return {
         version: currentStateVersion,
@@ -160,12 +171,13 @@ function Randomize(controls: any): JSX.Element {
         items: nextItems,
         outLineCount: lineCount,
         ...savedMemory,
-        ...nextMemory,
 
         execute: execute,
         current: a.eval ? 0 : (nextCurrent.length > 0 ? nextCurrent[0] : s?.current),
         hideDone: hideDone,
         totalTimer: nextTotalTimer,
+
+        metro,
       } satisfies RState
     })
   }
@@ -236,7 +248,8 @@ function Randomize(controls: any): JSX.Element {
 
       const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
 
-      if (controls.reviewed === true && items[current].key) cardReviewed(memory, items[current].key, Date.now())
+      if (controls.reviewed === true && items[current].key)
+        cardReviewed(memory, items[current].key, Date.now(), s?.metro?.bpm)
 
       const updatedItems = items.map((item, index) => {
         if (index != current) return item
@@ -364,20 +377,16 @@ function Randomize(controls: any): JSX.Element {
     setTimeout(() => nextFrame(thisKey, Date.now()), timeout)
   }
 
-  function metroState(controls: {
-    opened?: boolean,
-    power?: boolean,
-    bpm?: number,
-  }) {
-    setState((sIn: RState | undefined) => {
-      const controlsFiltered = Object.fromEntries(Object.entries(controls).filter(([_key, value]) => value !== null))
+  function recalcMetro(old: Metro, diff: MetroDiff): Metro {
+    const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value !== null))
+    const fresh = { opened: false, power: false, bpm: 60, ...old, ...diffFilt }
+    fresh.bpm = clamp(Math.floor(fresh.bpm), 20, 500)
+    return fresh
+  }
 
-      const s = sIn || { version: 4, execute: true }
-      const metro = { opened: false, power: false, bpm: 60, ...s?.metro, ...controlsFiltered }
-      metro.bpm = clamp(Math.floor(metro.bpm), 20, 500)
 
-      return { ...s, metro }
-    })
+  function metroState(diff: MetroDiff) {
+    setState((sIn: RState | undefined) => ({ version: 4, ...sIn, metro: recalcMetro(sIn?.metro || {}, diff) }))
   }
 
   function executionStats(): JSX.Element {
@@ -421,19 +430,19 @@ function Randomize(controls: any): JSX.Element {
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
 
   function metroUI() {
-    return <div className="opacity[0.5] w-full h-full top-0 left-0 p-3 flex-1">
+    return <div className="opacity[0.5] w-full h-full top-0 left-0 p-3 flex-1 font-mono">
       <div className="text-center">
         <div><input type="range" className="w-[80%]" value={linearize(metro.bpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
           <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm - 1 })}>-1</span>
           <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm - 5 })}>-5</span>
           <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm * 0.5 })}>÷2</span>
-          <span className="p-1 inline-block text-center w-[6em]">bpm: {state?.metro?.bpm}</span>
+          <span className="p-1 inline-block text-center w-[4em]">@{state?.metro?.bpm}</span>
           <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm * 2 })}>2×</span>
           <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm + 5 })}>5+</span>
           <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm + 1 })}>1+</span>
         </div>
-        <div onClick={_ => metroState({ power: !metro.power })}>{metro.power ? '1' : '0'}</div>
+        <div onClick={_ => metroState({ power: !metro.power })}>{metro.power ? 'power' : ' off '}</div>
       </div>
     </div>
   }
