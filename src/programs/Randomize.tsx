@@ -33,6 +33,12 @@ type RState = {
   metro?: Metro,
 }
 
+const defaultState: RState = {
+  version: 4,
+
+  text: "Lullaby: play it\nJuggling: do it\nSquats: do it"
+}
+
 type Args = {
   eval?: boolean,
   contents?: string,
@@ -67,7 +73,7 @@ type ItemActions = {
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
-  let state = controls.state // one mutation only for checking the version and invalidating the whole state
+  let state = controls.state || defaultState // one mutation only for checking the version and invalidating the whole state
   const stateVersion = state && state.version || 0
 
   if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
@@ -115,7 +121,7 @@ function Randomize(controls: any): JSX.Element {
   useEffect(() => {
     if (state === null || state?.items?.length == 0) return () => { }
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
-  }, [items, current, inExecution])
+  }, [items.length && items || null, current, inExecution])
 
   function memoryFromState(s: RState | undefined, kind: string = 'old') {
     const mem = kind == 'new' ? s?.nextMemory : s?.memory
@@ -142,7 +148,7 @@ function Randomize(controls: any): JSX.Element {
       let newMemory: Memory | undefined = undefined
       let nextTotalTimer: Timer | undefined = state?.totalTimer
 
-      if (a.eval) {
+      if (a.eval || items.length == 0) {
         // console.clear()
         const [lines, memory] = evalContentsMem(contentsOr, initMemory)
         newMemory = memory
@@ -336,7 +342,7 @@ function Randomize(controls: any): JSX.Element {
       return delta == -1 ? found.reverse() : found
     })
 
-    shownItems.length == 0 && shownItems.push([items[current], current])
+    items.length > 0 && shownItems.length == 0 && shownItems.push([items[current], current])
 
     return <>
       {shownItems.map(([item, index]) => {
@@ -345,7 +351,7 @@ function Randomize(controls: any): JSX.Element {
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {
             showCheckmark ? <>✅</> : <>
-              {item.contents}
+              {item?.contents}
               {showRegenerate && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: true })}>🔄</a>}
             </>
           }
@@ -378,7 +384,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function recalcMetro(old: Metro, diff: MetroDiff): Metro {
-    const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value !== null))
+    const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value != null && value != undefined))
     const fresh = { opened: false, power: false, bpm: 60, ...old, ...diffFilt }
     fresh.bpm = clamp(Math.floor(fresh.bpm), 20, 500)
     return fresh
@@ -471,12 +477,15 @@ function Randomize(controls: any): JSX.Element {
               {metro.power && <Metro bpm={metro.bpm || 60} />}
             </div>
           </div>
+
         </div>
       }
 
-      <div className="microbreak-button text-[32px] absolute left-[1em] bottom-[.8em] select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</div>
-      <div className="metro-button text-[32px] absolute right-[4em] bottom-[.8em] select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</div>
-    </div >
+      {inExecution && <>
+        <div className="microbreak-button text-[32px] absolute left-[1em] bottom-[.8em] select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</div>
+        <div className="metro-button text-[32px] absolute right-[4em] bottom-[.8em] select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</div>
+      </>}
+    </div>
   )
 }
 
