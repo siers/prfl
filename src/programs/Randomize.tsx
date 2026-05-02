@@ -10,7 +10,7 @@ import { mapParse, mapSerialize } from '../lib/Map.js'
 import { arrayMove } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
-import { clamp } from 'lodash'
+import { clamp, parseInt } from 'lodash'
 import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
 import { Metro } from './Metro.tsx'
 
@@ -29,8 +29,15 @@ type RState = {
   current?: number,
   hideDone?: boolean,
   totalTimer?: Timer,
+
+  metro?: Metro,
 }
 
+type Metro = {
+  opened?: boolean,
+  power?: boolean,
+  bpm?: number,
+}
 
 type Args = {
   eval?: boolean,
@@ -91,6 +98,8 @@ function Randomize(controls: any): JSX.Element {
         : advance == 'prev'
           ? -1 :
           advance ? 1 : 0
+
+    if (advanceDelta == 0) return
 
     // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
     if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
@@ -316,8 +325,7 @@ function Randomize(controls: any): JSX.Element {
 
     shownItems.length == 0 && shownItems.push([items[current], current])
 
-    return <div className="w-full flex flex-col flex-grow justify-center select-none">
-      {/*current % 2 == 0 && <Metro />*/}
+    return <>
       {shownItems.map(([item, index]) => {
         const showRegenerate = index == current && (items[current]?.source?.interpols?.length || 0) > 0
         const showCheckmark = index == current && itemSeekExclude(item)
@@ -330,7 +338,7 @@ function Randomize(controls: any): JSX.Element {
           }
         </div>
       })}
-    </div>
+    </>
   }
 
   function microBreakTransparencyControl(e: React.MouseEvent<HTMLDivElement>) {
@@ -354,6 +362,22 @@ function Randomize(controls: any): JSX.Element {
       setTimeout(() => nextFrame(key, start), timeout)
     }
     setTimeout(() => nextFrame(thisKey, Date.now()), timeout)
+  }
+
+  function metroState(controls: {
+    opened?: boolean,
+    power?: boolean,
+    bpm?: number,
+  }) {
+    setState((sIn: RState | undefined) => {
+      const controlsFiltered = Object.fromEntries(Object.entries(controls).filter(([_key, value]) => value !== null))
+
+      const s = sIn || { version: 4, execute: true }
+      const metro = { opened: false, power: false, bpm: 60, ...s?.metro, ...controlsFiltered }
+      metro.bpm = clamp(Math.floor(metro.bpm), 20, 500)
+
+      return { ...s, metro }
+    })
   }
 
   function executionStats(): JSX.Element {
@@ -391,6 +415,29 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
+  const metro = state?.metro || { bpm: 60 }
+
+  const delinearize = (n: number, low: number, high: number) => (1 - Math.sqrt(1 - (n / 1000))) * (high - low) + low
+  const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
+
+  function metroUI() {
+    return <div className="opacity[0.5] w-full h-full top-0 left-0 p-3 flex-1">
+      <div className="text-center">
+        <div><input type="range" className="w-[80%]" value={linearize(metro.bpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
+        <div>
+          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm - 1 })}>-1</span>
+          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm - 5 })}>-5</span>
+          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm * 0.5 })}>÷2</span>
+          <span className="p-1 inline-block text-center w-[6em]">bpm: {state?.metro?.bpm}</span>
+          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm * 2 })}>2×</span>
+          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm + 5 })}>5+</span>
+          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm + 1 })}>1+</span>
+        </div>
+        <div onClick={_ => metroState({ power: !metro.power })}>{metro.power ? '1' : '0'}</div>
+      </div>
+    </div>
+  }
+
   return (
     <div className="w-full">
       <div className="pl-[10px]">
@@ -402,16 +449,25 @@ function Randomize(controls: any): JSX.Element {
       {inPlanning && editor()}
 
       {inExecution &&
-        <>
+        <div className="relative">
           <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh)" })}>
             {executionStats()}
-            {executionItems()}
-          </div>
+            <div className="relative w-full flex flex-col flex-grow select-none">
+              <div className="flex-1 content-center">
+                {executionItems()}
+              </div>
 
-          <div className="microbreak-button w-[32px] h-[32px] bg-[#ff6459] rounded-sm border-2 border-[#ff8078] absolute left-[1em] bottom-[1em]" onClick={e => microBreakTransparencyControl(e)}></div>
-        </>
+              {metro.opened && metroUI()}
+
+              {metro.power && <Metro bpm={metro.bpm || 60} />}
+            </div>
+          </div>
+        </div>
       }
-    </div>
+
+      <div className="microbreak-button text-[32px] absolute left-[1em] bottom-[.8em] select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</div>
+      <div className="metro-button text-[32px] absolute right-[4em] bottom-[.8em] select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</div>
+    </div >
   )
 }
 

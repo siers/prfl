@@ -1,55 +1,31 @@
 import { JSX, useEffect } from "react"
 import * as Tone from "tone"
 
-export function Metro(): JSX.Element {
+const metroWav = 'metro.wav'
+
+new Audio(metroWav)
+
+export function Metro({ bpm }: { bpm: number }): JSX.Element {
   useEffect(() => {
-    // const synth = new Tone.MembraneSynth().toDestination();
-
-    // const synth = new Tone.MetalSynth().toDestination();
-    // Tone.getTransport().scheduleRepeat((time) => {
-    //   synth.triggerAttackRelease("C3", "64n", time)
-    // }, "4n");
-
-    const filter = new Tone.Filter({
-      type: "lowpass",
-      frequency: 400,
-      Q: 5,
-    }).toDestination();
-
-    const filterEnv = new Tone.FrequencyEnvelope({
-      attack: 0.002,
-      decay: 0.03,
-      sustain: 0,
-      release: 0.01,
-      baseFrequency: 800,
-      octaves: 2,
-    }).connect(filter.frequency);
-
-    const synth = new Tone.Synth({
-      oscillator: { type: "square" },
-      envelope: {
-        attack: 0.001,
-        decay: 0.04,   // 20ms
-        sustain: 0,
-        release: 0.01,
-      },
-    }).connect(filter);
-
-    // trigger: fire both envelopes together
-    function tick(time: number) {
-      filterEnv.triggerAttack(time);
-      synth.triggerAttackRelease("G3", "32n", time);
-    }
+    console.log(bpm)
+    const player = new Tone.Player(metroWav).toDestination()
 
     Tone.getTransport().scheduleRepeat((time) => {
-      tick(time)
-    }, "4n");
+      player.start(time)
+    }, "4n")
 
-    Tone.getTransport().start()
-    Tone.getTransport().bpm.value = 120
+    try {
+      Tone.getTransport().start()
+      console.log('started')
+      Tone.getTransport().bpm.value = bpm
+      console.log('bpm')
+    } catch (e) { console.error(e) }
 
-    return () => { Tone.getTransport().cancel() }
-  })
+    return () => {
+      try { Tone.getTransport().cancel() } catch (e) { console.error(e) }
+      // try { player.dispose() } catch (e) { console.error(e) }
+    }
+  }, [bpm])
 
   return <></>
 }
