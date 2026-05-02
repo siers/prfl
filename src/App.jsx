@@ -11,7 +11,7 @@ function useLocalStorage(key, initialValue) {
     } catch {
       return initialValue
     }
-  })
+  }, [])
 
   useEffect(() => {
     try {
@@ -29,7 +29,6 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
-  const timeout = useRef()
   const content = useRef()
 
   const defaultProgram = 'randomize' // Object.keys(programs)[0]
@@ -45,14 +44,7 @@ function App() {
     return () => {
       removeEventListener('keydown', handleKey)
     }
-  })
-
-  useEffect(() => {
-    if (running) {
-      startTimeout()
-    }
-    return () => stopTimeout()
-  }, [running, speed, program, state])
+  }, [])
 
   const setProgramState = programName => nextProgramState => {
     setState(state => ({
@@ -65,25 +57,11 @@ function App() {
 
   const setItem = (advance, event) => {
     if (advanceRef.current) advanceRef.current(advance, event)
-    flash()
   }
-
-  const flash = () => {
-    const el = content.current
-    el.classList.toggle("flash1")
-    el.classList.toggle("flash2")
-  }
-
-  const postponeTimeout = () => { clearTimeout(timeout.current); timeout.current = setTimeout(() => setItem('timeout'), speed) }
-  const startTimeout = () => { setRunning(true); timeout.current = setTimeout(() => setItem('timeout'), speed) }
-  const stopTimeout = () => { setRunning(false); clearTimeout(timeout.current); }
-  const toggleTimeout = () => { if (running) stopTimeout(); else startTimeout() }
 
   function button(event, key) {
-    if (false && (key == 's' || key == 'p' || key == 'Escape')) toggleTimeout()
-    else if (key == 'ArrowRight' || key == 'PageUp' || key == 'ArrowDown' || key == 'Enter' || key == ' ') {
+    if (key == 'ArrowRight' || key == 'PageUp' || key == 'ArrowDown' || key == 'Enter' || key == ' ') {
       setItem('next', event)
-      postponeTimeout()
     } else if (key == 'ArrowLeft' || key == 'PageDown' || key == 'ArrowUp') {
       setItem('prev', event)
     } else {
