@@ -408,7 +408,7 @@ function Randomize(controls: any): JSX.Element {
             {executionItems()}
           </div>
 
-          <div className="microbreak-button w-6 h-6 bg-[#ff6459] rounded-sm border-2 border-[#ff8078] absolute left-7 bottom-7" onClick={e => microBreakTransparencyControl(e)}></div>
+          <div className="microbreak-button w-[32px] h-[32px] bg-[#ff6459] rounded-sm border-2 border-[#ff8078] absolute left-[1em] bottom-[1em]" onClick={e => microBreakTransparencyControl(e)}></div>
         </>
       }
     </div>
