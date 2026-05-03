@@ -3,8 +3,8 @@ import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
 import { evalContentsMem, evalInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
-import { CardData, UserItem, cardReviewed, findCard, toUserItem } from './RandomizeTypes.js'
-import { Timer, hm, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
+import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
+import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { arrayMove } from '../lib/Array.js'
@@ -245,6 +245,12 @@ function Randomize(controls: any): JSX.Element {
     })
   }
 
+  function withStateMemory(s: RState | undefined, f: (memory: any) => void): string {
+    const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
+    f(memory)
+    return mapSerialize(memory)
+  }
+
   function modifyItem(controls: ItemActions) {
     setState((s: RState | undefined) => {
       if (!s) return s
@@ -252,10 +258,10 @@ function Randomize(controls: any): JSX.Element {
       const items = s.items || []
       const move = controls.bury === true
 
-      const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
-
-      if (controls.reviewed === true && items[current].key)
-        cardReviewed(memory, items[current].key, Date.now(), s?.metro?.bpm)
+      const newMemory = withStateMemory(s, memory => {
+        if (controls.reviewed === true && items[current].key)
+          cardSet(memory, items[current].key, { reviewed: Date.now(), bpm: s?.metro?.bpm })
+      })
 
       const updatedItems = items.map((item, index) => {
         if (index != current) return item
@@ -270,13 +276,24 @@ function Randomize(controls: any): JSX.Element {
 
       return {
         ...s,
-        memory: mapSerialize(memory),
+        memory: newMemory,
         items: movedItems,
       }
     })
 
     if (controls.done) advanceRef.current('next')
     else modifyTimer('local-as-global')
+  }
+
+  function setItemBpm(bpm: number) {
+    setState((s: RState | undefined) => {
+      return {
+        ...s,
+        memory: withStateMemory(s, memory => {
+          if (items[current].key) cardSet(memory, items[current].key, { bpm: bpm })
+        }),
+      }
+    })
   }
 
   // UI
@@ -393,7 +410,11 @@ function Randomize(controls: any): JSX.Element {
 
 
   function metroState(diff: MetroDiff) {
-    setState((sIn: RState | undefined) => ({ version: 4, ...sIn, metro: recalcMetro(sIn?.metro || {}, diff) }))
+    setState((sIn: RState | undefined) => {
+      const state = ({ version: 4, ...sIn, metro: recalcMetro(sIn?.metro || {}, diff) })
+      setItemBpm(state.metro.bpm || 60)
+      return state
+    })
   }
 
   function executionStats(): JSX.Element {
@@ -501,6 +522,8 @@ export default Randomize
 // TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
 // TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
+// TODO: metronome: tap to get rhythm
+// TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked

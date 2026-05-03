@@ -20,9 +20,13 @@ export function cardMemory(memory: any): Record<string, CardData> {
   return (memory.get('cards') as Record<string, CardData>) || {}
 }
 
-export function cardReviewed(memory: any, key: string, now: number, bpm?: number) {
+export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number }) {
   const cards = cardMemory(memory)
-  cards[key] = { ...cards[key], reviewed: now, bpm }
+  cards[key] = {
+    ...cards[key],
+    ...(settings.reviewed ? { reviewed: settings.reviewed } : {}),
+    ...(settings.bpm ? { bpm: settings.bpm } : {}),
+  }
   memory.set('cards', cards)
 }
 
