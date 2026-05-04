@@ -15,17 +15,31 @@ export type Explode = {
 export type Eval = Interpolate | Explode
 export type Evals = Eval[]
 
-export type Line = {
+export type LineT<E> = {
   kind: 'line',
   contents: string,
-  evals: Evals,
+  evals: E[],
   times: number,
+}
+
+export type Line = LineT<Eval>
+
+export type ISTAAS = { 'kind': 'istaas', contents: string[][] }
+export type ISTAS = { 'kind': 'istas', contents: string[] }
+export type ISTS = { 'kind': 'ists', contents: string }
+export type InterpolateSubstT = ISTAAS | ISTAS | ISTS
+
+export type Substitution = {
+  kind: 'substitution',
+  contents: InterpolateSubstT,
+  marker: string,
 }
 
 export type InterpolableLine = {
   kind: 'interpolable-line',
   contents: string,
   interpols: Interpolate[],
+  substitutions?: Substitution[],
 }
 
 export type RenderLine = {
@@ -42,10 +56,19 @@ export const InterpolateSchema = z.object({
   marker: z.string(),
 })
 
+export const InterpolableSubstTSchema = z.custom<ISTS>().or(z.custom<ISTAS>()).or(z.custom<ISTAAS>())
+
+export const SubstituteSchema = z.object({
+  kind: z.literal('substitution'),
+  contents: InterpolableSubstTSchema,
+  marker: z.string(),
+})
+
 export const InterpolableLineSchema = z.object({
   kind: z.literal('interpolable-line'),
   contents: z.string(),
   interpols: z.array(InterpolateSchema),
+  substitutions: z.array(SubstituteSchema).optional(),
 })
 
 export const RenderLineSchema = z.object({
@@ -65,9 +88,7 @@ type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B
 
 type Assert<T extends true> = T
 
-type _assertOut = Assert<Equals<RenderLine, RenderLineDerived>>
-
-export function ignore(_: _assertOut) { }
+export type _assertOut = Assert<Equals<RenderLine, RenderLineDerived>>
 
 // pattern for rendered lines that denotes their flashcard identificator
 export const LineKeyPattern = /^ *([a-zA-Z0-9\-#]+)(: .*|)$/
@@ -111,7 +132,8 @@ export const block = (header: Header, items: Item[]) => ({ kind: 'block', header
 export type EvaluationResult = RenderLine[]
 export type EvaluationContext = [EvaluationResult[], Context]
 
-export const interpolableLine: (contents: string, interpols: Interpolate[]) => InterpolableLine = (contents, interpols) => ({ kind: 'interpolable-line', contents, interpols })
+export const interpolableLine: (contents: string, interpols: Interpolate[], substitutions?: Substitution[]) => InterpolableLine = (contents, interpols, substitutions) => ({ kind: 'interpolable-line', contents, interpols, substitutions })
+export const substitution: (contents: InterpolateSubstT, marker: string) => Substitution = (contents, marker) => ({ kind: 'substitution', contents, marker })
 
 export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null, null)
 export const renderLine: (contents: string, key: string | null, source: InterpolableLine | null) => RenderLine = (contents, key, source) => ({ kind: 'renderline', contents, key, separator: null, source })

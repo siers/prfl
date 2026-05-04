@@ -259,6 +259,7 @@ describe('evaling items inside a block', () => {
             },
           ],
           "kind": "interpolable-line",
+          "substitutions": [],
         },
       },
     ])

@@ -1,10 +1,10 @@
-import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, InterpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, InterpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
-import { z } from 'zod'
+import z from 'zod'
 
 // lib
 
@@ -126,21 +126,26 @@ export function parseContents(text: string): Parsed {
 
 const StringArray = z.array(z.string())
 const StringArrayArray = z.array(z.array(z.string()))
-type InterpolateSubst = z.infer<typeof StringArray> | z.infer<typeof StringArrayArray> | unknown
 
-function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubst): RenderLine {
+function toInterpolateSubst(subst: any): InterpolateSubstT {
+  const strings = StringArray.safeParse(subst)
+  const strings2d = StringArrayArray.safeParse(subst)
+
+  if (strings.success) return { kind: 'istas', contents: strings.data }
+  else if (strings2d.success) return { kind: 'istaas', contents: strings2d.data }
+  else return { kind: 'ists', contents: subst.toString() }
+}
+
+function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubstT): RenderLine {
   let out
 
   try {
-    const strings = StringArray.safeParse(subst)
-    const strings2d = StringArrayArray.safeParse(subst)
-
-    if (strings.success) {
-      out = strings.data.join(' ')
-    } else if (strings2d.success) {
-      out = strings2d.data.map(a => a.join('')).join(' ')
+    if (subst.kind == 'ists') {
+      out = subst.contents
+    } else if (subst.kind == 'istas') {
+      out = subst.contents.join(' ')
     } else {
-      out = (subst as any).toString()
+      out = subst.contents.map(a => a.join('')).join(' ')
     }
   } catch (e) {
     out = `exc: ${e}`
@@ -185,11 +190,39 @@ function executeCommand(command: string, context: Context): any {
   return executeInContext(fullContext, command)
 }
 
+function evalInterpolate(
+  lss: [RenderLine, Substitution[]],
+  i: Interpolate,
+  context: Context,
+): [RenderLine, Substitution[]] {
+  const [l, ss] = lss
+  const substOut: any = executeCommand(i.command, context)
+  if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: $subst?.contents}`), ss]
+  const subst: InterpolateSubstT = toInterpolateSubst(substOut)
+
+  if (l.source) return [l, ss]
+  return [substituteInterpolate(l, i.marker, subst), []]
+}
+
+function evalInterpolates(
+  line: RenderLine,
+  is: Interpolate[],
+  context: Context,
+): RenderLine {
+  const [interpolated, substitutions] =
+    is.reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context), [line, []])
+
+  return {
+    ...interpolated,
+    source: is.length > 0 ? interpolableLine(line.contents, is, substitutions) : null
+  }
+}
+
 function evalItem(item: Item, context: Context): RenderLine[] {
   if (item.kind == 'header') return []
   if (item.kind == 'line') {
     const thisLine = item
-    const [is, es] = _.partition(thisLine.evals, e => e.kind == 'interpolate')
+    const [is, es]: [Interpolate[], Explode[]] = _.partition(thisLine.evals, e => e.kind == 'interpolate')
 
     return pipe(
       times(thisLine.times).map(_ => renderLine1(thisLine.contents)),
@@ -202,18 +235,7 @@ function evalItem(item: Item, context: Context): RenderLine[] {
       lines => lines.map(line => {
         if (line.source) return line
 
-        const interpolated = is.reduce((l: RenderLine, i: Interpolate) => {
-          const subst: any = executeCommand(i.command, context)
-          if (subst?.kind === 'error') return errorLine(`error: failed to compile: $subst?.contents}`)
-
-          if (l.source) return (l satisfies RenderLine)
-          return substituteInterpolate(l, i.marker, subst)
-        }, line)
-
-        return {
-          ...interpolated,
-          source: is.length > 0 ? interpolableLine(line.contents, is) : null
-        }
+        return evalInterpolates(line, is, context)
       }),
       lines => lines.map(line => {
         const key = line.contents.match(LineKeyPattern)
@@ -272,9 +294,5 @@ export function evalContentsS(text: string): string[] {
 }
 
 export function evalInterpolableLine(l: InterpolableLine, mem: Memory = new Map()): RenderLine {
-  const i = line(l.contents, l.interpols, 1)
-
-  const evalItemUnsafe = (i: Item) => evalItem(i, initContext(mem))[0]
-
-  return evalItemUnsafe(i)
+  return evalInterpolates(renderLine1(l.contents), l.interpols, initContext(mem))
 }
