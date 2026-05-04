@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { expect, test } from 'vitest'
 import { randomizeLangUtils } from './RandomizeLangUtils'
 import _ from 'lodash'
 
@@ -230,69 +230,69 @@ test('ij', () => {
   expect(ij(' ', [[1, 2], [3, 4]])).toStrictEqual(['1 2', '3 4'])
 })
 
-describe('pickMemK', () => {
-  type Memory = Map<string, any>
-  type Sig =
-    (m: Memory, key: string | undefined, array: any[] | string, n: number | undefined, stats: any)
-      => [string[], Memory]
+// describe('pickMemK', () => {
+//   type Memory = Map<string, any>
+//   type Sig =
+//     (m: Memory, key: string | undefined, array: any[] | string, n: number | undefined, stats: any)
+//       => [string[], Memory]
 
-  const pmk: Sig = (m, a, b, c, d) => [randomizeLangUtils(new Map(), m).pickMemK(a, b, c, d), m]
+//   const pmk: Sig = (m, a, b, c, d) => [randomizeLangUtils(new Map(), m).pickMemK(a, b, c, d), m]
 
-  test('basic', () => {
-    const m: Memory = new Map()
-    expect(pmk(m, '', '1', 1, undefined)).toEqual([["1"], m])
-  })
+//   test('basic', () => {
+//     const m: Memory = new Map()
+//     expect(pmk(m, '', '1', 1, undefined)).toEqual([["1"], m])
+//   })
 
-  test('make a key if it is missing', () => {
-    const m: Memory = new Map([["1||2", { "2": 1 }]])
-    expect(pmk(m, '', '12', 1, undefined)).toEqual([["1"], m])
-  })
+//   test('make a key if it is missing', () => {
+//     const m: Memory = new Map([["1||2", { "2": 1 }]])
+//     expect(pmk(m, '', '12', 1, undefined)).toEqual([["1"], m])
+//   })
 
-  test('favors oldest', () => {
-    const counts: Record<string, number> = {}
-    for (let i = 0; i < 200; i++) {
-      const m: Memory = new Map([["k", { "b": 1 }]])
-      const [picked] = pmk(m, 'k', 'ab', 1, undefined)
-      counts[picked[0]] = (counts[picked[0]] || 0) + 1
-    }
-    // "a" (unknown/oldest) should be picked much more often than "b"
-    expect(counts['a']).toBeGreaterThan(counts['b'] || 0)
-  })
+//   test('favors oldest', () => {
+//     const counts: Record<string, number> = {}
+//     for (let i = 0; i < 200; i++) {
+//       const m: Memory = new Map([["k", { "b": 1 }]])
+//       const [picked] = pmk(m, 'k', 'ab', 1, undefined)
+//       counts[picked[0]] = (counts[picked[0]] || 0) + 1
+//     }
+//     // "a" (unknown/oldest) should be picked much more often than "b"
+//     expect(counts['a']).toBeGreaterThan(counts['b'] || 0)
+//   })
 
-  test('stale keys in stats are ignored', () => {
-    const stale = { "x1": -1, "x2": -1, "x3": -1, "x4": -1, "x5": -1, "x6": -1, "x7": -1, "a": 1 }
-    const m: Memory = new Map([["k", stale]])
-    const [picked] = pmk(m, 'k', 'ab', 1, undefined)
-    // "b" is unknown (oldest), "a" has order 1 (newest), stale x1-x7 not in items
-    // only "b" should be pickable (past-middle = 0 weight, and there's only 2 items)
-    expect(picked[0]).toEqual("b")
-    expect(m.get('k')).toStrictEqual({ x1: -1, x2: -1, x3: -1, x4: -1, x5: -1, x6: -1, x7: -1, a: 1, b: 2 })
-  })
+//   test('stale keys in stats are ignored', () => {
+//     const stale = { "x1": -1, "x2": -1, "x3": -1, "x4": -1, "x5": -1, "x6": -1, "x7": -1, "a": 1 }
+//     const m: Memory = new Map([["k", stale]])
+//     const [picked] = pmk(m, 'k', 'ab', 1, undefined)
+//     // "b" is unknown (oldest), "a" has order 1 (newest), stale x1-x7 not in items
+//     // only "b" should be pickable (past-middle = 0 weight, and there's only 2 items)
+//     expect(picked[0]).toEqual("b")
+//     expect(m.get('k')).toStrictEqual({ x1: -1, x2: -1, x3: -1, x4: -1, x5: -1, x6: -1, x7: -1, a: 1, b: 2 })
+//   })
 
-  test('update stats', () => {
-    const m: Memory = new Map([["stuff", { "b": 1 }]])
-    pmk(m, 'stuff', 'ab', 1, undefined)
-    const stats = m.get('stuff')
-    // whichever was picked should have the highest order
-    const picked = Object.entries(stats).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0]
-    expect(stats[picked]).toEqual(2)
-  })
+//   test('update stats', () => {
+//     const m: Memory = new Map([["stuff", { "b": 1 }]])
+//     pmk(m, 'stuff', 'ab', 1, undefined)
+//     const stats = m.get('stuff')
+//     // whichever was picked should have the highest order
+//     const picked = Object.entries(stats).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0]
+//     expect(stats[picked]).toEqual(2)
+//   })
 
-  test('stale keys preserved and items coming back retain history', () => {
-    const m: Memory = new Map()
-    // pick from a b c
-    pmk(m, 'k', 'abc', 3, undefined)
-    const statsAfterFirst = { ...m.get('k') }
-    // now only a c are active - b is gone
-    pmk(m, 'k', 'ac', 2, undefined)
-    // b's stats should still be in memory (not wiped)
-    expect(m.get('k')['b']).toEqual(statsAfterFirst['b'])
-    // bring b back - it retains its old order, not treated as brand new
-    const bOrderBefore = m.get('k')['b']
-    pmk(m, 'k', 'abc', 0, undefined)
-    expect(m.get('k')['b']).toEqual(bOrderBefore)
-  })
-})
+//   test('stale keys preserved and items coming back retain history', () => {
+//     const m: Memory = new Map()
+//     // pick from a b c
+//     pmk(m, 'k', 'abc', 3, undefined)
+//     const statsAfterFirst = { ...m.get('k') }
+//     // now only a c are active - b is gone
+//     pmk(m, 'k', 'ac', 2, undefined)
+//     // b's stats should still be in memory (not wiped)
+//     expect(m.get('k')['b']).toEqual(statsAfterFirst['b'])
+//     // bring b back - it retains its old order, not treated as brand new
+//     const bOrderBefore = m.get('k')['b']
+//     pmk(m, 'k', 'abc', 0, undefined)
+//     expect(m.get('k')['b']).toEqual(bOrderBefore)
+//   })
+// })
 
 test('interleavingEvery', () => {
   expect(interleavingEvery(s('1 2 3'), s('a'), 2)).toStrictEqual(s('1 2 a 3'))

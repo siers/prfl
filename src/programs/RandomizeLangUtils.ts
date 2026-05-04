@@ -1,20 +1,32 @@
 import { RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
 
-import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
+import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keyCenters, keysBySemi, keySemis, Note, rebase, render, semi } from '../lib/ToneLib'
+import { keyCenters, Note, rebase, render, semi } from '../lib/ToneLib'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
 import murmur from 'murmurhash3js'
+import { Picker } from 'bentools-picker'
+
+type PickKeysInt = {
+  count?: number,
+  mode?: number,
+  order?: number,
+  div?: number,
+  split?: number, // should control order/div
+  shuffle?: boolean,
+}
 
 export type Interface = {
   // DSL
   s: (s: string) => string[],
   ss: (s: string) => string[],
+  j: <A>(as: A[]) => string,
+  ij: <A>(i: string, as: A[][]) => string[],
 
   // array
   times: <A>(n: number, a: A | ((idx?: number) => A)) => A[],
@@ -26,9 +38,6 @@ export type Interface = {
   divide: <A>(as: A[], parts: number) => A[][],
   partChunks: (part: number, chunk: number, offset?: number) => string[][],
   partChunksShuf: (part: number, chunk: number, offset?: number) => string[][],
-  // mj: <A>(ass: A[][]) => string[],
-  j: <A>(as: A[]) => string,
-  ij: <A>(i: string, as: A[][]) => string[],
   zip: (...as: string[][]) => string[],
   zipSpace: (...as: string[][]) => string[],
   zipSlash: (...as: string[][]) => string[],
@@ -54,10 +63,6 @@ export type Interface = {
   powerInner<A>(a: A[]): A[][],
 
   pick: <A>(array: A[] | string) => A | string,
-  pickMemK: (key: string | undefined, array: any[] | string, n: number | undefined, stats?: any) => any[],
-
-  pickMem: (array: any[] | string, n: number | undefined) => any[],
-  pickTasks: (key: string, items: string[], n?: number) => any[],
 
   dayRandom: (modulo?: number) => number,
   daysModulo: (days: number, modulo: number) => number,
@@ -81,22 +86,12 @@ export type Interface = {
   block: (name: string, ...args: any) => any | undefined,
   blockLines(name: string, ...args: any): RenderLine[],
   aba: (as: string[], bs: string[]) => string[],
-  pickBlock: (name: string, n?: number) => any[],
   scheduleBlocks: (sentence: string) => RenderLine[],
   zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
   zipScheduleBlocks(sentence: string): RenderLine[],
 
-  pickKey: (n?: number) => string | string[],
-  pickNKeys: (cacheKey: string, n: number) => string[],
-  pickKeysOffset: (cacheKey: string, ...offsets: number[]) => string[],
-  pickKeys: (settings: {
-    count?: number,
-    mode?: number,
-    order?: number,
-    div?: number,
-    split?: number, // should control order/div
-    shuffle?: boolean,
-  }) => string[][],
+  pickKeys: (settings?: PickKeysInt) => string[][],
+  pickKeysShuf: (settings?: PickKeysInt) => string[][],
 
   pickEarlyBias<A>(as: A[]): A,
   picksEarlyBias<A>(as: A[]): A[],
@@ -120,6 +115,15 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
   function ss(sentence: string): string[] {
     return shuffle(s(sentence))
+  }
+
+  function j<A>(as: A[]): string {
+    return as.join(' ')
+  }
+
+  // inner join
+  function ij<A>(i: string, as: A[][]): string[] {
+    return as.map(a => a.join(i))
   }
 
   function cross(sentence: string): string[] {
@@ -189,19 +193,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   // Bug: offset screws it up
   function partChunksShuf(part: number, chunk: number, offset?: number): string[][] {
     return divide(shuffle(parts(part, offset)), chunk)
-  }
-
-  // function mj<A>(ass: A[][]): string[] {
-  //   return ass.map(as => as.join(' '))
-  // }
-
-  function j<A>(as: A[]): string {
-    return as.join(' ')
-  }
-
-  // inner join
-  function ij<A>(i: string, as: A[][]): string[] {
-    return as.map(a => a.join(i))
   }
 
   function zipSep(ass: string[][], sep: string = ''): string[] {
@@ -281,24 +272,11 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return powerBuckets(a).flat()
   }
 
-  // stores pick order (incrementing index), picks by linear weight:
-  // earliest gets weight 2x, middle gets x, past middle gets 0
-  // TODO: rename pickWeightedOldestBias
-  function pickWeightedEarlyBias(ordered: [any, number][]): any {
-    if (ordered.length == 1) return ordered[0][0]
-    const mid = Math.ceil(ordered.length / 2)
-    const weights = ordered.map((_, i) => i < mid ? 2 * (mid - 1 - i) + 1 : 0)
-    const total = weights.reduce((a, b) => a + b, 0)
-    let r = Math.random() * total
-    for (let i = 0; i < ordered.length; i++) {
-      r -= weights[i]
-      if (r <= 0) return ordered[i][0]
-    }
-    return ordered[mid - 1][0]
-  }
-
   function pickEarlyBias<A>(as: A[]): A {
-    return pickWeightedEarlyBias(as.map((a, index) => [a, index]))
+    const weight = (index: number) => Math.max(index - as.length / 2, 0)
+    const weights: [A, number][] = as.map((a, index) => [a, weight(index)])
+    const a: A | undefined = new Picker(as, { weights }).pick()
+    return a as A
   }
 
   function picksEarlyBias<A>(as: A[]): A[] {
@@ -310,68 +288,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // Note: uses memory
-  function pickMemK(
-    key: string | undefined,
-    array: any[] | string,
-    n: number | undefined = undefined,
-    stats: any = undefined,
-  ): any[] {
-    if (n !== undefined && n <= 0) return []
-
-    const items = ((typeof array === 'string') ? s(array) : array).sort()
-    if (!items.length) return []
-
-    const memoryKey = key || items.join('||')
-
-    const storedStats = stats || memory.get(memoryKey) || {}
-    const storedValues = Object.values(storedStats).map(Number)
-    const minOrder = storedValues.length ? Math.min(...storedValues) : 0
-    const maxOrder = storedValues.length ? Math.max(...storedValues) : -1
-    const orders: [any, number][] = items.map(item => {
-      return [item, storedStats[item] ?? minOrder - 1] satisfies [any, number]
-    })
-    const ordersSorted = _.sortBy(orders, 1)
-    const item = pickWeightedEarlyBias(ordersSorted)
-
-    const nextStats = { ...storedStats, ...Object.fromEntries(orders) }
-    nextStats[item] = maxOrder + 1
-    memory.set(memoryKey, nextStats)
-
-    return [item, ...pickMemK(memoryKey, items, (n || 0) - 1)]
-  }
-
-  function pickMem(array: any[] | string, n: number | undefined): any[] {
-    return pickMemK(undefined, array, n)
-  }
-
-  function pickTasks(key: string, items: string[], n?: number): string[] {
-    const map = items.map(i => {
-      const match = i.match(/^ *([a-zA-Z0-9\-]+):/)
-      if (!match || !match[1]) return
-      return [match[1], i] satisfies [string, string]
-    })
-
-    if (map.some(x => !x)) return [`pickTasks: ids missing for '${key}'`]
-
-    const mapF = map.flatMap(i => i ? [i] : [])
-    const keys = _.uniq(mapF.map(([key, _]) => key))
-
-    const mapM = new Map<string, string[]>()
-    mapF.map(([k, v]) => {
-      mapM.set(k, (mapM.get(k) || []).concat([v]))
-    })
-
-    return pickMemK(key, keys, n).map(keyOut => pick(mapM.get(keyOut) || ['missing']))
-  }
-
-  // Note: uses memory
   function pickTasksStateless(items: RenderLine[]): RenderLine[] {
     if (items.length == 0) return []
 
     const sorted = (_.sortBy(items, item => {
       const cards = cardMemory(memory)
       const otherwiseOrder = murmur.x86.hash32(item.contents)
-      return (cards[item.key || '']?.reviewed || -otherwiseOrder)
+      console.log(`${item.key}.reviewed = ${cards[item.key || '']?.reviewed}`)
+      return -(cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
 
     return picksEarlyBias(sorted)
@@ -499,12 +423,12 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return zipped.flat().flat()
   }
 
-  function pickBlock(name: string, n?: number | 'full'): string[] {
-    if (n == 0) return []
-    if (!block(name)) return [`pickBlock: cannot find ${name}`]
-    if (n === 'full') return block(name) // this is just wrong
-    return pickTasks(name, block(name), n)
-  }
+  // function pickBlock(name: string, n?: number | 'full'): string[] {
+  //   if (n == 0) return []
+  //   if (!block(name)) return [`pickBlock: cannot find ${name}`]
+  //   if (n === 'full') return block(name) // this is just wrong
+  //   return pickTasks(name, block(name), n)
+  // }
 
   function pickBlockStateless(name: string, n: number | 'full'): RenderLine[] {
     const lines = blockLines(name)
@@ -541,68 +465,12 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return parsed.flatMap(([name, amount]) => pickBlockStateless(name, amount))
   }
 
-  // practical calculations
+  function pickKeys(settings?: PickKeysInt): string[][] {
+    settings = settings || {}
 
-  // key picking features: cache, count (offsets / equal divisions), mode
-
-  function pickKey(n?: number): string | string[] {
-    const shufflePick = (a: number[]) => (shuffleArray(a).slice(0, 1))
-
-    if ((n || 0) <= 0) return []
-    if (n == 1) return pickKeysOffsetGeneric(shufflePick)[0]
-
-    const offsets = times((n || 0) - 1, 0).map(_ => randInt(0, 12 * 3))
-    return pickKeysOffsetGeneric(shufflePick, ...offsets)
-  }
-
-  function pickNKeys(cacheKey: string, n?: number): string[] {
-    if (!n) return []
-    const offsets = times(n - 1, null).map((_, index) => (12 / n) * (index + 1))
-    return pickKeysOffset(cacheKey, ...offsets)
-  }
-
-  // function pickKeys(cacheKey: string, n: number): string[] {
-  //   const semis = keySemis()
-  //   const key = `pickKeys|${cacheKey}`
-  //   const pick = pickMemK(key, semis, n)
-
-  //   return pick.map(s => {
-  //     const keys = keysBySemi(s)
-  //     const note = keys.length !== 1
-  //       ? JSON.parse(pickMemK(`${key}|FG`, keys.map(k => JSON.stringify(k)), 1)[0])
-  //       : keys[0]
-  //     return render(note, false)
-  //   })
-  // }
-
-  function pickKeysOffsetGeneric(shufflePick: (as: number[]) => number[], ...offsets: number[]): string[] {
-    const semis = keySemis()
-    const picks = shufflePick(semis).flatMap(n => [n, ...offsets.map(o => o + n)])
-
-    return picks.map(s => {
-      const keys = keysBySemi(s)
-      const note = keys.length !== 1 ? pickArray(keys) : keys[0]
-      return render(note, false)
-    })
-  }
-
-  function pickKeysOffset(cacheKey: string, ...offsets: number[]): string[] {
-    const key = `pickKeys|${cacheKey}`
-    const shuffler = (semis: number[]) => pickMemK(key, semis)
-    return pickKeysOffsetGeneric(shuffler, ...offsets)
-  }
-
-  function pickKeys(settings: {
-    count?: number,
-    mode?: number,
-    order?: number,
-    div?: number,
-    split?: number, // should control order/div
-    shuffle?: boolean,
-  }): string[][] {
     const keys = keyCenters(settings?.mode || 0)
 
-    if (typeof settings.split == 'number') {
+    if (typeof settings?.split == 'number') {
       settings.div = Math.round(12 / settings.split)
       settings.order = settings.split
     }
@@ -618,6 +486,10 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const shufChunks = shuf ? shuffle(chunks) : chunks
 
     return shufChunks.map(c => c.map(k => render(k, false)))
+  }
+
+  function pickKeysShuf(settings?: PickKeysInt): string[][] {
+    return pickKeys({ ...settings, shuffle: true, split: parseInt(pick('34')) })
   }
 
   // violin
@@ -647,6 +519,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   return {
     s,
     ss,
+    j,
+    ij,
 
     times,
     timesUntil,
@@ -657,8 +531,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     divide,
     partChunks,
     partChunksShuf,
-    j,
-    ij,
     zip,
     zipSpace,
     zipSlash,
@@ -683,9 +555,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     powerInner: <A>(a: A[]) => power(a).slice(1, -1),
 
     pick,
-    pickMemK,
-    pickMem,
-    pickTasks,
 
     dayRandom,
     daysModulo,
@@ -704,15 +573,12 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     block,
     blockLines,
     aba,
-    pickBlock,
     scheduleBlocks,
     zipBlocksDiv,
     zipScheduleBlocks,
 
-    pickKey,
-    pickNKeys,
-    pickKeysOffset,
     pickKeys,
+    pickKeysShuf,
 
     pickEarlyBias,
     picksEarlyBias,
