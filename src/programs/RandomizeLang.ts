@@ -1,10 +1,9 @@
-import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
-import z from 'zod'
 
 // lib
 
@@ -124,18 +123,6 @@ export function parseContents(text: string): Parsed {
 
 // evaluators
 
-const StringArray = z.array(z.string())
-const StringArrayArray = z.array(z.array(z.string()))
-
-function toInterpolateSubst(subst: any): InterpolateSubstT {
-  const strings = StringArray.safeParse(subst)
-  const strings2d = StringArrayArray.safeParse(subst)
-
-  if (strings.success) return { kind: 'istas', contents: strings.data }
-  else if (strings2d.success) return { kind: 'istaas', contents: strings2d.data }
-  else return { kind: 'ists', contents: subst.toString() }
-}
-
 function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubstT): RenderLine {
   let out
 
@@ -201,7 +188,7 @@ function evalInterpolate(
   const subst: InterpolateSubstT = toInterpolateSubst(substOut)
 
   if (l.source) return [l, ss]
-  return [substituteInterpolate(l, i.marker, subst), []]
+  return [substituteInterpolate(l, i.marker, subst), ss.concat([substitution(subst, i.marker)])]
 }
 
 function evalInterpolates(
@@ -302,11 +289,13 @@ export function evalRenderLine(l: RenderLine, mem: Memory = new Map()): RenderLi
   }
 }
 
-export function rotateInterpolableLine(l: RenderLine, mem: Memory = new Map()): RenderLine {
-  if (l?.source?.substitutions) {
-    const resubst = (l.source.substitutions || []).reduce<RenderLine>((l, s) => {
-      return substituteInterpolate(l, s.marker, s.contents)
-    }, l)
-    return { ...l, ...resubst }
-  } else return evalRenderLine(l, mem)
+export function rotateInterpolableLine(l: RenderLine): RenderLine {
+  if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
+    const newSubst = (l.source.substitutions || []).map(s => ({ ...s, contents: rotateInterpolateSubst(s.contents) }))
+    const resubst = newSubst.reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, s.contents), { ...l, contents: l.source.contents })
+    return {
+      ...resubst,
+      source: { ...l.source, substitutions: newSubst, }
+    }
+  } else return l
 }

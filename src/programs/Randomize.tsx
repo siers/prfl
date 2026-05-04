@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { evalContentsMem, evalRenderLine } from './RandomizeLang.js'
+import { evalContentsMem, evalRenderLine, rotateInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
@@ -67,7 +67,7 @@ type ItemActions = {
   reviewed?: boolean,
   done?: boolean,
   bury?: boolean,
-  regenerate?: boolean,
+  regenerate?: 'new' | 'next',
 }
 
 function Randomize(controls: any): JSX.Element {
@@ -138,6 +138,7 @@ function Randomize(controls: any): JSX.Element {
 
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
+
       const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
@@ -265,9 +266,12 @@ function Randomize(controls: any): JSX.Element {
 
       const updatedItems = items.map((item, index) => {
         if (index != current) return item
-        if (controls.regenerate === true) {
+        if (controls.regenerate === 'new') {
           if (!item.source) return item
           return evalRenderLine(item, memoryFromState(s, 'new'))
+        } else if (controls.regenerate === 'next') {
+          if (!item.source) return item
+          return rotateInterpolableLine(item)
         } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 
@@ -364,13 +368,14 @@ function Randomize(controls: any): JSX.Element {
 
     return <>
       {shownItems.map(([item, index]) => {
-        const showRegenerate = index == current && (items[current]?.source?.interpols?.length || 0) > 0
+        const showReeval = index == current && (items[current]?.source?.interpols?.length || 0) > 0
         const showCheckmark = index == current && itemSeekExclude(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {
             showCheckmark ? <>✅</> : <>
               {item?.contents}
-              {showRegenerate && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: true })}>🔄</a>}
+              {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'new' })}>🔄</a>}
+              {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'next' })}>⏩</a>}
             </>
           }
         </div>
@@ -495,7 +500,6 @@ function Randomize(controls: any): JSX.Element {
               </div>
 
               {metro.opened && metroUI()}
-
               {metro.power && <Metro bpm={metro.bpm || 60} />}
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { arrayShift } from '../lib/Array'
 
 export type Interpolate = {
   kind: 'interpolate',
@@ -139,3 +140,21 @@ export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: 
 export const renderLine: (contents: string, key: string | null, source: InterpolableLine | null) => RenderLine = (contents, key, source) => ({ kind: 'renderline', contents, key, separator: null, source })
 export const renderLine1: (contents: string) => RenderLine = (contents: string) => ({ kind: 'renderline', contents, key: null, separator: null, source: null })
 export const renderLineSep: () => RenderLine = () => ({ ...renderLine('---', null, null), separator: true })
+
+const StringArray = z.array(z.string())
+const StringArrayArray = z.array(z.array(z.string()))
+
+export function toInterpolateSubst(subst: any): InterpolateSubstT {
+  const strings = StringArray.safeParse(subst)
+  const strings2d = StringArrayArray.safeParse(subst)
+
+  if (strings.success) return { kind: 'istas', contents: strings.data }
+  else if (strings2d.success) return { kind: 'istaas', contents: strings2d.data }
+  else return { kind: 'ists', contents: subst.toString() }
+}
+
+export function rotateInterpolateSubst(s: InterpolateSubstT) {
+  if (s.kind == 'ists') return s
+  else if (s.kind == 'istas') return { kind: s.kind, contents: arrayShift(s.contents, 1) }
+  else return { kind: s.kind, contents: arrayShift(s.contents, 1) }
+}

@@ -259,7 +259,30 @@ describe('evaling items inside a block', () => {
             },
           ],
           "kind": "interpolable-line",
-          "substitutions": [],
+          "substitutions": [
+            {
+              "contents": {
+                "contents": [
+                  "1",
+                  "2",
+                ],
+                "kind": "istas",
+              },
+              "kind": "substitution",
+              "marker": "!!!1",
+            },
+            {
+              "contents": {
+                "contents": [
+                  "3",
+                  "4",
+                ],
+                "kind": "istas",
+              },
+              "kind": "substitution",
+              "marker": "!!!2",
+            },
+          ],
         },
       },
     ])
