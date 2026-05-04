@@ -20,7 +20,7 @@ BowingBackIntoWall: shoulder blades together [ss(`snake, scale, ysaye`)]
 -=- shifting
 #{after('2026-03-16', '')}ShiftingFourth: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [ss(`G D A E`)]
 0x ShiftingSlides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
-ShiftingSlides: quartertone [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
+ShiftingSlides: quartertone [key] [(ss(`GDAE`).map(s=>chromaticSlide(key.replace(/^Key-/,''), s))).join(', ')]
 {after('2026-04-05', '')}ShiftingSevcik: [key] Sevcik, no gliss [ss(`G D A E`)]
 ShiftingSnake: [key] position: [ss(`2 3 4 5 6 7`)], [ss(`G D A E`)]
 SemitoneFrame: [ss(`GDEA`)] +[ss(`1 2 3 4 5 6 7`)]sem [zip(ss(`lyd, maj, min, phyr, `),perm('1234').map(x=>x.join('')))]
@@ -38,7 +38,7 @@ Bowing4: fast draws [pick(shapes)]
 Bowing5: contact point randomization (circles)
 --- stops
 Stop1: Bowing: 4-stops
-Stop2: Bowing: sixths on EA, GD intersperesed 
+Stop2: Bowing: sixths on EA, GD intersperesed
 Stop3: Fingerboard: sixths: sliding fingers over fifths, flat pads
 --- entrances
 Entr1: bow ends clicks exercise [ss(`GDAE`)]
@@ -59,7 +59,7 @@ OrchPiazolla: play
 OrchGerschwin: play
 OrchBolero: play
 OrchBrahms: Hungarian Dance
-OrchRosen: play 
+OrchRosen: play
 # OrchArabian: play (low, done)
 OrchEgypt: play (high)
 OrchSibelius: play (low)
@@ -69,7 +69,7 @@ OrchSibelius: play (low)
 ExerciseMin251: [zipT(pickKeysShuf().flat(), s(`:`), ss(`3b5b7b1 713b5b`))] {maybeEvery(5, '')}
 ExerciseMaj251: [zipLongest(pickKeys().flat(), s(`:`), ss(`32 7b5`))] {maybeEvery(3, '')}
 ExerciseFlipflops: 35/34 [zipLongest(pickKeysShuf().flat(), s(`:`), ss(`57 34`))] {maybeEvery(`3,1`, '')}
-ExerciseStepwiseDia: [zipLongest(pickKeysShuf().flat(), s(`:`), ss(`5 6 7 56 34 24`))] {maybeEvery(`4,1`, '')} 
+ExerciseStepwiseDia: [zipLongest(pickKeysShuf().flat(), s(`:`), ss(`5 6 7 56 34 24`))] {maybeEvery(`4,1`, '')}
 --- piano-second
 BrahmsWiegelied: play
 Scale-alt: play alt resolutions (678910 is flat)
@@ -78,7 +78,7 @@ PiaScale: G minor, [ss(`regular, russian, thirds, sixths, octaves`)], [ss(`I, Im
 GluckAccomp: play
 JazzFutter: [zipT(ss(`30 32 33 34 35 36 37`), s(`///////////`), pickKeysShuf().flat())]
 ModernPianoPatterns: check out (1 barrons, 2 pustoņa triādes kvintās uz augšu pa 6)
-# https://www.instagram.com/reel/DVI12O2iSwG/ 
+# https://www.instagram.com/reel/DVI12O2iSwG/
 AutumnLeaves: pick and play the voicings
 TriSubs: play [pickKeys({split: 3, shuffle: true})]
 --- piano-third
@@ -88,7 +88,7 @@ ChromaticBassline: try accompanying
 HVL-III: play from study notes
 HarmonicScales: pdf/solfege/…
 MikeHarrison: check chords of the song
-# https://www.instagram.com/reel/DXmbGbtEQIP/ 
+# https://www.instagram.com/reel/DXmbGbtEQIP/
 --- piano-unused
 BarryHarrisInnerVoice: do it
 --- piano-lickbook
@@ -101,7 +101,7 @@ Oleo: [ss(`head-metred, two-free-runs, comping`)]
 BluesForAlice: [ss(`head-metered, comping, two-free-runs`)]
 Blue-Train: play
 Entertainer-page{ss(`A B1 B2 C D`)}: with metronome
-BWV18: learn [powerInnerBuckets('SATB').map(x => shuffle(x)).flat().map(x=>x.join('')).join(' ')] 
+BWV18: learn [powerInnerBuckets('SATB').map(x => shuffle(x)).flat().map(x=>x.join('')).join(' ')]
 Song1: expand accompaniment, finish chorus
 {after(`2026-05-13`)} Song2: write a polka with movements
 # P, Parametrizations
@@ -141,7 +141,7 @@ KneeBlockSqueezeBendTouch: do it
 WallYogaBlockHipExercise: bend, rotate, back
 HipsMotorTangoTwists
 --- physio1
-RussianCore: v-sit claps, hip against arms, straddle leg lifts, reverse plank leg lifts 
+RussianCore: v-sit claps, hip against arms, straddle leg lifts, reverse plank leg lifts
 WIYT: do it
 RotatorCuffOscilations: do it
 SidePlankHipup: against a piano chair (very similar to cop twists?)
@@ -188,9 +188,10 @@ Triceps: [arrayRotate(s(`behind the head`), daysModulo(7, 2))]
 # {scheduleBlocks('physio0-4 physio1 physio2-4 physio9')}
 # {scheduleBlocks('physio0 physio1 physio2 physio9')}
 # Main
----
-#Keys: {keys=pickKeysOffset('scales', 4)}
-Keys: {keys=new Array(`D`);}
+--- keys
+Key-{pickKeys().flat()}
+-=-
+{keys=scheduleBlocks('keys-1').map(k=>k.key)}
 --- juggling
 3x Juggling: 5 balls
 -=- warmup-key
