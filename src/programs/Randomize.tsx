@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { evalContentsMem, evalInterpolableLine } from './RandomizeLang.js'
+import { evalContentsMem, evalRenderLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
@@ -267,7 +267,7 @@ function Randomize(controls: any): JSX.Element {
         if (index != current) return item
         if (controls.regenerate === true) {
           if (!item.source) return item
-          return { ...item, ...(evalInterpolableLine(item.source, memoryFromState(s, 'new'))) }
+          return evalRenderLine(item, memoryFromState(s, 'new'))
         } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 

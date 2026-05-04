@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, InterpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -151,7 +151,7 @@ function substituteInterpolate(line: RenderLine, marker: string, subst: Interpol
     out = `exc: ${e}`
   }
 
-  return renderLine1(line.contents.replace(marker, `[${out}]`))
+  return { ...line, ...renderLine1(line.contents.replace(marker, `[${out}]`)) }
 }
 
 function isRenderLines(subst: any): RenderLine[] | undefined {
@@ -293,6 +293,20 @@ export function evalContentsS(text: string): string[] {
   return evalContentsMem(text)[0].map(rl => rl.contents)
 }
 
-export function evalInterpolableLine(l: InterpolableLine, mem: Memory = new Map()): RenderLine {
-  return evalInterpolates(renderLine1(l.contents), l.interpols, initContext(mem))
+export function evalRenderLine(l: RenderLine, mem: Memory = new Map()): RenderLine {
+  if (!l.source) return l
+
+  return {
+    ...l,
+    ...evalInterpolates(renderLine1(l?.source.contents), l?.source.interpols, initContext(mem))
+  }
+}
+
+export function rotateInterpolableLine(l: RenderLine, mem: Memory = new Map()): RenderLine {
+  if (l?.source?.substitutions) {
+    const resubst = (l.source.substitutions || []).reduce<RenderLine>((l, s) => {
+      return substituteInterpolate(l, s.marker, s.contents)
+    }, l)
+    return { ...l, ...resubst }
+  } else return evalRenderLine(l, mem)
 }
