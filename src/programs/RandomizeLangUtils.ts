@@ -18,6 +18,8 @@ export type Interface = {
 
   // array
   times: <A>(n: number, a: A | ((idx?: number) => A)) => A[],
+  timesUntil: <A>(length: number, a: A[]) => A[],
+  timesUntilShuf: <A>(length: number, a: A[]) => A[],
   indices: (until: number) => string[],
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
@@ -26,12 +28,14 @@ export type Interface = {
   partChunksShuf: (part: number, chunk: number, offset?: number) => string[][],
   // mj: <A>(ass: A[][]) => string[],
   j: <A>(as: A[]) => string,
-  jj: <A>(as: A[][]) => string,
+  ij: <A>(i: string, as: A[][]) => string[],
   zip: (...as: string[][]) => string[],
   zipSpace: (...as: string[][]) => string[],
   zipSlash: (...as: string[][]) => string[],
   zipT: <A>(...ass: A[][]) => A[][],
   zipInterleave: <A>(...args: A[][]) => A[],
+  zipLongest: <A>(...args: A[][]) => A[][],
+  zipLongestShuf: <A>(...args: A[][]) => A[][],
   intersperse: <A>(arr: A[], sep: A) => A[],
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
@@ -133,6 +137,16 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     else return Array(n).fill(a)
   }
 
+  function timesUntil<A>(length: number, a: A[]): A[] {
+    return (a.length < length ? times(Math.ceil(length / a.length), a).flat() : a).slice(0, length)
+  }
+
+  function timesUntilShuf<A>(length: number, a: A[]): A[] {
+    if (a.length == 2) a = shuffle([...a, ...a])
+    const out = a.length < length ? shuffleX(a, Math.ceil(length / a.length)) : a
+    return out.slice(0, length)
+  }
+
   function product<A>(...arrays: A[][]): A[][] {
     if (arrays.length === 0) return [[]]
     const [first, ...rest] = arrays
@@ -185,8 +199,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return as.join(' ')
   }
 
-  function jj<A>(as: A[][]): string {
-    return as.map(a => a.join(' ')).join(', ')
+  // inner join
+  function ij<A>(i: string, as: A[][]): string[] {
+    return as.map(a => a.join(i))
   }
 
   function zipSep(ass: string[][], sep: string = ''): string[] {
@@ -212,6 +227,21 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const div = _.max(lengths) as number
     const zipped = zipT(...args.map(l => divide(l, div)))
     return zipped.flat().flat()
+  }
+
+  function zipLongestGen<A>(timesUntil: (a: number, as: A[]) => A[], ...args: A[][]): A[][] {
+    const lengths = args.map(a => a.length)
+    const longest = _.max(lengths) || 0
+
+    return zipT(...args.map(a => timesUntil(longest, a)))
+  }
+
+  function zipLongest<A>(...args: A[][]): A[][] {
+    return zipLongestGen(timesUntil, ...args)
+  }
+
+  function zipLongestShuf<A>(...args: A[][]): A[][] {
+    return zipLongestGen(timesUntilShuf, ...args)
   }
 
   function shuffleM<A>(a: A[]): A[] {
@@ -619,6 +649,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     ss,
 
     times,
+    timesUntil,
+    timesUntilShuf,
     indices,
     parts,
     partsShuf,
@@ -626,12 +658,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     partChunks,
     partChunksShuf,
     j,
-    jj,
+    ij,
     zip,
     zipSpace,
     zipSlash,
     zipT,
     zipInterleave,
+    zipLongest,
+    zipLongestShuf,
     intersperse,
     interspersing,
     interleavingEvery,

@@ -6,15 +6,17 @@ const {
   s,
   cross,
   times,
+  timesUntil,
   product,
   parts,
   divide,
   indexPyramid,
   phrasePyramid,
   j,
-  jj,
+  ij,
   zip,
   zipInterleave,
+  zipLongest,
   shuffle,
   perm,
   power,
@@ -220,9 +222,12 @@ test('zipInterleave', () => {
   expect(zipInterleave(s('a b c'), s('1 2 3 4 5 6'))).toStrictEqual(s('a 1 2 b 3 4 c 5 6'))
 })
 
-test('j & jj', () => {
+test('j', () => {
   expect(j([1, 2])).toStrictEqual('1 2')
-  expect(jj([[1, 2], [3, 4]])).toStrictEqual('1 2, 3 4')
+})
+
+test('ij', () => {
+  expect(ij(' ', [[1, 2], [3, 4]])).toStrictEqual(['1 2', '3 4'])
 })
 
 describe('pickMemK', () => {
@@ -298,4 +303,24 @@ test('after', () => {
   expect(after('2020-01-01', ['a', 'b'])).toStrictEqual(['a', 'b'])
   expect(after('2099-01-01', ['a', 'b'])).toStrictEqual([])
   expect(after('2020-01-01', 'solo')).toStrictEqual(['solo'])
+})
+
+test('timesUntil', () => {
+  expect(timesUntil(0, ['a'])).toStrictEqual([])
+  expect(timesUntil(0, ['a', 'b'])).toStrictEqual([])
+  expect(timesUntil(1, ['a'])).toStrictEqual(['a'])
+  expect(timesUntil(5, ['a', 'b'])).toStrictEqual(['a', 'b', 'a', 'b', 'a'])
+})
+
+test('zipLongest', () => {
+  const a = s('123')
+  const b = s('ab')
+  const out = [
+    ['1', 'a'],
+    ['2', 'b'],
+    ['3', 'a'],
+  ]
+
+  expect(zipLongest(a, b)).toStrictEqual(out)
+  expect(zipLongest(b, a)).toStrictEqual(out.map(a => a.reverse()))
 })
