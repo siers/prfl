@@ -273,7 +273,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function pickEarlyBias<A>(as: A[]): A {
-    const weight = (index: number) => Math.max(index - as.length / 2, 0)
+    const weight = (index: number) => Math.max((as.length - index) - as.length / 1.5, 0)
     const weights: [A, number][] = as.map((a, index) => [a, weight(index)])
     const a: A | undefined = new Picker(as, { weights }).pick()
     return a as A
@@ -294,8 +294,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const sorted = (_.sortBy(items, item => {
       const cards = cardMemory(memory)
       const otherwiseOrder = murmur.x86.hash32(item.contents)
-      console.log(`${item.key}.reviewed = ${cards[item.key || '']?.reviewed}`)
-      return -(cards[item.key || '']?.reviewed || -otherwiseOrder)
+      // console.log(`${item.key}.reviewed = ${(cards[item.key || '']?.reviewed || -otherwiseOrder)}`)
+      return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
 
     return picksEarlyBias(sorted)
