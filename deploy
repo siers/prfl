@@ -12,7 +12,7 @@ deploy() {
       cd /Users/raitisveinbahs/raitis/code/haskell/blag/perflab
       rsync -r --delete ~/raitis/code/js/perflab/dist/ /Users/raitisveinbahs/raitis/code/haskell/blag/perflab &&
         git add . &&
-        git commit -am 'flash-command: deploy' &&
+        git commit -am 'prfl: deploy' --allow-empty &&
         git push --force-with-lease
     )
 }
