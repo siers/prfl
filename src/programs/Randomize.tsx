@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { evalContentsMem, evalRenderLine, rotateInterpolableLine } from './RandomizeLang.js'
+import { emptiedInterpolations, evalContentsMem, evalRenderLine, rotateInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
@@ -368,12 +368,13 @@ function Randomize(controls: any): JSX.Element {
 
     return <>
       {shownItems.map(([item, index]) => {
-        const showReeval = index == current && (items[current]?.source?.interpols?.length || 0) > 0
-        const showCheckmark = index == current && itemSeekExclude(item)
+        const isCurrent = index == current
+        const showReeval = isCurrent && (items[current]?.source?.interpols?.length || 0) > 0
+        const showCheckmark = isCurrent && itemSeekExclude(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {
             showCheckmark ? <>✅</> : <>
-              {item?.contents}
+              {hideDone && isCurrent ? item.contents : emptiedInterpolations(item).contents}
               {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'new' })}>🔄</a>}
               {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'next' })}>⏩</a>}
             </>
@@ -518,16 +519,19 @@ function Randomize(controls: any): JSX.Element {
 export default Randomize
 
 // TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
-// TODO: execution: save all reviews in the card data, along with all lengths
+// TODO: execution: save card reviews in a list, with review lengths
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: execution: indicate tasks which are fresh
 // TODO: seek: add an array of valid visited routes, starting with the current route
-// TODO: content: utility: zip longest, shuffleX others
 // TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
 // TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
 // TODO: metronome: tap to get rhythm
 // TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
+// TODO: metronome: move all state setters into one with a router (otherwise sometimes bpm setting fails sometimes, when clicking review btns)
+// TODO: metronome: timer pause/start should start/stop the metronome (store in card)
+// TODO: metronome: doesn't start immediately with "power" button
+// TODO: metronome: "power"/"off" labels suck, pick something else
 
 // TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
@@ -547,6 +551,7 @@ export default Randomize
 // TODO: content: maybeEvery derived from memory (make it work on indices)
 // TODO: content: random bowing exercises
 // TODO: content: bowing pattern generator for detache notes (partition refinement)
+// TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
 
 // TODO: hard: scheduling: give "gas" to tasks, so they get temporarily bumped
 

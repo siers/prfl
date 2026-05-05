@@ -299,3 +299,8 @@ export function rotateInterpolableLine(l: RenderLine): RenderLine {
     }
   } else return l
 }
+
+export function emptiedInterpolations(l: RenderLine): RenderLine {
+  if (!l.source?.substitutions) return l
+  return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: '-' }), { ...l, contents: l.source.contents })
+}
