@@ -518,29 +518,31 @@ function Randomize(controls: any): JSX.Element {
 
 export default Randomize
 
-// TODO: global: remove {} brackets in extrapolation, allow entering [] into a subprogram
 // TODO: execution: save card reviews in a list, with review lengths
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: execution: indicate tasks which are fresh
-// TODO: seek: add an array of valid visited routes, starting with the current route
-// TODO: execution: breakout into a subdeck by interpolation explosion
-// TODO: execution: interpolations must be orderable by frequency the same way subdecks would
-// TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
+
 // TODO: metronome: tap to get rhythm
 // TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
 // TODO: metronome: move all state setters into one with a router (otherwise sometimes bpm setting fails sometimes, when clicking review btns)
-// TODO: metronome: timer pause/start should start/stop the metronome (store in card)
+// TODO: metronome: timer pause/start should start/stop the metronome (store in card) (maybe doesn't make sense)
 // TODO: metronome: doesn't start immediately with "power" button
 // TODO: metronome: "power"/"off" labels suck, pick something else
+// TODO: metronome: metronome stops with timer, if timer is off, metronome is grey
 
-// TODO: scheduling: use bpolaszek/picker-js instead of the fake weighted random routines
-// TODO: scheduling: weights should be proportional to how long ago the task was last picked
-
-// TODO: content: rewrite key picker without memory (divmod on day of the week, use rem for shuffling the array, but sucks, because of day skipping)
-
+// TODO: execution: breakout into a subdeck by interpolation explosion
+// TODO: execution: interpolations must be orderable by frequency the same way subdecks would
+// TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
 // TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
 // TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
+// TODO: seek: add an array of valid visited routes, starting with the current route
+// TODO: seek: make cursor an opaque, guarded type to enable multi-layer cursors and understand the actual api
+// TODO: parametrization: enable adding tags to each interpolation
+
+// TODO: scheduling: weights should be proportional to how long ago the task was last picked
+
+// TODO: open: how to balance random exposition with integration cards (subdecks may help)
 
 // TODO: execution: items embed metronome (or sheet music)
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
@@ -553,7 +555,6 @@ export default Randomize
 // TODO: content: bowing pattern generator for detache notes (partition refinement)
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
 
-// TODO: hard: scheduling: give "gas" to tasks, so they get temporarily bumped
-
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: backlog: execution: scrollable items in execution
+// TODO: backlog: scheduling: give "gas" to tasks, so they get temporarily bumped (solved by "bury" button and dynamic scheduling by date)
