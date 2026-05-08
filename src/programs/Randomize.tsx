@@ -374,7 +374,7 @@ function Randomize(controls: any): JSX.Element {
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {
             showCheckmark ? <>✅</> : <>
-              {hideDone && isCurrent ? item.contents : emptiedInterpolations(item).contents}
+              {isCurrent || !hideDone ? item.contents : emptiedInterpolations(item).contents}
               {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'new' })}>🔄</a>}
               {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'next' })}>⏩</a>}
             </>
