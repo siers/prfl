@@ -437,7 +437,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function zipScheduleBlocks(sentence: string): RenderLine[] {
-    return zipInterleave(...s(sentence).map(x => shuffle(scheduleBlocks(x))))
+    return zipInterleave(...s(sentence).map(x => scheduleBlocks(x)))
   }
 
   function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full'][] {
