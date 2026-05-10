@@ -543,7 +543,8 @@ export default Randomize
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
 // TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 // TODO: seek: add an array of valid visited routes, starting with the current route
-// TODO: seek: make cursor an opaque, guarded type to enable multi-layer cursors and understand the actual api
+// TODO: (GHQZ) seek: make cursor an opaque, guarded type to enable multi-layer cursors and understand the actual api
+// TODO: (GHQZ) seek: make the cursors point to decks by key on a deckmap, no multi-dim decks
 // TODO: parametrization: enable adding tags to each interpolation
 
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
