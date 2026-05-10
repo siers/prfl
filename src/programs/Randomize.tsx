@@ -275,7 +275,7 @@ function Randomize(controls: any): JSX.Element {
         } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 
-      const buriedNewIndex = clamp(current + 3, 0, s?.items?.length || 0)
+      const buriedNewIndex = clamp(current + 3, 0, s?.items?.length ? s.items.length - 1 : 0)
       const movedItems = move ? arrayMove(updatedItems, current, buriedNewIndex) : updatedItems
 
       return {
