@@ -76,3 +76,9 @@ export function logicalTimerLength(t: Timer | null, now: number): number {
 export function timerLength(t: Timer | null, now: number): number {
   return logicalTimerLength(t, now) / 1000
 }
+
+export function hoursBetweenNow(date?: number): number {
+  const hour = 60 * 60
+  const milli = 1000
+  return (Date.now() - (date || 0)) / (hour * milli)
+}

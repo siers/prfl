@@ -4,7 +4,7 @@ import React, { JSX, RefObject, useEffect, useRef } from 'react'
 import { emptiedInterpolations, evalContentsMem, evalRenderLine, rotateInterpolableLine } from './RandomizeLang.js'
 import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
-import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms } from './Timers.ts'
+import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { arrayMove } from '../lib/Array.js'
@@ -134,6 +134,10 @@ function Randomize(controls: any): JSX.Element {
 
   function itemSeekExclude(item: UserItem): boolean {
     return hideDone && itemSkipped(item)
+  }
+
+  function findCardFromMemory(item: UserItem): CardData | null {
+    return findCard(memoryFromState(state), item.key || '')
   }
 
   function newAndRecalculate(a: Args) {
@@ -344,11 +348,13 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemStyle(item: UserItem, index: number): React.CSSProperties {
+    const card = findCardFromMemory(item)
     const color =
       index == current ? undefined
-        : item.done ? '#4caf50'
-          : timerLength(item.timer, Date.now()) >= 180 ? 'orange'
-            : '#bbb'
+        : item.done && hoursBetweenNow(card?.reviewed) > 12 ? 'red'
+          : item.done ? '#4caf50'
+            : timerLength(item.timer, Date.now()) >= 180 ? 'orange'
+              : '#bbb'
     return {
       ...(index == current && { fontSize: '2rem' }),
       ...(color && { color })
