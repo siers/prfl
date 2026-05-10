@@ -138,7 +138,9 @@ function substituteInterpolate(line: RenderLine, marker: string, subst: Interpol
     out = `exc: ${e}`
   }
 
-  return { ...line, ...renderLine1(line.contents.replace(marker, `[${out}]`)) }
+  const cut = out.length > 50 ? `${out.slice(0, 50)}...` : out
+
+  return { ...line, ...renderLine1(line.contents.replace(marker, `[${cut}]`)) }
 }
 
 function isRenderLines(subst: any): RenderLine[] | undefined {
