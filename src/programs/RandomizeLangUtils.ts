@@ -146,6 +146,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function timesUntilShuf<A>(length: number, a: A[]): A[] {
+    if (a.length == 1) return timesUntil(length, a)
     if (a.length == 2) a = shuffle([...a, ...a])
     const out = a.length < length ? shuffleX(a, Math.ceil(length / a.length)) : a
     return out.slice(0, length)

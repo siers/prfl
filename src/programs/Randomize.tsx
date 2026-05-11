@@ -526,7 +526,8 @@ export default Randomize
 
 // TODO: execution: save card reviews in a list, with review lengths
 // TODO: lang: add tags to block, only main blocks may have items without keys
-// TODO: execution: indicate tasks which are fresh
+// TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
+// TODO: review: optimize button spacings, too easy to misclick on mobile
 
 // TODO: metronome: tap to get rhythm
 // TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
@@ -545,7 +546,8 @@ export default Randomize
 // TODO: seek: add an array of valid visited routes, starting with the current route
 // TODO: (GHQZ) seek: make cursor an opaque, guarded type to enable multi-layer cursors and understand the actual api
 // TODO: (GHQZ) seek: make the cursors point to decks by key on a deckmap, no multi-dim decks
-// TODO: parametrization: enable adding tags to each interpolation
+// TODO: parametrization: enable adding tags to each interpolation (usecase: _________)
+// TODO: parametrization: separator for forwarding the interpolations
 
 // TODO: scheduling: weights should be proportional to how long ago the task was last picked
 
