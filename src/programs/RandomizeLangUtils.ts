@@ -85,7 +85,7 @@ export type Interface = {
   context: Map<string, any> | null,
   block: (name: string, ...args: any) => any | undefined,
   blockLines(name: string, ...args: any): RenderLine[],
-  aba: (as: string[], bs: string[]) => string[],
+  aba<A>(as: A[], bs: A[]): A[],
   scheduleBlocks: (sentence: string) => RenderLine[],
   zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
   zipScheduleBlocks(sentence: string): RenderLine[],
@@ -414,9 +414,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return lookupChecked(...args)
   }
 
-  function aba(as: string[], bs: string[]): string[] {
+  function aba<A>(as: A[], bs: A[]): A[] {
     const [a1, a2] = divide(as, 2)
-    return [...a1, '---', ...bs, '---', ...a2]
+    return [...a1, ...bs, ...a2]
   }
 
   function zipBlocksDiv(names: string, div: number, ...args: any): any[string] {
