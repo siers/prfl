@@ -524,10 +524,24 @@ function Randomize(controls: any): JSX.Element {
 
 export default Randomize
 
-// TODO: execution: save card reviews in a list, with review lengths
-// TODO: lang: add tags to block, only main blocks may have items without keys
-// TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
+// gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
+
 // TODO: review: optimize button spacings, too easy to misclick on mobile
+// TODO: lang: [undefined] is dead
+// TODO: lang: add tags to block, only main blocks may have items without keys
+// TODO: lang: (8HZO) tags to each item
+// TODO: randomize: closing the unactual items, showing just one
+// TODO: scheduling: make item heavier for the scheduler (8HZO) (7RZH)
+// TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
+// TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
+// TODO: execution: save card reviews in a list, with review lengths
+// TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
+
+// TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
+// TODO: content: (MD4F) would require a special action for that would influence the deck
+
+// TODO: state: use a CRDT-storage server
+// TODO: state: check if I can read anki database locally
 
 // TODO: metronome: tap to get rhythm
 // TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
@@ -536,6 +550,7 @@ export default Randomize
 // TODO: metronome: doesn't start immediately with "power" button
 // TODO: metronome: "power"/"off" labels suck, pick something else
 // TODO: metronome: metronome stops with timer, if timer is off, metronome is grey
+// TODO: metronome: flip input linearity, it's flipped now
 
 // TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
@@ -548,12 +563,8 @@ export default Randomize
 // TODO: (GHQZ) seek: make the cursors point to decks by key on a deckmap, no multi-dim decks
 // TODO: parametrization: enable adding tags to each interpolation (usecase: _________)
 // TODO: parametrization: separator for forwarding the interpolations
+// TODO: parametrization: forward button doesn't work when there are two interpolations
 
-// TODO: scheduling: weights should be proportional to how long ago the task was last picked
-
-// TODO: open: how to balance random exposition with integration cards (subdecks may help)
-
-// TODO: execution: items embed metronome (or sheet music)
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
 
 // TODO: content: display programmable scales
@@ -567,3 +578,5 @@ export default Randomize
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: backlog: execution: scrollable items in execution
 // TODO: backlog: scheduling: give "gas" to tasks, so they get temporarily bumped (solved by "bury" button and dynamic scheduling by date)
+
+// TODO: closed: how to balance random exposition with integration cards (subdecks may help) (a: just use interpolations as exposition starting points, problem solved)
