@@ -439,9 +439,9 @@ function Randomize(controls: any): JSX.Element {
 
     const reviewControls = <>
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
-      <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
-      <a className="pr-2 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
-      <a className="pr-3 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
+      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
+      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
+      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
@@ -536,7 +536,6 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: review: optimize button spacings, too easy to misclick on mobile
 // TODO: lang: [undefined] is dead
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: lang: (8HZO) tags to each item
