@@ -466,6 +466,9 @@ function Randomize(controls: any): JSX.Element {
 
   const metro = state?.metro || { bpm: 60 }
 
+  const ticking = !!globalTimer?.running
+  const metroPower = ticking && metro.power
+
   const delinearize = (n: number, low: number, high: number) => (1 - Math.sqrt(1 - (n / 1000))) * (high - low) + low
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
 
@@ -474,15 +477,22 @@ function Randomize(controls: any): JSX.Element {
       <div className="text-center">
         <div><input type="range" className="w-[80%]" value={linearize(metro.bpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
-          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm - 1 })}>-1</span>
-          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm - 5 })}>-5</span>
-          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm * 0.5 })}>÷2</span>
-          <span className="p-1 inline-block text-center w-[4em]">@{state?.metro?.bpm}</span>
-          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm * 2 })}>2×</span>
-          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm + 5 })}>5+</span>
-          <span className="p-1" onClick={_ => metroState({ bpm: metro.bpm + 1 })}>1+</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm - 1 })}>-1</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm - 5 })}>-5</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm * 0.5 })}>÷2</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm * 0.333333 })}>÷3</span>
+          <span
+            className="p-[2px] inline-block text-center w-[4em]"
+            onClick={_ => ticking && metroState({ power: !metro.power })}
+            style={{ color: metroPower ? '#000' : '#aaa' }}
+          >
+            @{state?.metro?.bpm}
+          </span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm * 3 })}>3×</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm * 2 })}>2×</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm + 5 })}>5+</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm + 1 })}>1+</span>
         </div>
-        <div onClick={_ => metroState({ power: !metro.power })}>{metro.power ? 'power' : ' off '}</div>
       </div>
     </div>
   }
@@ -499,7 +509,7 @@ function Randomize(controls: any): JSX.Element {
 
       {inExecution &&
         <div className="relative">
-          <div className={"w-[100dvw] flex flex-col justfiy-center "} style={({ height: "calc(90dvh)" })}>
+          <div className={"w-[100dvw] flex flex-col justfiy-center"} style={({ height: "calc(90dvh)" })}>
             {executionStats()}
             <div className="relative w-full flex flex-col flex-grow select-none">
               <div className="flex-1 content-center">
@@ -507,7 +517,7 @@ function Randomize(controls: any): JSX.Element {
               </div>
 
               {metro.opened && metroUI()}
-              {metro.power && <Metro bpm={metro.bpm || 60} />}
+              {metroPower && <Metro bpm={metro.bpm || 60} />}
             </div>
           </div>
 
@@ -545,12 +555,8 @@ export default Randomize
 
 // TODO: metronome: tap to get rhythm
 // TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
-// TODO: metronome: move all state setters into one with a router (otherwise sometimes bpm setting fails sometimes, when clicking review btns)
-// TODO: metronome: timer pause/start should start/stop the metronome (store in card) (maybe doesn't make sense)
 // TODO: metronome: doesn't start immediately with "power" button
-// TODO: metronome: "power"/"off" labels suck, pick something else
-// TODO: metronome: metronome stops with timer, if timer is off, metronome is grey
-// TODO: metronome: flip input linearity, it's flipped now
+// TODO: metronome: move all state setters into one with a router (otherwise sometimes bpm setting fails sometimes, when clicking review btns)
 
 // TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
