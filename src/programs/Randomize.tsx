@@ -330,6 +330,7 @@ function Randomize(controls: any): JSX.Element {
   function executionControlButtons(): JSX.Element {
     return <>
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => newAndRecalculate({ hideDone: !hideDone, })}>👁️</a>
+      <a className="microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
     </>
   }
 
@@ -390,7 +391,7 @@ function Randomize(controls: any): JSX.Element {
     </>
   }
 
-  function microBreakTransparencyControl(e: React.MouseEvent<HTMLDivElement>) {
+  function microBreakTransparencyControl(e: React.MouseEvent<HTMLAnchorElement>) {
     const breakMin = 10000
     const breakMax = 15000
     const calcOpacity = (start: number, now: number) => {
@@ -525,7 +526,6 @@ function Randomize(controls: any): JSX.Element {
       }
 
       {inExecution && <>
-        <div className="microbreak-button text-[32px] absolute left-[1em] bottom-[.8em] select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</div>
         <div className="metro-button text-[32px] absolute right-[4em] bottom-[.8em] select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</div>
       </>}
     </div>
