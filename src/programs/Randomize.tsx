@@ -535,7 +535,6 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: lang: [undefined] is dead
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: lang: (8HZO) tags to each item
 // TODO: randomize: closing the unactual items, showing just one

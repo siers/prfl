@@ -150,7 +150,7 @@ export function toInterpolateSubst(subst: any): InterpolateSubstT {
 
   if (strings.success) return { kind: 'istas', contents: strings.data }
   else if (strings2d.success) return { kind: 'istaas', contents: strings2d.data }
-  else return { kind: 'ists', contents: subst.toString() }
+  else return { kind: 'ists', contents: subst?.toString() || '' }
 }
 
 export function rotateInterpolateSubst(s: InterpolateSubstT) {
