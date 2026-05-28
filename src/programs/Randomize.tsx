@@ -330,7 +330,10 @@ function Randomize(controls: any): JSX.Element {
   function executionControlButtons(): JSX.Element {
     return <>
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => newAndRecalculate({ hideDone: !hideDone, })}>👁️</a>
-      <a className="microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
+      <a className="pr-3 microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
+      <a className="pr-3 metro-button select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</a>
+      <a className="pr-3" onClick={event => advanceRef.current('prev', event)}>⬅️</a>
+      <a className="pr-3" onClick={event => advanceRef.current('next', event)}>➡️</a>
     </>
   }
 
@@ -474,7 +477,7 @@ function Randomize(controls: any): JSX.Element {
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
 
   function metroUI() {
-    return <div className="opacity[0.5] w-full h-full top-0 left-0 p-3 flex-1 font-mono">
+    return <div className="opacity[0.5] w-full top-0 left-0 p-3 flex-0 font-mono">
       <div className="text-center">
         <div><input type="range" className="w-[80%]" value={linearize(metro.bpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
@@ -524,10 +527,6 @@ function Randomize(controls: any): JSX.Element {
 
         </div>
       }
-
-      {inExecution && <>
-        <div className="metro-button text-[32px] absolute right-[4em] bottom-[.8em] select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</div>
-      </>}
     </div>
   )
 }

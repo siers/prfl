@@ -115,9 +115,6 @@ function App() {
       <div className="knob-wrapwrap hidden">
         <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
       </div>
-
-      <a className="next" onClick={event => setItem('next', event)}>➡️</a>
-      <a className="prev" onClick={event => setItem('prev', event)}>⬅️</a>
     </div>
   )
 }
