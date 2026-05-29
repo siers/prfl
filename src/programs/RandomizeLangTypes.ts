@@ -5,6 +5,7 @@ export type Interpolate = {
   kind: 'interpolate',
   command: string,
   marker: string,
+  tag: string | null,
 }
 
 export type Explode = {
@@ -34,6 +35,7 @@ export type Substitution = {
   kind: 'substitution',
   contents: InterpolateSubstT,
   marker: string,
+  tag: string | null,
 }
 
 export type InterpolableLine = {
@@ -55,6 +57,7 @@ export const InterpolateSchema = z.object({
   kind: z.literal('interpolate'),
   command: z.string(),
   marker: z.string(),
+  tag: z.string().nullable(),
 })
 
 export const InterpolableSubstTSchema = z.custom<ISTS>().or(z.custom<ISTAS>()).or(z.custom<ISTAAS>())
@@ -63,6 +66,7 @@ export const SubstituteSchema = z.object({
   kind: z.literal('substitution'),
   contents: InterpolableSubstTSchema,
   marker: z.string(),
+  tag: z.string().nullable(),
 })
 
 export const InterpolableLineSchema = z.object({
@@ -125,7 +129,7 @@ export const makeEmptyMemory = () => new Map()
 export type Marker = string
 
 export const header = (shuffle: Boolean, name: string | null) => ({ kind: 'header', name, shuffle }) as Header
-export const interpolate = (command: string, marker: string) => ({ kind: 'interpolate', command, marker }) as Interpolate
+export const interpolate = (command: string, marker: string, tag: string | null) => ({ kind: 'interpolate', command, marker, tag }) as Interpolate
 export const explode = (command: string, marker: string) => ({ kind: 'explode', command, marker }) as Explode
 export const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
 export const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
@@ -134,7 +138,7 @@ export type EvaluationResult = RenderLine[]
 export type EvaluationContext = [EvaluationResult[], Context]
 
 export const interpolableLine: (contents: string, interpols: Interpolate[], substitutions?: Substitution[]) => InterpolableLine = (contents, interpols, substitutions) => ({ kind: 'interpolable-line', contents, interpols, substitutions })
-export const substitution: (contents: InterpolateSubstT, marker: string) => Substitution = (contents, marker) => ({ kind: 'substitution', contents, marker })
+export const substitution: (contents: InterpolateSubstT, marker: string, tag: string | null) => Substitution = (contents, marker, tag) => ({ kind: 'substitution', contents, marker, tag })
 
 export const errorLine: (msg: string) => RenderLine = msg => renderLine(`error: ${msg}`, null, null)
 export const renderLine: (contents: string, key: string | null, source: InterpolableLine | null) => RenderLine = (contents, key, source) => ({ kind: 'renderline', contents, key, separator: null, source })

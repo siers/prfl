@@ -233,7 +233,7 @@ describe('evaling items inside a block', () => {
   test('blockLines preserve source', () => {
     const text = `
       -=- a
-      a: [s('12')] [s('34')]
+      a: [s('12')] [s('34')]tag
       -=-
       {blockLines('a')}
     `.replaceAll(/^ */mg, '')
@@ -251,11 +251,13 @@ describe('evaling items inside a block', () => {
               "command": "s('12')",
               "kind": "interpolate",
               "marker": "!!!1",
+              "tag": null,
             },
             {
               "command": "s('34')",
               "kind": "interpolate",
               "marker": "!!!2",
+              "tag": "tag",
             },
           ],
           "kind": "interpolable-line",
@@ -270,6 +272,7 @@ describe('evaling items inside a block', () => {
               },
               "kind": "substitution",
               "marker": "!!!1",
+              "tag": null,
             },
             {
               "contents": {
@@ -281,6 +284,7 @@ describe('evaling items inside a block', () => {
               },
               "kind": "substitution",
               "marker": "!!!2",
+              "tag": "tag",
             },
           ],
         },

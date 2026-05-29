@@ -548,7 +548,7 @@ export default Randomize
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: lang: (8HZO) tags to each item
 // TODO: randomize: closing the unactual items, showing just one
-// TODO: scheduling: make item heavier for the scheduler (8HZO) (7RZH)
+// TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: save card reviews in a list, with review lengths
@@ -561,8 +561,7 @@ export default Randomize
 // TODO: state: check if I can read anki database locally
 
 // TODO: metronome: tap to get rhythm
-// TODO: metronome: power/off on restart is showing wrong (unless site settings are on)
-// TODO: metronome: doesn't start immediately with "power" button
+// TODO: metronome: power status is false on start unless permissions are correct
 // TODO: metronome: move all state setters into one with a router (otherwise sometimes bpm setting fails sometimes, when clicking review btns)
 
 // TODO: execution: breakout into a subdeck by interpolation explosion
