@@ -19,7 +19,7 @@ export interface Note {
   octave: number,
 }
 
-type Key = Note[] // semantic distinction only, unfortunately
+export type Key = Note[] // semantic distinction only, unfortunately
 type Notes = Note[]
 
 export function semi(n: Note): number {
@@ -145,6 +145,10 @@ export function keysMajor() {
   })
 }
 
+export function findMajor(tonic: Note): Key | undefined {
+  return keysMajor().find(k => equalNote(rebase(k[0], c4), rebase(tonic, c4)))
+}
+
 // === Utilities & Computations
 
 export function findCommonKey(a: number, b: number): [Key, [Note, Note]] | undefined {
@@ -267,4 +271,10 @@ export function pointwiseInterval(a: Note, b: Note, ...cs: Note[]): Note[] {
     return [a, ...pointwiseInterval(b, c, ...css)]
   }
   return [a, ...pointwiseInterval(next, b, ...cs)]
+}
+
+// respell a note from C major into a specific key)
+// if you give an ill-defined key, it will blow up
+export function rename(a: Note, k: Key) {
+  return { ...a, alter: k.find(n => n.name == a.name)!.alter }
 }

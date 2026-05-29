@@ -68,3 +68,7 @@ export function arrayMove<A>(arr1: A[], fromIndex: number, toIndex: number) {
   arr.splice(toIndex, 0, element)
   return arr
 }
+
+export function transpose<A>(matrix: A[][]): A[][] {
+  return matrix[0].map((_, index) => matrix.map(row => row[index]))
+}

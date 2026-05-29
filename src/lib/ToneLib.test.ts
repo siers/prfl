@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { parseNote, render, rebase, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval } from './ToneLib.ts'
+import { parseNote, render, rebase, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor } from './ToneLib.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -68,8 +68,8 @@ describe('ToneLib', () => {
     expect(pointwiseInterval(c4, e4, c4).map(n => render(n))).toStrictEqual(['C4', 'D4', 'E4', 'D4', 'C4'])
   })
 
-  // test('all notes', () => {
-  //   const notes = objectUniq(t.allNotes()).sort((a, b) => b.semi - a.semi)
-  //   expect(notes).equal(1)
-  // })
+  test('rename', () => {
+    const gb = findMajor(parseNote('gb')!)!
+    expect(render(rename(parseNote('b')!, gb))).toEqual('Bb4')
+  })
 })

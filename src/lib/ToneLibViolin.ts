@@ -1,11 +1,11 @@
-import { directRange } from './Array'
+import { directRange, transpose, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt } from './Random'
-import { enharmonics, majorKey, Note, parseNote, render, semi } from './ToneLib'
+import { enharmonics, Key, majorKey, Note, parseNote, rename, render, semi } from './ToneLib'
 
 type String = {
   base: Note,
-  positions: Note[],
-  positions2: Note[],
+  positions: Note[], // C major, free string + 7 positions
+  positions2: Note[], // C major, all positions up until second octave
 }
 
 export const strings: String[] = ([parseNote('G3'), parseNote('D4'), parseNote('A4'), parseNote('E5')] as Note[]).map(string => {
@@ -21,6 +21,25 @@ export const strings: String[] = ([parseNote('G3'), parseNote('D4'), parseNote('
 
 function stringIndex(string: 'G' | 'D' | 'A' | 'E'): number {
   return 'GDAE'.indexOf(string)
+}
+
+// because notes move and a position is defined by fifths,
+// in Gb the empty string position is no longer there
+// in F# the empty string position is lifted to half-position
+export function stringsForTonality(k: Key): String[] {
+  const stringPositions = strings.map(s => {
+    return s.positions2.map(n => [rename(n, k)].filter(n => semi(n) >= semi(s.base)))
+  })
+
+  const dropPositions =
+    zipWithIndex(transpose(stringPositions)).find(([_, position]) =>
+      position.every(p => p.length != 0)
+    )![0]
+
+  return stringPositions.map((ps, idx) => {
+    const psD = ps.slice(dropPositions).map(maybe => maybe[0])
+    return { base: strings[idx].base, positions: psD.slice(0, 8), positions2: psD } satisfies String
+  })
 }
 
 // @out guarantees four notes in output

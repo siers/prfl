@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { interleavingEvery, intersperse, interspersing, zipT, arrayMove } from './Array'
+import { interleavingEvery, intersperse, interspersing, zipT, arrayMove, transpose } from './Array'
 
 test('intersperse', () => {
   expect(intersperse([1, 2, 3], 0)).toStrictEqual([1, 0, 2, 0, 3])
@@ -41,4 +41,8 @@ test('arrayMove', () => {
   expect(arrayMove([0, 0, 0, 0, 5], 4, 0)).toStrictEqual([5, 0, 0, 0, 0])
 
   expect(a).toStrictEqual([1, 2, 3])
+})
+
+test('transpose', () => {
+  expect(transpose<string | number>([[1, 2], ['a', 'b']])).toStrictEqual([[1, 'a'], [2, 'b']])
 })
