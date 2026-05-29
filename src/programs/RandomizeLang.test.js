@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContentsS, evalContents, evalContentsMem } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -290,6 +290,84 @@ describe('evaling items inside a block', () => {
         },
       },
     ])
+  })
+})
+
+describe('rotateInterpolableLine', () => {
+  test('evalItem', () => {
+    const text = `
+      Thing: do it [s('12')]tag
+    `.replaceAll(/^ */mg, '')
+
+    const item = evalContents(text)[0]
+
+    expect(item).toStrictEqual({
+      "contents": "Thing: do it [1 2]",
+      "key": "Thing",
+      "kind": "renderline",
+      "separator": null,
+      "source": {
+        "contents": "Thing: do it !!!1",
+        "interpols": [
+          {
+            "command": "s('12')",
+            "kind": "interpolate",
+            "marker": "!!!1",
+            "tag": "tag",
+          },
+        ],
+        "kind": "interpolable-line",
+        "substitutions": [
+          {
+            "contents": {
+              "contents": [
+                "1",
+                "2",
+              ],
+              "kind": "istas",
+            },
+            "kind": "substitution",
+            "marker": "!!!1",
+            "tag": "tag",
+          },
+        ],
+      },
+    })
+
+    expect(rotateInterpolableLine(item)).toStrictEqual(
+      {
+        "contents": "Thing: do it [2 1]",
+        "key": "Thing",
+        "kind": "renderline",
+        "separator": null,
+        "source": {
+          "contents": "Thing: do it !!!1",
+          "interpols": [
+            {
+              "command": "s('12')",
+              "kind": "interpolate",
+              "marker": "!!!1",
+              "tag": "tag",
+            },
+          ],
+          "kind": "interpolable-line",
+          "substitutions": [
+            {
+              "contents": {
+                "contents": [
+                  "2",
+                  "1",
+                ],
+                "kind": "istas",
+              },
+              "kind": "substitution",
+              "marker": "!!!1",
+              "tag": "tag",
+            },
+          ],
+        },
+      }
+    )
   })
 })
 

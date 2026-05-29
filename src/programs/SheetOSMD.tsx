@@ -4,6 +4,7 @@ import { pointwiseInterval, findMajor } from '../lib/ToneLib'
 import { note, notesToMusic } from '../lib/MusicXML'
 import { chunk } from '../lib/Array'
 import { stringAboveOpen, stringsForTonality } from '../lib/ToneLibViolin'
+import { parseInt } from 'lodash'
 
 const p = ToneLib.parseNote.bind(ToneLib)
 
@@ -37,9 +38,13 @@ function markovScale(tonic: string, position: number) {
   return chunk(ns, 4).map(ns => ns.flat())
 }
 
-export default function SheetOSMD() {
-  // const xml = notesToMusic(galamianScale())
-  const xml = notesToMusic(markovScale('gb', 3))
+export default function SheetOSMD(params: { scale?: string, position?: string, key?: string }) {
+  const scale =
+    params.scale == 'markov'
+      ? markovScale(params.key || 'c', params.position ? parseInt(params.position) : 1)
+      : galamianScale()
+
+  const xml = notesToMusic(scale)
 
   return <OpenSheetMusicDisplay file={xml} />
 }

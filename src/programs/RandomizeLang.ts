@@ -126,7 +126,7 @@ export function parseContents(text: string): Parsed {
 
 // evaluators
 
-function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubstT): RenderLine {
+export function interpolateSubtToString(subst: InterpolateSubstT): string {
   let out
 
   try {
@@ -140,10 +140,14 @@ function substituteInterpolate(line: RenderLine, marker: string, subst: Interpol
   } catch (e) {
     out = `exc: ${e}`
   }
+  return out
+}
 
+function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubstT): RenderLine {
+  const out = interpolateSubtToString(subst)
   const cut = out.length > 50 ? `${out.slice(0, 50)}...` : out
 
-  return { ...line, ...renderLine1(line.contents.replace(marker, `[${cut}]`)) }
+  return { ...line, contents: line.contents.replace(marker, `[${cut}]`) }
 }
 
 function isRenderLines(subst: any): RenderLine[] | undefined {
@@ -290,7 +294,7 @@ export function evalRenderLine(l: RenderLine, mem: Memory = new Map()): RenderLi
 
   return {
     ...l,
-    ...evalInterpolates(renderLine1(l?.source.contents), l?.source.interpols, initContext(mem))
+    ...evalInterpolates({ ...l, contents: l?.source?.contents, source: null }, l?.source.interpols, initContext(mem))
   }
 }
 

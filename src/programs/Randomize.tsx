@@ -1,8 +1,8 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { emptiedInterpolations, evalContentsMem, evalRenderLine, rotateInterpolableLine } from './RandomizeLang.js'
-import { makeEmptyMemory, Memory } from './RandomizeLangTypes.js'
+import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, rotateInterpolableLine } from './RandomizeLang.js'
+import { makeEmptyMemory, Memory, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -502,10 +502,12 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
-  function sheetDisplay() {
+  function sheetDisplay(tags: Substitution[]) {
+    const params = Object.fromEntries(tags.filter(t => t.tag).map(t => [t.tag, interpolateSubtToString(t.contents).split(' ')[0]]))
+
     return <div className="flex flex-col p-3 font-mono items-center grow">
       <div className="max-w-[800px] w-full">
-        {SheetOSMD()}
+        {SheetOSMD(params)}
       </div>
     </div>
   }
@@ -529,7 +531,7 @@ function Randomize(controls: any): JSX.Element {
                 {executionItems()}
               </div>
 
-              {items[current]?.key?.match(/ScMarkov/) && sheetDisplay()}
+              {items[current]?.key?.match(/DS$/) && sheetDisplay(items[current]?.source?.substitutions || [])}
 
               {metro.opened && metroUI()}
               {metroPower && <Metro bpm={metro.bpm || 60} />}
@@ -579,7 +581,6 @@ export default Randomize
 
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
 
-// TODO: content: display programmable scales
 // TODO: content: random notes within position
 // TODO: content: bow articulations tasks
 // TODO: content: maybeEvery derived from memory (make it work on indices)
