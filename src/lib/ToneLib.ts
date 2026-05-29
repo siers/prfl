@@ -231,3 +231,40 @@ export function keysBySemi(n: number): Note[] {
   const centers = keyCenters()
   return enharmonics(n).flatMap(e => centers.filter(c => equalNote(c, e)))
 }
+
+function stepUp(n: Note): Note {
+  const idx = names.indexOf(n.name)
+  if (idx < names.length - 1) {
+    return { ...n, name: names[idx + 1] }
+  } else {
+    return { ...n, name: names[0], octave: n.octave + 1 }
+  }
+}
+
+function stepDown(n: Note): Note {
+  const idx = names.indexOf(n.name)
+  if (idx > 0) {
+    return { ...n, name: names[idx - 1] }
+  } else {
+    return { ...n, name: names[names.length - 1], octave: n.octave - 1 }
+  }
+}
+
+// semi here should be semantically wrong
+function stepTo(n: Note, to: Note): Note {
+  const next = semi(to) >= semi(n) ? stepUp(n) : stepDown(n)
+  if (next.name === to.name) return { ...next, alter: to.alter }
+  return next
+}
+
+
+export function pointwiseInterval(a: Note, b: Note, ...cs: Note[]): Note[] {
+  if (a.name === b.name && a.octave === b.octave) return []
+  const next = stepTo(a, b)
+  if (next.name === b.name && next.octave === b.octave && cs.length == 0) return [a, b]
+  if (next.name === b.name && next.octave === b.octave && cs.length != 0) {
+    const [c, ...css] = cs
+    return [a, ...pointwiseInterval(b, c, ...css)]
+  }
+  return [a, ...pointwiseInterval(next, b, ...cs)]
+}

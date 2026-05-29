@@ -3,11 +3,11 @@ import * as ToneLib from '../lib/ToneLib'
 
 function attributes() {
   return new elements.Attributes({
-    attributes: { divisions: 1 },
+    //attributes: { divisions: 1 },
     contents: [
       null, // elements.Footnote
       null, // elements.Level
-      new elements.Divisions(1), // elements.Divisions
+      new elements.Divisions({ contents: [4] }), // elements.Divisions
       new Array<elements.Key>(),
       new Array<elements.Time>(
         new elements.Time({
@@ -71,6 +71,9 @@ export function note(note, duration, opts) {
 
   const accidental = note.alter == 0 ? null : new elements.Alter({ contents: [note.alter] })
 
+  const beam = [new elements.Beam({ attributes: { number: opts.beamNumber }, contents: [opts.beam] })]
+  // const beam = opts.beam && [new elements.Beam({ contents: [opts.beam] })] || []
+
   return new elements.Note({
     contents: [
       [
@@ -103,7 +106,7 @@ export function note(note, duration, opts) {
       notehead, // elements.Notehead
       null, // elements.NoteheadText
       null, // elements.Staff
-      [], // elements.Beam
+      beam, // elements.Beam
       new Array<elements.Notations>(notations), // elements.Notations,
       new Array<elements.Lyric>(),
       null, // elements.Play

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { parseNote, render, rebase, Note, major, keysMajor, majorKey, semi, enharmonics } from './ToneLib.ts'
+import { parseNote, render, rebase, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval } from './ToneLib.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -55,6 +55,17 @@ describe('ToneLib', () => {
     keysMajor().flat().forEach(note => {
       expect(note).toStrictEqual(parseNote(render(note)))
     })
+  })
+
+  test('pointwiseInterval', () => {
+    const c4 = parseNote('c4')!
+    const e4 = parseNote('e4')!
+    const c5 = parseNote('c5')!
+
+    expect(pointwiseInterval(c4, c4).map(n => render(n))).toStrictEqual([])
+    expect(pointwiseInterval(c4, e4).map(n => render(n))).toStrictEqual(['C4', 'D4', 'E4'])
+    expect(pointwiseInterval(c4, c5).map(n => render(n))).toStrictEqual(['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'])
+    expect(pointwiseInterval(c4, e4, c4).map(n => render(n))).toStrictEqual(['C4', 'D4', 'E4', 'D4', 'C4'])
   })
 
   // test('all notes', () => {
