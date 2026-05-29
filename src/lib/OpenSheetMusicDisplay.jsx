@@ -10,6 +10,7 @@ const OpenSheetMusicDisplay = ({
   drawSubtitle = false,
   drawComposer = false,
   drawPartNames = false,
+  drawingParameters = "compacttight",
 }) => {
   const divRef = useRef(null)
   const osmdRef = useRef(null)
@@ -17,10 +18,19 @@ const OpenSheetMusicDisplay = ({
   const setupOsmd = () => {
     if (!divRef.current) return
 
-    const options = { autoResize, drawTitle, drawSubtitle, drawComposer, drawPartNames }
+    const options = { autoResize, drawTitle, drawSubtitle, drawComposer, drawPartNames, drawingParameters }
+
     osmdRef.current = new OSMD(divRef.current, options)
 
-    osmdRef.current.load(file).then(() => osmdRef.current.render())
+    osmdRef.current.load(file).then(() => {
+      osmdRef.current.render()
+      const osmd = osmdRef.current
+
+      const scoreWidth = osmd.graphic.musicPages[0].musicSystems[0].PositionAndShape.size.width;
+      const sheetMusicDiv = divRef.current
+      const padding = (divRef.current.getBoundingClientRect().width - 35 - parseInt(scoreWidth) * 10) / 2
+      sheetMusicDiv.style.marginLeft = String(padding) + "px";
+    })
   }
 
   useEffect(() => {

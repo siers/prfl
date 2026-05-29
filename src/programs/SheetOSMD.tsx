@@ -35,7 +35,7 @@ function markovScale(tonic: string, position: number) {
     })
   )
 
-  return chunk(ns, 4).map(ns => ns.flat())
+  return chunk(ns, 2).map(ns => ns.flat())
 }
 
 export default function SheetOSMD(params: { scale?: string, position?: string, key?: string }) {

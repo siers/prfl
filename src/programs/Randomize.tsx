@@ -505,8 +505,8 @@ function Randomize(controls: any): JSX.Element {
   function sheetDisplay(tags: Substitution[]) {
     const params = Object.fromEntries(tags.filter(t => t.tag).map(t => [t.tag, interpolateSubtToString(t.contents).split(' ')[0]]))
 
-    return <div className="flex flex-col p-3 font-mono items-center grow">
-      <div className="max-w-[800px] w-full">
+    return <div className="flex flex-col font-mono items-center grow">
+      <div className="w-full">
         {SheetOSMD(params)}
       </div>
     </div>
