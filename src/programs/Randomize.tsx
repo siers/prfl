@@ -13,6 +13,7 @@ import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
 import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
 import { Metro } from './Metro.tsx'
+import SheetOSMD from './SheetOSMD.tsx'
 
 const currentStateVersion = 4
 
@@ -477,7 +478,7 @@ function Randomize(controls: any): JSX.Element {
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
 
   function metroUI() {
-    return <div className="opacity[0.5] w-full top-0 left-0 p-3 flex-0 font-mono">
+    return <div className="w-full top-0 left-0 p-3 flex-0 font-mono">
       <div className="text-center">
         <div><input type="range" className="w-[80%]" value={linearize(metro.bpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
@@ -501,6 +502,14 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
+  function sheetDisplay() {
+    return <div className="flex flex-col p-3 font-mono items-center grow">
+      <div className="max-w-[800px] w-full">
+        {SheetOSMD()}
+      </div>
+    </div>
+  }
+
   return (
     <div className="w-full">
       <div className="pl-[10px]">
@@ -520,11 +529,12 @@ function Randomize(controls: any): JSX.Element {
                 {executionItems()}
               </div>
 
+              {items[current]?.key?.match(/ScMarkov/) && sheetDisplay()}
+
               {metro.opened && metroUI()}
               {metroPower && <Metro bpm={metro.bpm || 60} />}
             </div>
           </div>
-
         </div>
       }
     </div>
