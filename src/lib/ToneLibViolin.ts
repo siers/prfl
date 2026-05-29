@@ -4,8 +4,7 @@ import { enharmonics, Key, majorKey, Note, parseNote, rename, render, semi } fro
 
 type String = {
   base: Note,
-  positions: Note[], // C major, free string + 7 positions
-  positions2: Note[], // C major, all positions up until second octave
+  positions: Note[], // C major, open string + all positions up until second octave
 }
 
 export const strings: String[] = ([parseNote('G3'), parseNote('D4'), parseNote('A4'), parseNote('E5')] as Note[]).map(string => {
@@ -14,8 +13,7 @@ export const strings: String[] = ([parseNote('G3'), parseNote('D4'), parseNote('
 
   return {
     base: string,
-    positions: notes.slice(0, 8),
-    positions2: notes,
+    positions: notes,
   }
 })
 
@@ -23,12 +21,17 @@ function stringIndex(string: 'G' | 'D' | 'A' | 'E'): number {
   return 'GDAE'.indexOf(string)
 }
 
+// do this only on strings produced by strings/stringsForTonality
+export function stringAboveOpen(s: String): String {
+  return { ...s, positions: s.positions.filter(n => semi(n) > semi(s.base)) }
+}
+
 // because notes move and a position is defined by fifths,
 // in Gb the empty string position is no longer there
 // in F# the empty string position is lifted to half-position
 export function stringsForTonality(k: Key): String[] {
   const stringPositions = strings.map(s => {
-    return s.positions2.map(n => [rename(n, k)].filter(n => semi(n) >= semi(s.base)))
+    return s.positions.map(n => [rename(n, k)].filter(n => semi(n) >= semi(s.base)))
   })
 
   const dropPositions =
@@ -38,7 +41,7 @@ export function stringsForTonality(k: Key): String[] {
 
   return stringPositions.map((ps, idx) => {
     const psD = ps.slice(dropPositions).map(maybe => maybe[0])
-    return { base: strings[idx].base, positions: psD.slice(0, 8), positions2: psD } satisfies String
+    return { base: strings[idx].base, positions: psD } satisfies String
   })
 }
 
@@ -48,7 +51,7 @@ export function findTriadOnString(tonic: Note, s: 'G' | 'D' | 'A' | 'E'): Note[]
   const triad: Note[] = [key[0]!, key[2]!, key[4]!]
   const string = strings[stringIndex(s)]
 
-  return string.positions2.flatMap(fret => {
+  return string.positions.flatMap(fret => {
     const found = triad.filter(kn => fret.name == kn.name)
 
     return found.slice(0, 1).flatMap(keyNote => {

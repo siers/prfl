@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest'
-import { findTriadOnString, positionsQuiz, strings, stringsForTonality } from './ToneLibViolin.ts'
+import { findTriadOnString, positionsQuiz, stringAboveOpen, strings, stringsForTonality } from './ToneLibViolin.ts'
 import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
 
 describe('ToneLibViolin', () => {
   test('basic', () => {
-    strings.forEach(string => string.positions2.forEach(p => expect(p.alter).toEqual(0)))
+    strings.forEach(string => string.positions.forEach(p => expect(p.alter).toEqual(0)))
   })
 
   test('find triad', () => {
@@ -37,5 +37,12 @@ describe('ToneLibViolin', () => {
     expect(firstPositionRenderFor('B')).toStrictEqual('G#3 D#4 A#4 E5')
     expect(firstPositionRenderFor('Gb')).toStrictEqual('Ab3 Eb4 Bb4 F5')
     expect(firstPositionRenderFor('F#')).toStrictEqual('G#3 D#4 A#4 E#5')
+  })
+
+  test('stringAboveOpen', () => {
+    const strings = stringsForTonality(findMajor(parseNote('D')!)!).map(stringAboveOpen)
+    const sao = transpose(strings.map(s => s.positions))[0].map(n => render(n)).join(' ')
+
+    expect(sao).toBe('A3 E4 B4 F#5')
   })
 })
