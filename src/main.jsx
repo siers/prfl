@@ -5,10 +5,13 @@ import App from './App.jsx'
 import { isDev } from './debug.js'
 
 setTimeout(() => {
-  if (!isDev && document.getElementById('root').children.length == 0) {
-    localStorage.clear()
-    console.log('cleared local storage')
-  }
+  // if (isDev && document.getElementById('root').children.length == 0) {
+  //   localStorage.clear()
+  //   console.log('cleared local storage')
+  //   const element = document.createElement('span')
+  //   element.innerHTML = 'cleared local storage'
+  //   document.querySelector('body').appendChild(element)
+  // }
 }, 5000)
 
 createRoot(document.getElementById('root')).render(
