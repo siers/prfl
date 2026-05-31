@@ -14,6 +14,7 @@ import { clamp, parseInt } from 'lodash'
 import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
 import { Metro } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
+import { ErrorBoundary } from 'react-error-boundary'
 
 const currentStateVersion = 4
 
@@ -507,7 +508,9 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className="flex flex-col font-mono items-center grow">
       <div className="w-full">
-        {SheetOSMD(params)}
+        <ErrorBoundary fallback={<>sheet rendering crash</>}>
+          <SheetOSMD params={params} />
+        </ErrorBoundary>
       </div>
     </div>
   }

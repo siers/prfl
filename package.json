@@ -24,6 +24,7 @@
     "opensheetmusicdisplay": "^1.9.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-error-boundary": "^6.1.2",
     "tailwindcss": "^4.1.18",
     "tone": "^15.5.6",
     "ts-combinatorics": "^1.0.0",
