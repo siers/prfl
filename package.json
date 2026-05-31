@@ -9,14 +9,17 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "server": "node server/main.js"
   },
   "dependencies": {
     "@stringsync/musicxml": "^0.2.1",
     "@tailwindcss/vite": "^4.1.18",
     "bentools-picker": "github:bpolaszek/picker-js",
+    "express": "^5.2.1",
     "immutable": "^5.1.4",
     "lodash": "^4.17.21",
+    "lowdb": "^7.0.1",
     "murmurhash3js": "^3.0.1",
     "opensheetmusicdisplay": "^1.9.2",
     "react": "^19.1.1",
