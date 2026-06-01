@@ -575,10 +575,9 @@ export default Randomize
 // TODO: execution: save card reviews in a list, with review lengths
 // TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
 //
-// TODO: execution: make interpolables clickable to rate them
 // TODO: execution: make items clickable, show all items, make them scrollable
 // TODO: execution: hide other items after a small timeout
-// TODO: scales: permutations/bowings/pauses
+// TODO: scales: bowings/delete notes replace with pauses
 // TODO: parametrization: decks which you can go deeper into
 // TODO: UI: streamlining
 
