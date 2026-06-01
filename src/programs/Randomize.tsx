@@ -550,7 +550,6 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: lang: (8HZO) tags to each item
 // TODO: randomize: closing the unactual items, showing just one
 // TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
@@ -558,7 +557,15 @@ export default Randomize
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: save card reviews in a list, with review lengths
 // TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
+//
+// TODO: execution: make interpolables clickable to rate them
+// TODO: execution: make items clickable, show all items, make them scrollable
+// TODO: execution: hide other items after a small timeout
+// TODO: scales: permutations/bowings/pauses
+// TODO: parametrization: decks which you can go deeper into
+// TODO: UI: streamlining
 
+// TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
 // TODO: content: (MD4F) would require a special action for that would influence the deck
 
@@ -572,7 +579,6 @@ export default Randomize
 // TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
 // TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
-// TODO: parametrization: decks which you can go deeper into (Piece:aspect:parametrs)
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
 // TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 // TODO: seek: add an array of valid visited routes, starting with the current route
@@ -592,7 +598,6 @@ export default Randomize
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
 
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
-// TODO: backlog: execution: scrollable items in execution
 // TODO: backlog: scheduling: give "gas" to tasks, so they get temporarily bumped (solved by "bury" button and dynamic scheduling by date)
 
 // TODO: closed: how to balance random exposition with integration cards (subdecks may help) (a: just use interpolations as exposition starting points, problem solved)
