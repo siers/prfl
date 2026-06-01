@@ -79,12 +79,12 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [str
 }
 
 function extractEvals(l: string): [string, Evals] {
-  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([a-z]+)?/g, defaultMarker)
+  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([a-zA-Z]+)?/g, defaultMarker)
 
-  const evals: Evals = matches.map(([marker, m]) => {
+  const evals: Evals = matches.map(([marker, m], idx) => {
     if (m[0] == '[') {
-      const tag = m.match(/[a-z]+$/)
-      return interpolate(m.match(/^\[(.*)\][a-z]*$/)![1].replace(/\\([\[\]])/g, '$1'), marker, tag && tag[0])
+      const tag = m.match(/[a-zA-Z]+$/i)
+      return interpolate(m.match(/^\[(.*)\][a-zA-Z]*$/)![1].replace(/\\([\[\]])/g, '$1'), marker, tag ? tag[0] : `tag${idx + 1}`)
     }
     if (m[0] == '{') return explode(m.slice(1, m.length - 1).replace(/\\([\{\}])/g, '$1'), marker)
     return interpolate('unlikely', '', null)
