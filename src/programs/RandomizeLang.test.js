@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine, renderLineContentWithTags } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -399,4 +399,41 @@ describe('keys', () => {
       }
     ])
   })
+})
+
+test('renderLineContentWithTags', () => {
+  const text = `
+    Thing: do it [s('12')]tag
+  `.replaceAll(/^ */mg, '')
+
+  const item = evalContents(text)[0]
+
+  expect(renderLineContentWithTags(item)).toStrictEqual(
+    [
+      [
+        [
+          "string",
+          "Thing: do it ",
+        ],
+        [
+          "tag",
+          "tag",
+        ],
+      ],
+      new Map([[
+        "tag", {
+          "contents": {
+            "contents": [
+              "1",
+              "2",
+            ],
+            "kind": "istas",
+          },
+          "kind": "substitution",
+          "marker": "!!!1",
+          "tag": "tag",
+        }],
+      ]),
+    ]
+  )
 })

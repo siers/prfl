@@ -313,3 +313,22 @@ export function emptiedInterpolations(l: RenderLine): RenderLine {
   if (!l.source?.substitutions) return l
   return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: '-' }), { ...l, contents: l.source.contents })
 }
+
+type ContentTag = ['tag', string]
+type ContentString = ['string', string]
+type ContentWithTags = (ContentTag | ContentString)[]
+
+export function renderLineContentWithTags(l: RenderLine): [ContentWithTags, Map<String, Substitution>] {
+  const byMarker: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.marker || '', s]))
+  const byTag: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.tag || '', s]))
+
+  const allTagsRegex = new RegExp(`${l.source?.substitutions?.map(s => s.marker || "").join('|')}`, 'g')
+
+  const c = (l.source?.contents || "")
+  const replaces = c.replaceAll(allTagsRegex, tag => `||##${byMarker.get(tag)?.tag}||`)
+  const cwt: ContentWithTags = replaces.split('||').flatMap(s =>
+    s == '' ? [] : [s.match(/^##/) ? ['tag', s.slice(2)] : ['string', s]]
+  )
+
+  return [cwt, byTag]
+}
