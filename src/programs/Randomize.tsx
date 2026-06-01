@@ -70,6 +70,7 @@ type ItemActions = {
   done?: boolean,
   bury?: boolean,
   regenerate?: 'new' | 'next',
+  regenerateKey?: string,
 }
 
 function Randomize(controls: any): JSX.Element {
@@ -277,7 +278,7 @@ function Randomize(controls: any): JSX.Element {
           return evalRenderLine(item, memoryFromState(s, 'new'))
         } else if (controls.regenerate === 'next') {
           if (!item.source) return item
-          return rotateInterpolableLine(item)
+          return rotateInterpolableLine(item, controls.regenerateKey)
         } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 
@@ -372,7 +373,7 @@ function Randomize(controls: any): JSX.Element {
     return <>
       {
         contentTags.map((ct: ContentOrTag, idx: number) =>
-          <span key={idx} onClick={_ => console.log()}>
+          <span key={idx} onClick={_ => ct[0] == 'tag' && modifyItem({ 'regenerate': 'next', 'regenerateKey': ct[1] })}>
             {ct[0] == 'string' ? ct[1] : interpolateSubtToString((lookupTag.get(ct[1]) as Substitution).contents)}
           </span>
         )

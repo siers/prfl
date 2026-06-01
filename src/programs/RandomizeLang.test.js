@@ -486,39 +486,51 @@ describe('keys', () => {
   })
 })
 
-test('renderLineContentWithTags', () => {
-  const text = `
-    Thing: do it [s('12')]tag
-  `.replaceAll(/^ */mg, '')
+describe('renderLineContentWithTags', () => {
+  test('renderLineContentWithTags 0', () => {
+    const text = `
+      x
+    `.replaceAll(/^ */mg, '')
 
-  const item = evalContents(text)[0]
+    const item = evalContents(text)[0]
 
-  expect(renderLineContentWithTags(item)).toStrictEqual(
-    [
+    expect(renderLineContentWithTags(item)).toStrictEqual([[['string', 'x']], new Map()])
+  })
+
+  test('renderLineContentWithTags', () => {
+    const text = `
+      Thing: do it [s('12')]tag
+    `.replaceAll(/^ */mg, '')
+
+    const item = evalContents(text)[0]
+
+    expect(renderLineContentWithTags(item)).toStrictEqual(
       [
         [
-          "string",
-          "Thing: do it ",
+          [
+            "string",
+            "Thing: do it ",
+          ],
+          [
+            "tag",
+            "tag",
+          ],
         ],
-        [
-          "tag",
-          "tag",
-        ],
-      ],
-      new Map([[
-        "tag", {
-          "contents": {
-            "contents": [
-              "1",
-              "2",
-            ],
-            "kind": "istas",
-          },
-          "kind": "substitution",
-          "marker": "!!!1",
-          "tag": "tag",
-        }],
-      ]),
-    ]
-  )
+        new Map([[
+          "tag", {
+            "contents": {
+              "contents": [
+                "1",
+                "2",
+              ],
+              "kind": "istas",
+            },
+            "kind": "substitution",
+            "marker": "!!!1",
+            "tag": "tag",
+          }],
+        ]),
+      ]
+    )
+  })
 })

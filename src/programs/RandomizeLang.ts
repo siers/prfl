@@ -327,7 +327,7 @@ export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<S
 
   const allTagsRegex = new RegExp(`${l.source?.substitutions?.map(s => s.marker || "").join('|')}`, 'g')
 
-  const c = (l.source?.contents || "")
+  const c = (l.source?.contents || l.contents || "")
   const replaces = c.replaceAll(allTagsRegex, tag => `||##${byMarker.get(tag)?.tag}||`)
   const cwt: ContentOrTag[] = replaces.split('||').flatMap(s =>
     s == '' ? [] : [s.match(/^##/) ? ['tag', s.slice(2)] : ['string', s]]
