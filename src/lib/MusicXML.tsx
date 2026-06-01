@@ -47,7 +47,7 @@ export function slurMarkers(n) {
   ]
 }
 
-export function note(note, duration, opts) {
+export function note(note, duration, opts): elements.Note {
   const o = opts || {}
 
   const tie = o.tied && new elements.Chord || null
