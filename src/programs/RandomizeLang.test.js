@@ -296,24 +296,30 @@ describe('evaling items inside a block', () => {
 describe('rotateInterpolableLine', () => {
   test('evalItem', () => {
     const text = `
-      Thing: do it [s('12')]tag
+      Thing: do it [s('12')]tagS [s('12')]tagK
     `.replaceAll(/^ */mg, '')
 
     const item = evalContents(text)[0]
 
     expect(item).toStrictEqual({
-      "contents": "Thing: do it [1 2]",
+      "contents": "Thing: do it [1 2] [1 2]",
       "key": "Thing",
       "kind": "renderline",
       "separator": null,
       "source": {
-        "contents": "Thing: do it !!!1",
+        "contents": "Thing: do it !!!1 !!!2",
         "interpols": [
           {
             "command": "s('12')",
             "kind": "interpolate",
             "marker": "!!!1",
-            "tag": "tag",
+            "tag": "tagS",
+          },
+          {
+            "command": "s('12')",
+            "kind": "interpolate",
+            "marker": "!!!2",
+            "tag": "tagK",
           },
         ],
         "kind": "interpolable-line",
@@ -328,46 +334,125 @@ describe('rotateInterpolableLine', () => {
             },
             "kind": "substitution",
             "marker": "!!!1",
-            "tag": "tag",
+            "tag": "tagS",
+          },
+          {
+            "contents": {
+              "contents": [
+                "1",
+                "2",
+              ],
+              "kind": "istas",
+            },
+            "kind": "substitution",
+            "marker": "!!!2",
+            "tag": "tagK",
           },
         ],
       },
     })
 
-    expect(rotateInterpolableLine(item)).toStrictEqual(
-      {
-        "contents": "Thing: do it [2 1]",
-        "key": "Thing",
-        "kind": "renderline",
-        "separator": null,
-        "source": {
-          "contents": "Thing: do it !!!1",
-          "interpols": [
-            {
-              "command": "s('12')",
-              "kind": "interpolate",
-              "marker": "!!!1",
-              "tag": "tag",
+    expect(rotateInterpolableLine(item)).toStrictEqual({
+      "contents": "Thing: do it [2 1] [2 1]",
+      "key": "Thing",
+      "kind": "renderline",
+      "separator": null,
+      "source": {
+        "contents": "Thing: do it !!!1 !!!2",
+        "interpols": [
+          {
+            "command": "s('12')",
+            "kind": "interpolate",
+            "marker": "!!!1",
+            "tag": "tagS",
+          },
+          {
+            "command": "s('12')",
+            "kind": "interpolate",
+            "marker": "!!!2",
+            "tag": "tagK",
+          },
+        ],
+        "kind": "interpolable-line",
+        "substitutions": [
+          {
+            "contents": {
+              "contents": [
+                "2",
+                "1",
+              ],
+              "kind": "istas",
             },
-          ],
-          "kind": "interpolable-line",
-          "substitutions": [
-            {
-              "contents": {
-                "contents": [
-                  "2",
-                  "1",
-                ],
-                "kind": "istas",
-              },
-              "kind": "substitution",
-              "marker": "!!!1",
-              "tag": "tag",
+            "kind": "substitution",
+            "marker": "!!!1",
+            "tag": "tagS",
+          },
+          {
+            "contents": {
+              "contents": [
+                "2",
+                "1",
+              ],
+              "kind": "istas",
             },
-          ],
-        },
-      }
-    )
+            "kind": "substitution",
+            "marker": "!!!2",
+            "tag": "tagK",
+          },
+        ],
+      },
+    })
+
+    expect(rotateInterpolableLine(item, 'tagK')).toStrictEqual({
+      "contents": "Thing: do it [1 2] [2 1]",
+      "key": "Thing",
+      "kind": "renderline",
+      "separator": null,
+      "source": {
+        "contents": "Thing: do it !!!1 !!!2",
+        "interpols": [
+          {
+            "command": "s('12')",
+            "kind": "interpolate",
+            "marker": "!!!1",
+            "tag": "tagS",
+          },
+          {
+            "command": "s('12')",
+            "kind": "interpolate",
+            "marker": "!!!2",
+            "tag": "tagK",
+          },
+        ],
+        "kind": "interpolable-line",
+        "substitutions": [
+          {
+            "contents": {
+              "contents": [
+                "1",
+                "2",
+              ],
+              "kind": "istas",
+            },
+            "kind": "substitution",
+            "marker": "!!!1",
+            "tag": "tagS",
+          },
+          {
+            "contents": {
+              "contents": [
+                "2",
+                "1",
+              ],
+              "kind": "istas",
+            },
+            "kind": "substitution",
+            "marker": "!!!2",
+            "tag": "tagK",
+          },
+        ],
+      },
+    })
   })
 })
 

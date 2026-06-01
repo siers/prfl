@@ -296,18 +296,27 @@ export function evalRenderLine(l: RenderLine, mem: Memory = new Map()): RenderLi
   }
 }
 
-export function rotateInterpolableLine(l: RenderLine): RenderLine {
+export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null): RenderLine {
+  const l = structuredClone(l_)
+
   if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
-    const newSubst = (l.source.substitutions || []).map(s => ({ ...s, contents: rotateInterpolateSubst(s.contents) }))
-    const resubst = newSubst.reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, s.contents), { ...l, contents: l.source.contents })
-    return {
-      ...resubst,
-      source: { ...l.source, substitutions: newSubst, }
-    }
+    const newSubst = (l.source.substitutions || []).map(s =>
+      !tag || tag == s.tag
+        ? { ...s, contents: rotateInterpolateSubst(s.contents) }
+        : s
+    )
+
+    const resubst = newSubst.reduce<RenderLine>((l, s) =>
+      substituteInterpolate(l, s.marker, s.contents), { ...l, contents: l.source.contents }
+    )
+
+    return { ...resubst, source: { ...l.source, substitutions: newSubst } }
   } else return l
 }
 
-export function emptiedInterpolations(l: RenderLine): RenderLine {
+export function emptiedInterpolations(l_: RenderLine): RenderLine {
+  const l = structuredClone(l_)
+
   if (!l.source?.substitutions) return l
   return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: '-' }), { ...l, contents: l.source.contents })
 }
