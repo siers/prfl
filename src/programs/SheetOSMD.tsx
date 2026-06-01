@@ -24,10 +24,15 @@ function galamianScale() {
   return chunk(ns, 4).map(ns => ns.flat())
 }
 
+type MarkovParams = { tonic: string, position: number, flip?: number }
+
 // grid-scale, 4x4
-function markovScale(tonic: string, position: number) {
+function markovScaleOne(mp: MarkovParams): Note[][] {
+  const { tonic, position } = mp
   const key = findMajor(p(tonic)!)!
-  const scale = stringsForTonality(key).map(stringAboveOpen).map(s => s.positions.slice(position, position + 4)).flat()
+
+  let scale = stringsForTonality(key).map(stringAboveOpen).map(s => s.positions.slice(position, position + 4)).flat()
+  mp.flip == 1 && (scale = scale.reverse())
 
   const ns = chunk(scale, 4).map(ns =>
     ns.map((n, i) => {
@@ -38,11 +43,15 @@ function markovScale(tonic: string, position: number) {
   return chunk(ns, 2).map(ns => ns.flat())
 }
 
+function markovScale(mp: MarkovParams) {
+  return markovScaleOne(mp).concat(markovScaleOne({ ...mp, flip: 1 }))
+}
+
 export default function SheetOSMD(params_: { params: { scale?: string, position?: string, key?: string } }) {
   const params = params_.params
   const scale =
     params.scale == 'markov'
-      ? markovScale(params.key || 'c', params.position ? parseInt(params.position) : 1)
+      ? markovScale({ tonic: params.key || 'c', position: params.position ? parseInt(params.position) : 1 })
       : galamianScale()
 
   const xml = notesToMusic(scale)
