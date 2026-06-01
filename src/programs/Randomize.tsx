@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, renderLineContentWithTags, rotateInterpolableLine } from './RandomizeLang.js'
+import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags, rotateInterpolableLine } from './RandomizeLang.js'
 import { ContentOrTag, makeEmptyMemory, Memory, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
@@ -518,7 +518,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function sheetDisplay(tags: Substitution[]) {
-    const params = Object.fromEntries(tags.filter(t => t.tag).map(t => [t.tag, interpolateSubtToString(t.contents).split(' ')[0]]))
+    const params = Object.fromEntries(tags.filter(t => t.tag).map(t => [t.tag, interpolateSubtToStringPlain(t.contents).split(' ')[0]]))
 
     return <div className="flex flex-col font-mono items-center grow">
       <div className="w-full">
@@ -543,16 +543,19 @@ function Randomize(controls: any): JSX.Element {
         <div className="relative">
           <div className={"w-[100dvw] flex flex-col justfiy-center"} style={({ height: "calc(90dvh)" })}>
             {executionStats()}
-            <div className="relative w-full flex flex-col flex-grow select-none">
-              <div className="flex-1 content-center">
-                {executionItems()}
+
+            <ErrorBoundary fallback={<>item render crash</>}>
+              <div className="relative w-full flex flex-col flex-grow select-none">
+                <div className="flex-1 content-center">
+                  {executionItems()}
+                </div>
+
+                {items[current]?.key?.match(/DS$/) && sheetDisplay(items[current]?.source?.substitutions || [])}
+
+                {metro.opened && metroUI()}
+                {metroPower && <Metro bpm={metro.bpm || 60} />}
               </div>
-
-              {items[current]?.key?.match(/DS$/) && sheetDisplay(items[current]?.source?.substitutions || [])}
-
-              {metro.opened && metroUI()}
-              {metroPower && <Metro bpm={metro.bpm || 60} />}
-            </div>
+            </ErrorBoundary>
           </div>
         </div>
       }

@@ -126,7 +126,7 @@ export function parseContents(text: string): Parsed {
 
 // evaluators
 
-export function interpolateSubtToString(subst: InterpolateSubstT): string {
+export function interpolateSubtToStringPlain(subst: InterpolateSubstT): string {
   let out
 
   try {
@@ -140,6 +140,12 @@ export function interpolateSubtToString(subst: InterpolateSubstT): string {
   } catch (e) {
     out = `exc: ${e}`
   }
+
+  return out
+}
+
+export function interpolateSubtToString(subst: InterpolateSubstT): string {
+  const out = interpolateSubtToStringPlain(subst)
 
   return `[${out.length > 50 ? `${out.slice(0, 50)}...` : out}]`
 }
