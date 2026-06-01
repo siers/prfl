@@ -162,3 +162,7 @@ export function rotateInterpolateSubst(s: InterpolateSubstT) {
   else if (s.kind == 'istas') return { kind: s.kind, contents: arrayShift(s.contents, 1) }
   else return { kind: s.kind, contents: arrayShift(s.contents, 1) }
 }
+
+export type ContentTag = ['tag', string]
+export type ContentString = ['string', string]
+export type ContentOrTag = (ContentTag | ContentString)

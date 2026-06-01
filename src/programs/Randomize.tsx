@@ -1,8 +1,8 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, rotateInterpolableLine } from './RandomizeLang.js'
-import { makeEmptyMemory, Memory, Substitution } from './RandomizeLangTypes.js'
+import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, renderLineContentWithTags, rotateInterpolableLine } from './RandomizeLang.js'
+import { ContentOrTag, makeEmptyMemory, Memory, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -367,6 +367,19 @@ function Randomize(controls: any): JSX.Element {
     }
   }
 
+  function renderContentWithTags(item: RenderLine) {
+    const [contentTags, lookupTag] = renderLineContentWithTags(item)
+    return <>
+      {
+        contentTags.map((ct: ContentOrTag, idx: number) =>
+          <span key={idx} onClick={_ => console.log()}>
+            {ct[0] == 'string' ? ct[1] : interpolateSubtToString((lookupTag.get(ct[1]) as Substitution).contents)}
+          </span>
+        )
+      }
+    </>
+  }
+
   function executionItems(): JSX.Element {
     const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
       const found = linearSeekNext(items, current, delta, itemSeekExclude)
@@ -386,7 +399,7 @@ function Randomize(controls: any): JSX.Element {
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
           {
             showCheckmark ? <>✅</> : <>
-              {isCurrent || !hideDone ? item.contents : emptiedInterpolations(item).contents}
+              {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}
               {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'new' })}>🔄</a>}
               {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'next' })}>⏩</a>}
             </>

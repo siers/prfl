@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -140,14 +140,12 @@ export function interpolateSubtToString(subst: InterpolateSubstT): string {
   } catch (e) {
     out = `exc: ${e}`
   }
-  return out
+
+  return `[${out.length > 50 ? `${out.slice(0, 50)}...` : out}]`
 }
 
 function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubstT): RenderLine {
-  const out = interpolateSubtToString(subst)
-  const cut = out.length > 50 ? `${out.slice(0, 50)}...` : out
-
-  return { ...line, contents: line.contents.replace(marker, `[${cut}]`) }
+  return { ...line, contents: line.contents.replace(marker, interpolateSubtToString(subst)) }
 }
 
 function isRenderLines(subst: any): RenderLine[] | undefined {
@@ -314,11 +312,7 @@ export function emptiedInterpolations(l: RenderLine): RenderLine {
   return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: '-' }), { ...l, contents: l.source.contents })
 }
 
-type ContentTag = ['tag', string]
-type ContentString = ['string', string]
-type ContentWithTags = (ContentTag | ContentString)[]
-
-export function renderLineContentWithTags(l: RenderLine): [ContentWithTags, Map<String, Substitution>] {
+export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<String, Substitution>] {
   const byMarker: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.marker || '', s]))
   const byTag: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.tag || '', s]))
 
@@ -326,7 +320,7 @@ export function renderLineContentWithTags(l: RenderLine): [ContentWithTags, Map<
 
   const c = (l.source?.contents || "")
   const replaces = c.replaceAll(allTagsRegex, tag => `||##${byMarker.get(tag)?.tag}||`)
-  const cwt: ContentWithTags = replaces.split('||').flatMap(s =>
+  const cwt: ContentOrTag[] = replaces.split('||').flatMap(s =>
     s == '' ? [] : [s.match(/^##/) ? ['tag', s.slice(2)] : ['string', s]]
   )
 
