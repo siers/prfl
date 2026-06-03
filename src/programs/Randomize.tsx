@@ -62,6 +62,8 @@ type MetroDiff = {
   bpm?: number,
 }
 
+const defaultBpm = 60
+
 type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
 type TimerAction = 'start' | 'stop' | 'restart' | ['subtract', Timer | null] | 'no-op'
 
@@ -81,10 +83,10 @@ function Randomize(controls: any): JSX.Element {
 
   if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
 
-  const current = state?.current || 0
-
   const items: UserItem[] = state?.items || []
   const outLineCount: number = state?.outLineCount || 0
+
+  const current = state?.current || 0
 
   const globalTimer = state?.totalTimer
   const localTimer = items[current]?.timer
@@ -139,8 +141,8 @@ function Randomize(controls: any): JSX.Element {
     return hideDone && itemSkipped(item)
   }
 
-  function findCardFromMemory(item: UserItem): CardData | null {
-    return findCard(memoryFromState(state), item.key || '')
+  function findCardFromMemory(item?: UserItem): CardData | null {
+    return findCard(memoryFromState(state), item?.key || '')
   }
 
   function newAndRecalculate(a: Args) {
@@ -175,6 +177,7 @@ function Randomize(controls: any): JSX.Element {
       const newCard: CardData | null = nextCurrent.length && items[nextCurrent[0]] && items[nextCurrent[0]].key && findCard(initMemory, items[nextCurrent[0]].key || '') || null
       const newBpm: number | undefined = nextCurrent.length && newCard && newCard.bpm ? newCard.bpm : undefined
       const metro: Metro = recalcMetro(s?.metro || {}, { bpm: newBpm })
+      setItemBpm(metro.bpm || defaultBpm)
 
       return {
         version: currentStateVersion,
@@ -301,7 +304,8 @@ function Randomize(controls: any): JSX.Element {
       return {
         ...s,
         memory: withStateMemory(s, memory => {
-          if (items[current].key) cardSet(memory, items[current].key, { bpm: bpm })
+          const key = items[typeof s?.current === 'number' ? s?.current : -1]?.key
+          if (key) cardSet(memory, key, { bpm: bpm })
         }),
       }
     })
@@ -435,7 +439,7 @@ function Randomize(controls: any): JSX.Element {
 
   function recalcMetro(old: Metro, diff: MetroDiff): Metro {
     const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value != null && value != undefined))
-    const fresh = { opened: false, power: false, bpm: 60, ...old, ...diffFilt }
+    const fresh = { opened: false, power: false, bpm: defaultBpm, ...old, ...diffFilt }
     fresh.bpm = clamp(Math.floor(fresh.bpm), 20, 500)
     return fresh
   }
@@ -444,7 +448,7 @@ function Randomize(controls: any): JSX.Element {
   function metroState(diff: MetroDiff) {
     setState((sIn: RState | undefined) => {
       const state = ({ version: 4, ...sIn, metro: recalcMetro(sIn?.metro || {}, diff) })
-      setItemBpm(state.metro.bpm || 60)
+      setItemBpm(state.metro.bpm || defaultBpm)
       return state
     })
   }
@@ -484,7 +488,7 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
-  const metro = state?.metro || { bpm: 60 }
+  const metro = state?.metro || { bpm: defaultBpm }
 
   const ticking = !!globalTimer?.running
   const metroPower = ticking && metro.power
@@ -553,7 +557,7 @@ function Randomize(controls: any): JSX.Element {
                 {items[current]?.key?.match(/DS$/) && sheetDisplay(items[current]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {metroPower && <Metro bpm={metro.bpm || 60} />}
+                {metroPower && <Metro bpm={metro.bpm || defaultBpm} />}
               </div>
             </ErrorBoundary>
           </div>
@@ -567,19 +571,20 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
+// TODO: execution: make items clickable, show all items, make them scrollable
+// TODO: execution: hide other items after a small timeout
+// TODO: scales: bowings/delete notes replace with pauses
+// TODO: scales: remove half-positions in ToneLibViolin
+// TODO: parametrization: decks which you can go deeper into
+// TODO: state: google drive api (for images)
+// TODO: UI: streamlining (useful for scales, swipes)
+
 // TODO: lang: (8HZO) tags to each item
-// TODO: randomize: closing the unactual items, showing just one
 // TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: save card reviews in a list, with review lengths
 // TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
-//
-// TODO: execution: make items clickable, show all items, make them scrollable
-// TODO: execution: hide other items after a small timeout
-// TODO: scales: bowings/delete notes replace with pauses
-// TODO: parametrization: decks which you can go deeper into
-// TODO: UI: streamlining
 
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
@@ -587,10 +592,6 @@ export default Randomize
 
 // TODO: state: use a CRDT-storage server
 // TODO: state: check if I can read anki database locally
-
-// TODO: metronome: tap to get rhythm
-// TODO: metronome: power status is false on start unless permissions are correct
-// TODO: metronome: move all state setters into one with a router (otherwise sometimes bpm setting fails sometimes, when clicking review btns)
 
 // TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
@@ -613,6 +614,8 @@ export default Randomize
 // TODO: content: bowing pattern generator for detache notes (partition refinement)
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
 
+// TODO: backlog: metronome: power status is false on start unless permissions are correct
+// TODO: backlog: metronome: tap to get rhythm
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: backlog: scheduling: give "gas" to tasks, so they get temporarily bumped (solved by "bury" button and dynamic scheduling by date)
 
