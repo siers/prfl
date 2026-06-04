@@ -21,27 +21,34 @@ function stringIndex(string: 'G' | 'D' | 'A' | 'E'): number {
   return 'GDAE'.indexOf(string)
 }
 
+function dropPositionsTranpose(positions: Note[][][]): Note[][] {
+  const firstUndroppedIndex = zipWithIndex(transpose(positions)).find(([_, position]) =>
+    position.every(p => p.length != 0)
+  )![0]
+
+  return positions.map(ps => ps.slice(firstUndroppedIndex).map(p => p[0]))
+}
+
 // do this only on strings produced by strings/stringsForTonality
-export function stringAboveOpen(s: String): String {
-  return { ...s, positions: s.positions.filter(n => semi(n) > semi(s.base)) }
+export function stringsAboveOpen(k: Key): String[] {
+  const strings = stringsForTonality(k)
+  const aligned = dropPositionsTranpose(strings.map(s => s.positions.map(n => [n].filter(n => semi(n) > semi(s.base)))))
+
+  return aligned.map((p, idx) => {
+    return { ...strings[idx], positions: p } satisfies String
+  })
 }
 
 // because notes move and a position is defined by fifths,
 // in Gb the empty string position is no longer there
 // in F# the empty string position is lifted to half-position
 export function stringsForTonality(k: Key): String[] {
-  const stringPositions = strings.map(s => {
+  const stringPositions = dropPositionsTranpose(strings.map(s => {
     return s.positions.map(n => [rename(n, k)].filter(n => semi(n) >= semi(s.base)))
-  })
-
-  const dropPositions =
-    zipWithIndex(transpose(stringPositions)).find(([_, position]) =>
-      position.every(p => p.length != 0)
-    )![0]
+  }))
 
   return stringPositions.map((ps, idx) => {
-    const psD = ps.slice(dropPositions).map(maybe => maybe[0])
-    return { base: strings[idx].base, positions: psD } satisfies String
+    return { base: strings[idx].base, positions: ps } satisfies String
   })
 }
 

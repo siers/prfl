@@ -3,8 +3,8 @@ import * as ToneLib from '../lib/ToneLib'
 import { pointwiseInterval, findMajor } from '../lib/ToneLib'
 import { note, notesToMusic } from '../lib/MusicXML'
 import { chunk, transpose } from '../lib/Array'
-import { stringAboveOpen, stringsForTonality } from '../lib/ToneLibViolin'
-import { parseInt } from 'lodash'
+import { stringsAboveOpen } from '../lib/ToneLibViolin'
+import { parseInt, take } from 'lodash'
 import { Note } from '@stringsync/musicxml/dist/generated/elements'
 import { shuffleArray } from '../lib/Random'
 
@@ -42,9 +42,10 @@ function markovScaleOne(mp: MarkovParams): Note[][] {
   const { tonic, position, random } = mp
   const key = findMajor(p(tonic)!)!
 
-  const pos= position - 1
-  let scale = stringsForTonality(key).map(stringAboveOpen).map(s => s.positions.slice(pos, pos + 4)).flat()
-  mp.flip == 1 && (scale = scale.reverse())
+  const scale = pipe(
+    stringsAboveOpen(key).map(s => take(s.positions.slice(position - 1), 4)).flat(),
+    scale => mp.flip == 1 ? scale.reverse() : scale
+  )
 
   const rv = random?.includes('v') || false
   const rr = random?.includes('r') || false

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { findTriadOnString, positionsQuiz, stringAboveOpen, strings, stringsForTonality } from './ToneLibViolin.ts'
+import { findTriadOnString, positionsQuiz, strings, stringsAboveOpen, stringsForTonality } from './ToneLibViolin.ts'
 import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
@@ -27,20 +27,23 @@ describe('ToneLibViolin', () => {
   })
 
   test('stringsForTonality', () => {
-    const firstPositionFor = (key: Key) =>
-      transpose(stringsForTonality(key).map(s => s.positions))[0]
+    const positionFor = (key: Key, n: number) =>
+      transpose(stringsForTonality(key).map(s => s.positions))[n]
 
-    const firstPositionRenderFor = (note: string) =>
-      firstPositionFor(findMajor(parseNote(note)!)!).map(n => render(n)).join(' ')
+    const positionRenderFor = (note: string, n: number) =>
+      positionFor(findMajor(parseNote(note)!)!, n).map(n => render(n)).join(' ')
 
-    expect(firstPositionRenderFor('D')).toStrictEqual('G3 D4 A4 E5')
-    expect(firstPositionRenderFor('B')).toStrictEqual('G#3 D#4 A#4 E5')
-    expect(firstPositionRenderFor('Gb')).toStrictEqual('Ab3 Eb4 Bb4 F5')
-    expect(firstPositionRenderFor('F#')).toStrictEqual('G#3 D#4 A#4 E#5')
+    expect(positionRenderFor('D', 0)).toStrictEqual('G3 D4 A4 E5')
+    expect(positionRenderFor('B', 0)).toStrictEqual('G#3 D#4 A#4 E5')
+    expect(positionRenderFor('Gb', 0)).toStrictEqual('Ab3 Eb4 Bb4 F5')
+    expect(positionRenderFor('F#', 0)).toStrictEqual('G#3 D#4 A#4 E#5')
+
+    expect(positionRenderFor('E', 0)).toStrictEqual('G#3 D#4 A4 E5')
+    expect(positionRenderFor('E', 1)).toStrictEqual('A3 E4 B4 F#5')
   })
 
   test('stringAboveOpen', () => {
-    const strings = stringsForTonality(findMajor(parseNote('D')!)!).map(stringAboveOpen)
+    const strings = stringsAboveOpen(findMajor(parseNote('D')!)!)
     const sao = transpose(strings.map(s => s.positions))[0].map(n => render(n)).join(' ')
 
     expect(sao).toBe('A3 E4 B4 F#5')
