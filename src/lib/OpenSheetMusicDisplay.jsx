@@ -26,9 +26,11 @@ const OpenSheetMusicDisplay = ({
       osmdRef.current.render()
       const osmd = osmdRef.current
 
+      const scale = 0.8
+      osmd.zoom = scale
       const scoreWidth = osmd.graphic.musicPages[0].musicSystems[0].PositionAndShape.size.width;
       const sheetMusicDiv = divRef.current
-      const padding = (divRef.current.getBoundingClientRect().width - 35 - parseInt(scoreWidth) * 10) / 2
+      const padding = (divRef.current.getBoundingClientRect().width - 35 - (parseInt(scoreWidth) * 10) * scale) / 2
       sheetMusicDiv.style.marginLeft = String(padding) + "px";
     })
   }
