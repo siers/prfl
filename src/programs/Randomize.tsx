@@ -73,6 +73,7 @@ type ItemActions = {
   bury?: boolean,
   regenerate?: 'new' | 'next',
   regenerateKey?: string,
+  unreview?: boolean,
 }
 
 function Randomize(controls: any): JSX.Element {
@@ -267,11 +268,13 @@ function Randomize(controls: any): JSX.Element {
       if (!s) return s
 
       const items = s.items || []
-      const move = controls.bury === true
 
       const newMemory = withStateMemory(s, memory => {
         if (controls.reviewed === true && items[current].key)
           cardSet(memory, items[current].key, { reviewed: Date.now(), bpm: s?.metro?.bpm })
+
+        if (controls.unreview === true && items[current].key)
+          cardSet(memory, items[current].key, { reviewed: 0, })
       })
 
       const updatedItems = items.map((item, index) => {
@@ -285,8 +288,13 @@ function Randomize(controls: any): JSX.Element {
         } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
       })
 
-      const buriedNewIndex = clamp(current + 3, 0, s?.items?.length ? s.items.length - 1 : 0)
-      const movedItems = move ? arrayMove(updatedItems, current, buriedNewIndex) : updatedItems
+      const newIndex =
+        controls.bury === true
+          ? clamp(current + 3, 0, s?.items?.length ? s.items.length - 1 : 0)
+          : controls.unreview === true
+            ? 0
+            : -999 // not moved
+      const movedItems = newIndex !== -999 ? arrayMove(updatedItems, current, newIndex) : updatedItems
 
       return {
         ...s,
@@ -464,6 +472,7 @@ function Randomize(controls: any): JSX.Element {
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
+      <a className="pr-4 select-none" onClick={() => modifyItem({ unreview: true, })}>🌟</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
