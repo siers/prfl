@@ -579,20 +579,23 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: execution: make items clickable, show all items, make them scrollable
+// TODO: execution: make items clickable, show all items, make them scrollable, make items movable
 // TODO: execution: hide other items after a small timeout
 // TODO: scales: bowings/delete notes replace with pauses
 // TODO: scales: remove half-positions in ToneLibViolin
 // TODO: parametrization: decks which you can go deeper into
 // TODO: state: google drive api (for images)
-// TODO: UI: streamlining (useful for scales, swipes)
+// TODO: UI: streamlining (useful for scales, swipes, pop-up buttons for extended )
+// TODO: parametrization: these could be scheduled with no random (maybe)
+// TODO: content: flip these, remove unique
+// TODO: subprogram: drones
 
 // TODO: lang: (8HZO) tags to each item
 // TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: save card reviews in a list, with review lengths
-// TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small)
+// TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small, schedule fewer fresh ones)
 
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
