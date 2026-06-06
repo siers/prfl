@@ -464,7 +464,6 @@ function Randomize(controls: any): JSX.Element {
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
       <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
-      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>💤</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
