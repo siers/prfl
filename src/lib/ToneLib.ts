@@ -2,13 +2,23 @@
 
 import { Set } from 'immutable'
 import _ from 'lodash'
-import { arrayShift } from './Array'
+import { arrayShift, times } from './Array'
 
 type Name = 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
 
-const names: Name[] = ['c', 'd', 'e', 'f', 'g', 'a', 'b']
+export const names: Name[] = ['c', 'd', 'e', 'f', 'g', 'a', 'b']
 // const namesMap: Record<Name, number> = { c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6 }
 const namesSemiMap = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }
+
+const intervalMap = {
+  0: 'unison',
+  1: 'second',
+  2: 'third',
+  3: 'fourth',
+  4: 'fifth',
+  5: 'sixth',
+  6: 'seventh',
+}
 
 const alters: Record<number, string> = { 0: '', 1: '#', '-1': 'b', 2: '##', '-2': 'bb' }
 const altersMap: Record<string, number> = { '': 0, '#': 1, 'b': -1, '##': 2, 'bb': -2 }
@@ -87,6 +97,41 @@ function semiOctaves(semiIn: number): number {
 
 function addAccidental(note: Note, accidental: number): Note {
   return { ...note, alter: note.alter + accidental }
+}
+
+export function addInterval(note: Note, interval: number): Note {
+  if (interval == 0) return note
+  if (Math.abs(interval) > 200) return note
+  return times(Math.abs(interval)).reduce((n) => interval > 0 ? stepUp(n) : stepDown(n), note)
+}
+
+function stepUp(n: Note): Note {
+  const idx = names.indexOf(n.name)
+  if (idx < names.length - 1) {
+    return { ...n, name: names[idx + 1] }
+  } else {
+    return { ...n, name: names[0], octave: n.octave + 1 }
+  }
+}
+
+function stepDown(n: Note): Note {
+  const idx = names.indexOf(n.name)
+  if (idx > 0) {
+    return { ...n, name: names[idx - 1] }
+  } else {
+    return { ...n, name: names[names.length - 1], octave: n.octave - 1 }
+  }
+}
+
+// semi here should be semantically wrong
+function stepTo(n: Note, to: Note): Note {
+  const next = semi(to) >= semi(n) ? stepUp(n) : stepDown(n)
+  if (next.name === to.name) return { ...next, alter: to.alter }
+  return next
+}
+
+export function nameInterval(int: number) {
+  return intervalMap[Math.abs(int) % 7]
 }
 
 // old, wrong comment: property key(note, base) = key(note), only octave is changed
@@ -235,32 +280,6 @@ export function keysBySemi(n: number): Note[] {
   const centers = keyCenters()
   return enharmonics(n).flatMap(e => centers.filter(c => equalNote(c, e)))
 }
-
-function stepUp(n: Note): Note {
-  const idx = names.indexOf(n.name)
-  if (idx < names.length - 1) {
-    return { ...n, name: names[idx + 1] }
-  } else {
-    return { ...n, name: names[0], octave: n.octave + 1 }
-  }
-}
-
-function stepDown(n: Note): Note {
-  const idx = names.indexOf(n.name)
-  if (idx > 0) {
-    return { ...n, name: names[idx - 1] }
-  } else {
-    return { ...n, name: names[names.length - 1], octave: n.octave - 1 }
-  }
-}
-
-// semi here should be semantically wrong
-function stepTo(n: Note, to: Note): Note {
-  const next = semi(to) >= semi(n) ? stepUp(n) : stepDown(n)
-  if (next.name === to.name) return { ...next, alter: to.alter }
-  return next
-}
-
 
 export function pointwiseInterval(a: Note, b: Note, ...cs: Note[]): Note[] {
   if (a.name === b.name && a.octave === b.octave) return []

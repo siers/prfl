@@ -618,11 +618,6 @@ export default Randomize
 
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
 
-// TODO: content: random notes within position
-// TODO: content: bow articulations tasks
-// TODO: content: maybeEvery derived from memory (make it work on indices)
-// TODO: content: random bowing exercises
-// TODO: content: bowing pattern generator for detache notes (partition refinement)
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
 
 // TODO: backlog: metronome: power status is false on start unless permissions are correct
