@@ -18,6 +18,14 @@ import { ErrorBoundary } from 'react-error-boundary'
 
 const currentStateVersion = 4
 
+type DeckIndex = number
+// planned data-type = [deckName, index]
+// API:
+// * current == current
+// * linearSeek support
+// * current + 3 (within-deck calculation for the new data type) and arrayMove (deck-local)
+// * get(current), that is lookup from `items: Whatever`
+
 type RState = {
   version: 4,
   text?: string,
@@ -28,7 +36,7 @@ type RState = {
   nextMemory?: string,
 
   execute?: boolean,
-  current?: number,
+  current?: DeckIndex,
   hideDone?: boolean,
   totalTimer?: Timer,
 
