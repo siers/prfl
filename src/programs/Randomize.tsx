@@ -41,12 +41,14 @@ const defaultState: RState = {
   text: "Lullaby: play it\nJuggling: do it\nSquats: do it"
 }
 
+type Seek = ['seek', number] | ['set', number] | []
+
 type Args = {
   eval?: boolean,
   contents?: string,
   save?: boolean,
   execute?: boolean,
-  advance?: number,
+  advance?: Seek,
   hideDone?: boolean,
 }
 
@@ -120,7 +122,7 @@ function Randomize(controls: any): JSX.Element {
     if (advanceDelta == 0) return
 
     // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
-    if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: advanceDelta })
+    if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: ['seek', advanceDelta] })
     modifyTimer('local-as-global')
   }
 
@@ -138,7 +140,7 @@ function Randomize(controls: any): JSX.Element {
     return item?.separator == true || item?.done == true
   }
 
-  function itemSeekExclude(item: UserItem): boolean {
+  function itemSeekExcluded(item: UserItem): boolean {
     return hideDone && itemSkipped(item)
   }
 
@@ -172,11 +174,18 @@ function Randomize(controls: any): JSX.Element {
 
       const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
 
-      const advance = itemSeekExclude(items[current]) ? 1 : (a.advance || 0)
-      const nextCurrent: number[] = linearSeekFullNext(items, s?.current || 0, advance, itemSeekExclude)
+      const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]!) : null
+      const mustSeek = itemSeekExcluded(items[current]) || seekDirection !== null
+      const nextCurrent: number[] =
+        mustSeek
+          ? linearSeekFullNext(items, s?.current || 0, seekDirection || 1, itemSeekExcluded)
+          : a.advance?.at(0) === "set"
+            ? [a.advance![1]! satisfies number]
+            : []
+      const justSeeked = nextCurrent.length > 0
 
-      const newCard: CardData | null = nextCurrent.length && items[nextCurrent[0]] && items[nextCurrent[0]].key && findCard(initMemory, items[nextCurrent[0]].key || '') || null
-      const newBpm: number | undefined = nextCurrent.length && newCard && newCard.bpm ? newCard.bpm : undefined
+      const newCard: CardData | null = justSeeked && items[nextCurrent[0]] && items[nextCurrent[0]].key && findCard(initMemory, items[nextCurrent[0]].key || '') || null
+      const newBpm: number | undefined = justSeeked && newCard && newCard.bpm ? newCard.bpm : undefined
       const metro: Metro = recalcMetro(s?.metro || {}, { bpm: newBpm })
       setItemBpm(metro.bpm || defaultBpm)
 
@@ -395,7 +404,7 @@ function Randomize(controls: any): JSX.Element {
 
   function executionItems(): JSX.Element {
     const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
-      const found = linearSeekNext(items, current, delta, itemSeekExclude)
+      const found = linearSeekNext(items, current, delta, itemSeekExcluded)
         .slice(0, delta == 0 ? 1 : Math.abs(delta * 2))
         .map(idx => [items[idx], idx] satisfies [UserItem, number])
 
@@ -408,8 +417,8 @@ function Randomize(controls: any): JSX.Element {
       {shownItems.map(([item, index]) => {
         const isCurrent = index == current
         const showReeval = isCurrent && (items[current]?.source?.interpols?.length || 0) > 0
-        const showCheckmark = isCurrent && itemSeekExclude(item)
-        return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)}>
+        const showCheckmark = isCurrent && itemSeekExcluded(item)
+        return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)} onClick={_ => newAndRecalculate({ advance: ['set', index] })}>
           {
             showCheckmark ? <>✅</> : <>
               {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}
