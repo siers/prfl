@@ -596,16 +596,27 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: execution: make items clickable, show all items, make them scrollable, make items movable
+// TODO: metronome: break button controls volume
+// TODO: timer: convert controls to clicking the timer label
+// TODO: review: crossing an item out lowers it after other "x"s
+
+// TODO: execution: make items clickable, switching between the list and a single item, make them scrollable, make items movable
+// TODO: execution: highlight parameters
 // TODO: execution: hide other items after a small timeout
 // TODO: scales: bowings/delete notes replace with pauses
 // TODO: scales: remove half-positions in ToneLibViolin
 // TODO: parametrization: decks which you can go deeper into
 // TODO: state: google drive api (for images)
-// TODO: UI: streamlining (useful for scales, swipes, pop-up buttons for extended )
+// TODO: UI: streamlining (useful for scales, swipes, pop-up buttons for extended, play/stop on the left)
 // TODO: parametrization: these could be scheduled with no random (maybe)
-// TODO: content: flip these, remove unique
-// TODO: subprogram: drones
+// TODO: review: "x" should drop three while skipping the done ones
+// TODO: combinatorics: flip versions, remove unique (scales markov)
+// TODO: review: accumulate review time
+// TODO: content: scales diatonic zip, check out other zips?
+// TODO: content: pickKeys (zip(letter, accidental))
+// TODO: scheduling: randomness param
+// TODO: scheduling: check that for two/three items, random doesn't screw with it
+// TODO: metronome: "x" review still doesn't respect metronome
 
 // TODO: lang: (8HZO) tags to each item
 // TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
@@ -613,6 +624,7 @@ export default Randomize
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: save card reviews in a list, with review lengths
 // TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small, schedule fewer fresh ones)
+// TODO: subprogram: drones
 
 // TODO: lang: add tags to block, only main blocks may have items without keys
 // TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
