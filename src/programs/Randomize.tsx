@@ -131,7 +131,6 @@ function Randomize(controls: any): JSX.Element {
 
     // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
     if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: ['seek', advanceDelta] })
-    modifyTimer('local-as-global')
   }
 
   useEffect(() => {
@@ -197,7 +196,7 @@ function Randomize(controls: any): JSX.Element {
       const metro: Metro = recalcMetro(s?.metro || {}, { bpm: newBpm })
       setItemBpm(metro.bpm || defaultBpm)
 
-      return {
+      const newState = {
         version: currentStateVersion,
 
         ...s,
@@ -214,6 +213,8 @@ function Randomize(controls: any): JSX.Element {
 
         metro,
       } satisfies RState
+
+      return modifyTimerState(newState, 'local-as-global')
     })
   }
 
@@ -241,37 +242,39 @@ function Randomize(controls: any): JSX.Element {
     return freshTimer(0) // impossible
   }
 
+  function modifyTimerState(s: RState | undefined, commandIn: TimerCommand, target: null | 'local' = null) {
+    const now = Date.now()
+    if (!s) return s
+
+    let commandGlobal: TimerAction | undefined
+    let commandLocal: TimerAction
+
+    if (commandIn == 'local-as-global') {
+      commandLocal = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
+      commandGlobal = 'no-op'
+    } else if (commandIn == 'subtract-and-restart') {
+      const currentItem = s?.items ? s?.items[current] : null
+      commandGlobal = ['subtract', currentItem?.timer || null]
+      commandLocal = 'restart'
+    } else {
+      if (target != 'local') commandGlobal = commandIn
+      commandLocal = commandIn
+    }
+
+    return {
+      ...s,
+      totalTimer: modifyTimerPure(s?.totalTimer || null, commandGlobal || 'no-op', now),
+      items: (s.items || []).map((item, index) => {
+        return {
+          ...item,
+          timer: modifyTimerPure(item.timer, index == s?.current ? commandLocal : 'stop', now),
+        }
+      })
+    }
+  }
+
   function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
-    setState((s: RState | undefined) => {
-      const now = Date.now()
-      if (!s) return s
-
-      let commandGlobal: TimerAction | undefined
-      let commandLocal: TimerAction
-
-      if (commandIn == 'local-as-global') {
-        commandLocal = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
-        commandGlobal = 'no-op'
-      } else if (commandIn == 'subtract-and-restart') {
-        const currentItem = s?.items ? s?.items[current] : null
-        commandGlobal = ['subtract', currentItem?.timer || null]
-        commandLocal = 'restart'
-      } else {
-        if (target != 'local') commandGlobal = commandIn
-        commandLocal = commandIn
-      }
-
-      return {
-        ...s,
-        totalTimer: modifyTimerPure(s?.totalTimer || null, commandGlobal || 'no-op', now),
-        items: (s.items || []).map((item, index) => {
-          return {
-            ...item,
-            timer: modifyTimerPure(item.timer, index == s?.current ? commandLocal : 'stop', now),
-          }
-        })
-      }
-    })
+    setState((s: RState | undefined) => modifyTimerState(s, commandIn, target))
   }
 
   function withStateMemory(s: RState | undefined, f: (memory: any) => void): string {
