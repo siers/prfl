@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
 import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags, rotateInterpolableLine } from './RandomizeLang.js'
-import { ContentOrTag, makeEmptyMemory, Memory, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -58,6 +58,7 @@ type Args = {
   execute?: boolean,
   advance?: Seek,
   hideDone?: boolean,
+  itemAction?: ItemActions,
 }
 
 type Metro = {
@@ -86,6 +87,24 @@ type ItemActions = {
   unreview?: boolean,
 }
 
+function withMemory(mem: string | undefined, f: (memory: any) => void): string {
+  const memory = mem ? mapParse(mem) : makeEmptyMemory()
+  f(memory)
+  return mapSerialize(memory)
+}
+
+function itemActionDidReordering(ia: ItemActions) {
+  return ia.done === true || ia.bury === true || ia.unreview == true
+}
+
+function memoryFromString(mem?: string) {
+  return (mem && mapParse(mem)) || makeEmptyMemory()
+}
+
+function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
+  return findCard(memoryFromString(memory), item?.key || '')
+}
+
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
@@ -109,8 +128,16 @@ function Randomize(controls: any): JSX.Element {
 
   const hideDone = state?.hideDone !== false
 
-  function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | null, type: 'local' | 'global') {
+  function renderTimerToRef(ref: RefObject<HTMLDivElement>, timer: Timer | undefined, type: 'local' | 'global') {
     ref.current && (ref.current.innerHTML = renderToString(timerContent(timer, type)))
+  }
+
+  function itemSkipped(item?: UserItem) {
+    return item?.separator == true || item?.done == true
+  }
+
+  function itemSeekExcluded(item: UserItem): boolean {
+    return hideDone && itemSkipped(item)
   }
 
   useEffect(() => {
@@ -138,48 +165,24 @@ function Randomize(controls: any): JSX.Element {
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
   }, [items.length && items || null, current, inExecution])
 
-  function memoryFromState(s: RState | undefined, kind: string = 'old') {
-    const mem = kind == 'new' ? s?.nextMemory : s?.memory
-    return (mem && mapParse(mem)) || makeEmptyMemory()
-  }
+  function itemsAndTimer(items: UserItem[], m: string | undefined, eval_: boolean, contents: string, total: Timer | undefined): [UserItem[], Timer | undefined] {
+    if (!eval_) return [items, total]
 
-  function itemSkipped(item?: UserItem) {
-    return item?.separator == true || item?.done == true
-  }
-
-  function itemSeekExcluded(item: UserItem): boolean {
-    return hideDone && itemSkipped(item)
-  }
-
-  function findCardFromMemory(item?: UserItem): CardData | null {
-    return findCard(memoryFromState(state), item?.key || '')
+    // console.clear()
+    let memory: Map<any, any> = memoryFromString(m)
+    const [lines, _] = evalContentsMem(contents, memory)
+    return [lines.map(rl => toUserItem(rl)), undefined]
   }
 
   function newAndRecalculate(a: Args) {
     setState((s: RState | undefined) => {
-
-      const contentsOr = a.contents === '' ? a.contents : (a.contents || state?.text || '')
+      const contentsOr: string = a.contents === '' ? a.contents : (a.contents || state?.text || '')
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
-      const initMemory = memoryFromState(s)
-
-      let items: UserItem[] = s?.items || []
-      let newMemory: Memory | undefined = undefined
-      let nextTotalTimer: Timer | undefined = state?.totalTimer
-
-      if (a.eval || items.length == 0) {
-        // console.clear()
-        const [lines, memory] = evalContentsMem(contentsOr, initMemory)
-        newMemory = memory
-        items = lines.map(rl => toUserItem(rl))
-        nextTotalTimer = undefined
-      }
-
-      const nextItems = items === undefined ? s?.items : items
-      const lineCount = items.length
-
-      const savedMemory = newMemory !== undefined ? { nextMemory: mapSerialize(newMemory) } : {}
+      let [initItems, totalTimer] = itemsAndTimer(s?.items || [], s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
+      const [items, memory] = modifyItemState(initItems, s?.memory, s?.metro?.bpm || defaultBpm, a.itemAction || {})
+      const memoryMap = mapParse(memory)
 
       const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]!) : null
       const mustSeek = itemSeekExcluded(items[current]) || seekDirection !== null
@@ -188,13 +191,14 @@ function Randomize(controls: any): JSX.Element {
           ? linearSeekFullNext(items, s?.current || 0, seekDirection || 1, itemSeekExcluded)
           : a.advance?.at(0) === "set"
             ? [a.advance![1]! satisfies number]
-            : []
-      const justSeeked = nextCurrent.length > 0
+            : itemActionDidReordering(a.itemAction || {})
+              ? [current]
+              : []
 
-      const newCard: CardData | null = justSeeked && items[nextCurrent[0]] && items[nextCurrent[0]].key && findCard(initMemory, items[nextCurrent[0]].key || '') || null
-      const newBpm: number | undefined = justSeeked && newCard && newCard.bpm ? newCard.bpm : undefined
+      const newKey = items[nextCurrent[0]] && items[nextCurrent[0]].key
+      const newCard: CardData | null = newKey && findCard(memoryMap, items[nextCurrent[0]].key || '') || null
+      const newBpm: number = (newCard && newCard.bpm ? newCard.bpm : undefined) || defaultBpm
       const metro: Metro = recalcMetro(s?.metro || {}, { bpm: newBpm })
-      setItemBpm(metro.bpm || defaultBpm)
 
       const newState = {
         version: currentStateVersion,
@@ -202,14 +206,14 @@ function Randomize(controls: any): JSX.Element {
         ...s,
         text: contentsOr,
 
-        items: nextItems,
-        outLineCount: lineCount,
-        ...savedMemory,
+        items: items,
+        outLineCount: items.length,
+        memory: setItemBpmMemory(newKey, memory, newBpm),
 
         execute: execute,
         current: a.eval ? 0 : (nextCurrent.length > 0 ? nextCurrent[0] : s?.current),
         hideDone: hideDone,
-        totalTimer: nextTotalTimer,
+        totalTimer,
 
         metro,
       } satisfies RState
@@ -219,7 +223,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function modifyTimerPure(
-    tIn: Timer | null,
+    tIn: Timer | undefined,
     command: TimerAction,
     now: number,
   ): Timer {
@@ -242,9 +246,9 @@ function Randomize(controls: any): JSX.Element {
     return freshTimer(0) // impossible
   }
 
-  function modifyTimerState(s: RState | undefined, commandIn: TimerCommand, target: null | 'local' = null) {
+  function modifyTimerState(s: RState | undefined, commandIn: TimerCommand, target: null | 'local' = null): RState {
     const now = Date.now()
-    if (!s) return s
+    if (!s) return defaultState satisfies RState
 
     let commandGlobal: TimerAction | undefined
     let commandLocal: TimerAction
@@ -263,11 +267,11 @@ function Randomize(controls: any): JSX.Element {
 
     return {
       ...s,
-      totalTimer: modifyTimerPure(s?.totalTimer || null, commandGlobal || 'no-op', now),
+      totalTimer: modifyTimerPure(s?.totalTimer || undefined, commandGlobal || 'no-op', now),
       items: (s.items || []).map((item, index) => {
         return {
           ...item,
-          timer: modifyTimerPure(item.timer, index == s?.current ? commandLocal : 'stop', now),
+          timer: modifyTimerPure(item?.timer, index == s?.current ? commandLocal : 'stop', now),
         }
       })
     }
@@ -277,71 +281,64 @@ function Randomize(controls: any): JSX.Element {
     setState((s: RState | undefined) => modifyTimerState(s, commandIn, target))
   }
 
-  function withStateMemory(s: RState | undefined, f: (memory: any) => void): string {
-    const memory = s?.memory ? mapParse(s.memory) : makeEmptyMemory()
-    f(memory)
-    return mapSerialize(memory)
+  function modifyItemState(
+    inItems: UserItem[] | undefined,
+    m: string | undefined,
+    currentMetro: number,
+    controls: ItemActions
+  ): [UserItem[], string] {
+    const items = inItems || []
+
+    const newMemory = withMemory(m, memory => {
+      if (controls.reviewed === true && items[current].key)
+        cardSet(memory, items[current].key, { reviewed: Date.now(), bpm: currentMetro })
+
+      if (controls.unreview === true && items[current].key)
+        cardSet(memory, items[current].key, { reviewed: 0, })
+    })
+
+    const updatedItems: UserItem[] = items.map((item, index) => {
+      if (index != current) return item
+      if (controls.regenerate === 'new') {
+        if (!item.source) return item
+        return evalRenderLine(item, memoryFromString(m)) satisfies UserItem
+      } else if (controls.regenerate === 'next') {
+        if (!item.source) return item
+        return rotateInterpolableLine(item, controls.regenerateKey)
+      } else return { ...item, done: controls.done === undefined ? item.done : controls.done } satisfies UserItem
+    })
+
+    const newIndex =
+      controls.bury === true
+        ? clamp(current + 3, 0, inItems?.length ? inItems.length - 1 : 0)
+        : controls.unreview === true
+          ? 0
+          : -999 // not moved
+    const movedItems = newIndex !== -999 ? arrayMove(updatedItems, current, newIndex) : updatedItems
+
+    return [movedItems, newMemory]
   }
 
   function modifyItem(controls: ItemActions) {
-    setState((s: RState | undefined) => {
-      if (!s) return s
+    newAndRecalculate({ itemAction: controls })
+  }
 
-      const items = s.items || []
-
-      const newMemory = withStateMemory(s, memory => {
-        if (controls.reviewed === true && items[current].key)
-          cardSet(memory, items[current].key, { reviewed: Date.now(), bpm: s?.metro?.bpm })
-
-        if (controls.unreview === true && items[current].key)
-          cardSet(memory, items[current].key, { reviewed: 0, })
-      })
-
-      const updatedItems = items.map((item, index) => {
-        if (index != current) return item
-        if (controls.regenerate === 'new') {
-          if (!item.source) return item
-          return evalRenderLine(item, memoryFromState(s, 'new'))
-        } else if (controls.regenerate === 'next') {
-          if (!item.source) return item
-          return rotateInterpolableLine(item, controls.regenerateKey)
-        } else return { ...item, done: controls.done === undefined ? item.done : controls.done }
-      })
-
-      const newIndex =
-        controls.bury === true
-          ? clamp(current + 3, 0, s?.items?.length ? s.items.length - 1 : 0)
-          : controls.unreview === true
-            ? 0
-            : -999 // not moved
-      const movedItems = newIndex !== -999 ? arrayMove(updatedItems, current, newIndex) : updatedItems
-
-      return {
-        ...s,
-        memory: newMemory,
-        items: movedItems,
-      }
+  function setItemBpmMemory(key: string | null, m: string | undefined, bpm: number): string {
+    return withMemory(m, memory => {
+      if (key) cardSet(memory, key, { bpm: bpm })
     })
-
-    if (controls.done) advanceRef.current('next')
-    else modifyTimer('local-as-global')
   }
 
   function setItemBpm(bpm: number) {
     setState((s: RState | undefined) => {
-      return {
-        ...s,
-        memory: withStateMemory(s, memory => {
-          const key = items[typeof s?.current === 'number' ? s?.current : -1]?.key
-          if (key) cardSet(memory, key, { bpm: bpm })
-        }),
-      }
+      const key = items[typeof s?.current === 'number' ? s?.current : -1]?.key
+      return { ...s, memory: setItemBpmMemory(key, s?.memory, bpm), }
     })
   }
 
   // UI
 
-  function timerContent(timer: Timer | null, type: 'local' | 'global'): string {
+  function timerContent(timer: Timer | undefined, type: 'local' | 'global'): string {
     const format: (a: number) => string = type == 'local' ? ms : hm_ms
     const formatted = (timer: Timer) => padRight(format(timerLength(timer, Date.now())), 10, ' ')
     return (timer && (formatted(timer))) || ''
@@ -387,12 +384,12 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemStyle(item: UserItem, index: number): React.CSSProperties {
-    const card = findCardFromMemory(item)
+    const card = findCardFromMemory(state.memory, item)
     const color =
       index == current ? undefined
         : item.done && hoursBetweenNow(card?.reviewed) > 12 ? 'red'
           : item.done ? '#4caf50'
-            : timerLength(item.timer, Date.now()) >= 180 ? 'orange'
+            : timerLength(item.timer || null, Date.now()) >= 180 ? 'orange'
               : '#bbb'
     return {
       ...(index == current && { fontSize: '2rem' }),
