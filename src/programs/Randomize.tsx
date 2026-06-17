@@ -59,7 +59,7 @@ type Args = {
   execute?: boolean,
   advance?: Seek,
   hideDone?: boolean,
-  itemAction?: ItemActions,
+  item?: ItemActions,
 }
 
 type Metro = {
@@ -157,8 +157,8 @@ function Randomize(controls: any): JSX.Element {
 
     if (advanceDelta == 0) return
 
-    // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) newAndRecalculate({ eval: true })
-    if (Math.abs(advanceDelta) == 1) newAndRecalculate({ advance: ['seek', advanceDelta] })
+    // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) recalc({ eval: true })
+    if (Math.abs(advanceDelta) == 1) recalc({ advance: ['seek', advanceDelta] })
   }
 
   useEffect(() => {
@@ -175,14 +175,14 @@ function Randomize(controls: any): JSX.Element {
     return [lines.map(rl => toUserItem(rl)), undefined]
   }
 
-  function newAndRecalculate(a: Args) {
+  function recalc(a: Args) {
     setState((s: RState | undefined) => {
       const contentsOr: string = a.contents === '' ? a.contents : (a.contents || state?.text || '')
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
       let [initItems, totalTimer] = itemsAndTimer(s?.items || [], s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
-      const [items, memory] = modifyItemState(initItems, s?.memory, s?.metro?.bpm || defaultBpm, a.itemAction || {})
+      const [items, memory] = modifyItemState(initItems, s?.memory, s?.metro?.bpm || defaultBpm, a.item || {})
       const memoryMap = mapParse(memory)
 
       const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]!) : null
@@ -284,7 +284,7 @@ function Randomize(controls: any): JSX.Element {
     inItems: UserItem[] | undefined,
     m: string | undefined,
     currentMetro: number,
-    controls: ItemActions
+    controls: ItemActions,
   ): [UserItem[], string] {
     const items = inItems || []
 
@@ -318,10 +318,6 @@ function Randomize(controls: any): JSX.Element {
     return [movedItems, newMemory]
   }
 
-  function modifyItem(controls: ItemActions) {
-    newAndRecalculate({ itemAction: controls })
-  }
-
   function setItemBpmMemory(key: string | null, m: string | undefined, bpm: number): string {
     return withMemory(m, memory => {
       if (key) cardSet(memory, key, { bpm: bpm })
@@ -345,9 +341,9 @@ function Randomize(controls: any): JSX.Element {
 
   function planningControlButtons(): JSX.Element {
     return <>
-      { /* <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => newAndRecalculate({ save: true })}>💾</a> */}
-      <a className="pr-3 select-none" onClick={() => newAndRecalculate({ eval: true, })}>🔄</a>
-      <a className="pr-3 select-none" onClick={() => confirm('delete?') && newAndRecalculate({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
+      { /* <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => recalc({ save: true })}>💾</a> */}
+      <a className="pr-3 select-none" onClick={() => recalc({ eval: true, })}>🔄</a>
+      <a className="pr-3 select-none" onClick={() => confirm('delete?') && recalc({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
 
       <span className="pr-3">
         {state?.outLineCount ? <>{state?.outLineCount} items</> : <></>}
@@ -360,7 +356,7 @@ function Randomize(controls: any): JSX.Element {
 
   function executionControlButtons(): JSX.Element {
     return <>
-      <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => newAndRecalculate({ hideDone: !hideDone, })}>👁️</a>
+      <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => recalc({ hideDone: !hideDone, })}>👁️</a>
       <a className="pr-3 microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
       <a className="pr-3 metro-button select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</a>
       <a className="pr-3" onClick={event => advanceRef.current('prev', event)}>⬅️</a>
@@ -373,7 +369,7 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh)" })}>
       <div className="grow p-[10px]">
-        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newAndRecalculate({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
+        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => recalc({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
       </div>
 
       <div className="grow p-[10px]">
@@ -401,7 +397,7 @@ function Randomize(controls: any): JSX.Element {
     return <>
       {
         contentTags.map((ct: ContentOrTag, idx: number) =>
-          <span key={idx} onClick={_ => ct[0] == 'tag' && modifyItem({ 'regenerate': 'next', 'regenerateKey': ct[1] })}>
+          <span key={idx} onClick={_ => ct[0] == 'tag' && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })}>
             {ct[0] == 'string' ? ct[1] : interpolateSubtToString((lookupTag.get(ct[1]) as Substitution).contents)}
           </span>
         )
@@ -425,12 +421,12 @@ function Randomize(controls: any): JSX.Element {
         const isCurrent = index == current
         const showReeval = isCurrent && (items[current]?.source?.interpols?.length || 0) > 0
         const showCheckmark = isCurrent && itemSeekExcluded(item)
-        return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)} onClick={_ => newAndRecalculate({ advance: ['set', index] })}>
+        return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)} onClick={_ => recalc({ advance: ['set', index] })}>
           {
             showCheckmark ? <>✅</> : <>
               {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}
-              {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'new' })}>🔄</a>}
-              {showReeval && <a className="pl-3 select-none" onClick={() => modifyItem({ regenerate: 'next' })}>⏩</a>}
+              {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'new' } })}>🔄</a>}
+              {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>}
             </>
           }
         </div>
@@ -485,10 +481,10 @@ function Randomize(controls: any): JSX.Element {
     </>
 
     const reviewControls = <>
-      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: true, done: true, bury: false })}>✅</a>
-      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: false, bury: true })}>✘</a>
-      <a className="pr-4 select-none" onClick={() => modifyItem({ reviewed: false, done: true, bury: false })}>📚</a>
-      <a className="pr-4 select-none" onClick={() => modifyItem({ unreview: true, })}>🌟</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: true, done: true, bury: false } })}>✅</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: false, bury: true } })}>✘</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: true, bury: false } })}>📚</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { unreview: true } })}>🌟</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
@@ -560,7 +556,7 @@ function Randomize(controls: any): JSX.Element {
   return (
     <div className="w-full">
       <div className="pl-[10px]">
-        <a className="pr-3 select-none" onClick={() => { newAndRecalculate({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
+        <a className="pr-3 select-none" onClick={() => { recalc({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
         {inExecution && executionControlButtons()}
       </div>
