@@ -66,12 +66,7 @@ type Metro = {
   opened?: boolean,
   power?: boolean,
   bpm?: number,
-}
-
-type MetroDiff = {
-  opened?: boolean,
-  power?: boolean,
-  bpm?: number,
+  volume?: number,
 }
 
 const defaultBpm = 60
@@ -437,35 +432,39 @@ function Randomize(controls: any): JSX.Element {
   function microBreakTransparencyControl(e: React.MouseEvent<HTMLAnchorElement>) {
     const breakMin = 10000
     const breakMax = 15000
-    const calcOpacity = (start: number, now: number) => {
-      const value = clamp((now - start - breakMin) / (breakMax - breakMin), 0, 1)
-      return Math.pow(value, 1.6) // ease-in
-    }
 
-    const el = e.currentTarget
-    const thisKey = `${parseInt(el.dataset.animationKey || '0') + 1}`
-    el.dataset.animationKey = thisKey
+    const elem = e.currentTarget
+    const animKey = `${parseInt(elem.dataset.animationKey || '0') + 1}`
+    elem.dataset.animationKey = animKey
     const timeout = 50
 
     const nextFrame = (key: string, start: number) => {
-      const opacity = calcOpacity(start, Date.now())
-      if (!(el.dataset.animationKey == key && opacity < 1)) return
+      const now = Date.now()
+      const progress = clamp((now - start - breakMin) / (breakMax - breakMin), 0, 1)
+      const opacity = Math.pow(progress, 1.6) // ease-in
 
-      el.style.opacity = `${Math.round(opacity * 100)}%`
+      if (!(elem.dataset.animationKey == key && opacity < 1)) return metroState({ volume: 0 })
+
+      elem.style.opacity = `${Math.round(opacity * 100)}%`
+
+      const cutoff = breakMin / breakMax
+      const volume = -40 * (1 - progress)
+      metroState({ volume: volume })
+      console.log('setting the volume to', { progress, opacity, cutoff, volume })
+
       setTimeout(() => nextFrame(key, start), timeout)
     }
-    setTimeout(() => nextFrame(thisKey, Date.now()), timeout)
+    setTimeout(() => nextFrame(animKey, Date.now()), timeout)
   }
 
-  function recalcMetro(old: Metro, diff: MetroDiff): Metro {
+  function recalcMetro(old: Metro, diff: Metro): Metro {
     const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value != null && value != undefined))
     const fresh = { opened: false, power: false, bpm: defaultBpm, ...old, ...diffFilt }
     fresh.bpm = clamp(Math.floor(fresh.bpm), 20, 500)
     return fresh
   }
 
-
-  function metroState(diff: MetroDiff) {
+  function metroState(diff: Metro) {
     setState((sIn: RState | undefined) => {
       const state = ({ version: 4, ...sIn, metro: recalcMetro(sIn?.metro || {}, diff) })
       setItemBpm(state.metro.bpm || defaultBpm)
@@ -577,7 +576,7 @@ function Randomize(controls: any): JSX.Element {
                 {items[current]?.key?.match(/DS$/) && sheetDisplay(items[current]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {metroPower && <Metro bpm={metro.bpm || defaultBpm} />}
+                {metroPower && <Metro bpm={metro.bpm || defaultBpm} volume={metro.volume || 0} />}
               </div>
             </ErrorBoundary>
           </div>
@@ -591,7 +590,6 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: metronome: break button controls volume
 // TODO: timer: convert controls to clicking the timer label
 // TODO: review: crossing an item out lowers it after other "x"s
 
