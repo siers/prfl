@@ -15,6 +15,7 @@ import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
 import { Metro } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
+import { pipe } from '../lib/Function.ts'
 
 const currentStateVersion = 4
 
@@ -93,9 +94,9 @@ function withMemory(mem: string | undefined, f: (memory: any) => void): string {
   return mapSerialize(memory)
 }
 
-function itemActionDidReordering(ia: ItemActions) {
-  return ia.done === true || ia.bury === true || ia.unreview == true
-}
+// function itemActionDidReordering(ia: ItemActions) {
+//   return ia.done === true || ia.bury === true || ia.unreview == true
+// }
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -191,14 +192,12 @@ function Randomize(controls: any): JSX.Element {
           ? linearSeekFullNext(items, s?.current || 0, seekDirection || 1, itemSeekExcluded)
           : a.advance?.at(0) === "set"
             ? [a.advance![1]! satisfies number]
-            : itemActionDidReordering(a.itemAction || {})
-              ? [current]
-              : []
+            : [current]
 
       const newKey = items[nextCurrent[0]] && items[nextCurrent[0]].key
       const newCard: CardData | null = newKey && findCard(memoryMap, items[nextCurrent[0]].key || '') || null
       const newBpm: number = (newCard && newCard.bpm ? newCard.bpm : undefined) || defaultBpm
-      const metro: Metro = recalcMetro(s?.metro || {}, { bpm: newBpm })
+      const metro: Metro = pipe(s?.metro || {}, prevMetro => newKey ? recalcMetro(prevMetro, { bpm: newBpm }) : prevMetro)
 
       const newState = {
         version: currentStateVersion,
@@ -208,7 +207,7 @@ function Randomize(controls: any): JSX.Element {
 
         items: items,
         outLineCount: items.length,
-        memory: setItemBpmMemory(newKey, memory, newBpm),
+        memory: newKey ? setItemBpmMemory(newKey, memory, newBpm) : memory,
 
         execute: execute,
         current: a.eval ? 0 : (nextCurrent.length > 0 ? nextCurrent[0] : s?.current),
