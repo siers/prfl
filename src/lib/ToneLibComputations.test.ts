@@ -11,7 +11,7 @@ function pad(str: string, size: number, with_: string): string {
 describe('ToneLib computations', () => {
   test('allNotes', () => {
     expect([...allNotesRendered()]).toStrictEqual(
-      ["C#", "Bb", "A", "Ab", "A#", "B", "C", "D", "E", "F", "G", "Gb", "G#", "F#", "Eb", "E#", "Db", "D#", "Cb"])
+      ["C#", "Bb", "B#", "A", "Ab", "A#", "B", "C", "D", "E", "F", "G", "Gb", "G#", "Fb", "F#", "Eb", "E#", "Db", "D#", "Cb"])
   })
 
   test('keysMajor', () => {
@@ -30,6 +30,8 @@ describe('ToneLib computations', () => {
         " Db4  Eb4   F4  Gb4  Ab4  Bb4   C5",
         " F#4  G#4  A#4   B4  C#5  D#5  E#5",
         " Gb4  Ab4  Bb4  Cb5  Db5  Eb5   F5",
+        " C#4  D#4  E#4  F#4  G#4  A#4  B#4",
+        " Cb4  Db4  Eb4  Fb4  Gb4  Ab4  Bb4",
       ]
     )
   })
@@ -50,6 +52,8 @@ describe('ToneLib computations', () => {
         "F4 Ab4 Cb5 Ebb4",
         "A#4 C#5 E5 G4",
         "Bb4 Db5 Fb5 Abb4",
+        "E#4 G#4 B4 D4",
+        "Eb4 Gb4 Bbb4 Dbb4",
       ]
     )
   })
@@ -57,7 +61,7 @@ describe('ToneLib computations', () => {
   test('missing from Bb and D', () => {
     const bb = majorKey(parseNote('bb')!)!
     const d = majorKey(parseNote('d')!)!
-    expect(Immutable.Set.of("Ab", "A#", "Gb", "G#", "E#", "Db", "D#", "Cb").equals(notesMissing(bb, d))).equal(true)
+    expect(Immutable.Set.of("B#", "Ab", "A#", "Gb", "G#", "Fb", "E#", "Db", "D#", "Cb").equals(notesMissing(bb, d))).equal(true)
   })
 })
 

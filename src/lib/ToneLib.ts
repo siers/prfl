@@ -71,8 +71,13 @@ export function parseNote(note: string): Note | null {
   return { name, alter, octave }
 }
 
+function signedHash(value: number, positivePrime: number, negativePrime: number): number {
+  const prime = value >= 0 ? positivePrime : negativePrime
+  return prime ** Math.abs(value)
+}
+
 function hashNote(n: Note): number {
-  return n.name.charCodeAt(0) * 2 + n.alter * 3 + n.octave * 5
+  return 2 ** names.indexOf(n.name) * signedHash(n.alter, 3, 5) * 7 ** n.octave
 }
 
 // I hate javascript
@@ -185,7 +190,7 @@ function modulateFifth(key: Key, direction: number) {
 }
 
 export function keysMajor() {
-  return [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6].map(d => {
+  return [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7].map(d => {
     return modulateFifth(major(), d)
   })
 }
@@ -292,7 +297,7 @@ export function pointwiseInterval(a: Note, b: Note, ...cs: Note[]): Note[] {
   return [a, ...pointwiseInterval(next, b, ...cs)]
 }
 
-// respell a note from C major into a specific key)
+// respell a note by its letter into a specific key
 // if you give an ill-defined key, it will blow up
 export function rename(a: Note, k: Key) {
   return { ...a, alter: k.find(n => n.name == a.name)!.alter }

@@ -24,10 +24,10 @@ describe('ToneLib', () => {
 
   test('enharmonics', () => {
     expect(enharmonics(39).map(n => render(n))).toStrictEqual(['Cb3', 'B3'])
-    expect(enharmonics(40).map(n => render(n))).toStrictEqual(['C4'])
-    expect(enharmonics(41).map(n => render(n))).toStrictEqual(['Db4', 'C#4'])
-    expect(enharmonics(55).map(n => render(n))).toStrictEqual(['Eb5'])
-    expect(enharmonics(56).map(n => render(n))).toStrictEqual(['E5'])
+    expect(enharmonics(40).map(n => render(n))).toStrictEqual(['C4', 'B#4'])
+    expect(enharmonics(41).map(n => render(n))).toStrictEqual(['C#4', 'Db4'])
+    expect(enharmonics(55).map(n => render(n))).toStrictEqual(['D#5', 'Eb5'])
+    expect(enharmonics(56).map(n => render(n))).toStrictEqual(['E5', 'Fb5'])
   })
 
   test('rebase', () => {
