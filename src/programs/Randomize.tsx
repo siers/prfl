@@ -448,7 +448,7 @@ function Randomize(controls: any): JSX.Element {
       elem.style.opacity = `${Math.round(opacity * 100)}%`
 
       const cutoff = breakMin / breakMax
-      const volume = -40 * (1 - progress)
+      const volume = -100 * (1 - progress)
       metroState({ volume: volume })
       console.log('setting the volume to', { progress, opacity, cutoff, volume })
 
@@ -591,7 +591,10 @@ export default Randomize
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
 // TODO: timer: convert controls to clicking the timer label
-// TODO: review: crossing an item out lowers it after other "x"s
+// TODO: review: crossing an item out lowers it after other "x"s, also jump over hiddens
+// TODO: parametrization: separator for interpolations
+// TODO: review: star, should move not only the item, but also the cursor
+// TODO: review: star, should move to the first lowest option (that is, high number)
 
 // TODO: execution: make items clickable, switching between the list and a single item, make them scrollable, make items movable
 // TODO: execution: highlight parameters
@@ -635,7 +638,6 @@ export default Randomize
 // TODO: (GHQZ) seek: make cursor an opaque, guarded type to enable multi-layer cursors and understand the actual api
 // TODO: (GHQZ) seek: make the cursors point to decks by key on a deckmap, no multi-dim decks
 // TODO: parametrization: enable adding tags to each interpolation (usecase: _________)
-// TODO: parametrization: separator for forwarding the interpolations
 // TODO: parametrization: forward button doesn't work when there are two interpolations
 
 // TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
