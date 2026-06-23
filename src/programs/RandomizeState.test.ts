@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { UserItem } from './RandomizeTypes.ts'
+import { UserItem, toUserItem } from './RandomizeTypes.ts'
+import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK } from './GenericList.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn,
   defaultBpm,
 } from './RandomizeState.ts'
 
@@ -163,5 +164,56 @@ describe('reduceSetBpm / reduceMetro', () => {
     expect(out.metro?.bpm).toBe(500)
     const cards = Object.fromEntries(JSON.parse(out.memory!)).cards
     expect(cards['a'].bpm).toBe(500)
+  })
+})
+
+// A default deck holding one real interpolable item (built via the evaluator)
+// at the cursor, so spawning has genuine parameters to expand.
+function stateWithSpawnable(): RState {
+  const parent = toUserItem(evalContents("Scale: play [s('C,D')]key [s('up,down')]bow")[0])
+  return { version: 5, items: { [DEFAULT_DECK]: [parent, item('after')] }, current: [DEFAULT_DECK, 0] }
+}
+
+describe('reduceSpawn — descend into a spawned deck', () => {
+  test('cartesian spawn creates the deck, descends, and pushes the parent cursor', () => {
+    const out = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW)
+    expect(out.items?.['Scale/cartesian']?.map(i => i.contents)).toStrictEqual([
+      'Scale: play [C] [up]', 'Scale: play [C] [down]', 'Scale: play [D] [up]', 'Scale: play [D] [down]',
+    ])
+    expect(out.current).toStrictEqual(['Scale/cartesian', 0])
+    expect(out.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent pushed
+    expect(out.items?.[DEFAULT_DECK]?.length).toBe(2) // default deck untouched
+  })
+
+  test('zip spawn produces the position-aligned deck', () => {
+    const out = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    expect(out.items?.['Scale/zip']?.map(i => i.contents)).toStrictEqual([
+      'Scale: play [C] [up]', 'Scale: play [D] [down]',
+    ])
+  })
+
+  test('spawning a non-spawnable item is a no-op', () => {
+    const s = stateOf(['plain'])
+    expect(reduceSpawn(s, 'zip', NOW)).toBe(s)
+  })
+})
+
+describe('reduceRecalc — exhaust pops back to the parent', () => {
+  test('seeking forward off the end of a spawned deck returns to the parent cursor', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW) // deck of 2, cursor [Scale/zip, 0]
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // -> [Scale/zip, 1]
+    expect(s.current).toStrictEqual(['Scale/zip', 1])
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // exhausted -> pop
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.cursorStack).toStrictEqual([]) // stack emptied
+  })
+
+  test('seeking forward mid-deck does not pop', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW) // deck of 4
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(s.current).toStrictEqual(['Scale/cartesian', 1])
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still descended
   })
 })

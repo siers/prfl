@@ -16,7 +16,8 @@ import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer,
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
-import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent, Exclude } from './GenericList.ts'
+import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, cursorEq, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent, Exclude } from './GenericList.ts'
+import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 
 export const currentStateVersion = 5
 export const defaultBpm = 60
@@ -41,6 +42,10 @@ export type RState = {
 
   execute?: boolean,
   current?: DeckIndex,
+  // Decks you descended into, parent-first. Spawning pushes the parent cursor;
+  // exhausting/leaving a spawned deck pops back to it. Empty/undefined at the
+  // top level. Additive over v5 — old states simply have no stack.
+  cursorStack?: DeckCursor[],
   hideDone?: boolean,
   totalTimer?: Timer,
 
@@ -283,8 +288,16 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
           ? deckSetCurrent(decksAfterReorder, reorderedCursor, a.advance![1]! satisfies number, excludeSeek)
           : deckSeek(decksAfterReorder, reorderedCursor, Direction.Zero, excludeSeek) // resolve off an excluded current
 
+  // Exhaust → pop: a forward seek inside a spawned deck that couldn't advance
+  // (stayed put at the end) returns to the parent item the spawn descended from.
+  const stack = s?.cursorStack || []
+  const exhausted = seekDirection !== null && seekDirection > 0 && stack.length > 0
+    && cursorEq(resolvedCursor, reorderedCursor)
+  const [poppedStack, poppedCursor]: [DeckCursor[], DeckCursor] =
+    exhausted ? [stack.slice(0, -1), stack[stack.length - 1]] : [stack, resolvedCursor]
+
   const items = deckItems(resolvedDecks, deck)
-  const nextCursor: DeckCursor = a.eval ? [deck, 0] : resolvedCursor
+  const nextCursor: DeckCursor = a.eval ? [deck, 0] : poppedCursor
 
   const newItem = deckGet(resolvedDecks, nextCursor)
   const newKey = newItem && newItem.key
@@ -304,6 +317,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
     execute: execute,
     current: nextCursor,
+    cursorStack: poppedStack,
     hideDone: hideDone,
     totalTimer,
 
@@ -311,4 +325,32 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   } satisfies RState
 
   return reduceTimer(newState, 'local-as-global', null, deps.now)
+}
+
+// Spawn a deck from the current item's parameters, descend into it, and push the
+// current cursor onto the return stack so exhausting the spawned deck pops back.
+export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number): RState {
+  if (!s) return defaultState satisfies RState
+
+  const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
+  const parent = deckGet(s.items || {}, cursor)
+  if (!parent) return s
+
+  const children = spawnChildren(parent, mode)
+  if (children.length === 0) return s // nothing to expand
+
+  const deckName = spawnDeckName(parent, mode)
+  const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: children }
+  const newCursor: DeckCursor = [deckName, 0]
+
+  const newState: RState = {
+    ...s,
+    version: currentStateVersion,
+    items,
+    current: newCursor,
+    cursorStack: [...(s.cursorStack || []), cursor],
+  }
+
+  // Start the descended item's timer like a normal advance does.
+  return reduceTimer(newState, 'local-as-global', null, now)
 }
