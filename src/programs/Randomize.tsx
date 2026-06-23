@@ -1,95 +1,25 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, RefObject, useEffect, useRef } from 'react'
 
-import { emptiedInterpolations, evalContentsMem, evalRenderLine, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags, rotateInterpolableLine } from './RandomizeLang.js'
+import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
 import { ContentOrTag, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
-import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
-import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
+import { CardData, UserItem, findCard } from './RandomizeTypes.js'
+import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
-import { mapParse, mapSerialize } from '../lib/Map.js'
+import { mapParse } from '../lib/Map.js'
 
 import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
-import { Direction, linearSeekNext } from './LinearSeek.ts'
-import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './GenericList.ts'
-import { Metro } from './Metro.tsx'
+import { linearSeekNext } from './LinearSeek.ts'
+import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './GenericList.ts'
+import { Metro as MetroComponent } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
-import { pipe } from '../lib/Function.ts'
-
-const currentStateVersion = 5
-
-// The cursor is a [deckName, index] pair into `items`, a bag of named decks.
-// The data type and its API (cursor equality, linearSeek, deck-local current+3 /
-// arrayMove, get(current)) live in GenericList as Decks/DeckCursor. Items never
-// travel between decks; for now there is only the "default" deck.
-type DeckIndex = DeckCursor
-
-type RState = {
-  version: 5,
-  text?: string,
-
-  items?: Decks<UserItem>,
-  outLineCount?: number,
-  memory?: string,
-  nextMemory?: string,
-
-  execute?: boolean,
-  current?: DeckIndex,
-  hideDone?: boolean,
-  totalTimer?: Timer,
-
-  metro?: Metro,
-}
-
-const defaultState: RState = {
-  version: 5,
-
-  text: "Lullaby: play it\nJuggling: do it\nSquats: do it"
-}
-
-type Seek = ['seek', number] | ['set', number] | []
-
-type Args = {
-  eval?: boolean,
-  contents?: string,
-  save?: boolean,
-  execute?: boolean,
-  advance?: Seek,
-  hideDone?: boolean,
-  item?: ItemActions,
-}
-
-type Metro = {
-  opened?: boolean,
-  power?: boolean,
-  bpm?: number,
-  volume?: number,
-}
-
-const defaultBpm = 60
-
-type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
-type TimerAction = 'start' | 'stop' | 'restart' | ['subtract', Timer | null] | 'no-op'
-
-type ItemActions = {
-  reviewed?: boolean,
-  done?: boolean,
-  bury?: boolean,
-  regenerate?: 'new' | 'next',
-  regenerateKey?: string,
-  unreview?: boolean,
-}
-
-function withMemory(mem: string | undefined, f: (memory: any) => void): string {
-  const memory = mem ? mapParse(mem) : makeEmptyMemory()
-  f(memory)
-  return mapSerialize(memory)
-}
-
-// function itemActionDidReordering(ia: ItemActions) {
-//   return ia.done === true || ia.bury === true || ia.unreview == true
-// }
+import {
+  Args, Metro, RState, TimerCommand,
+  currentStateVersion, defaultBpm, defaultState,
+  itemSkipped, reduceMetro, reduceRecalc, reduceTimer,
+} from './RandomizeState.ts'
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -130,10 +60,6 @@ function Randomize(controls: any): JSX.Element {
     ref.current && (ref.current.innerHTML = renderToString(timerContent(timer, type)))
   }
 
-  function itemSkipped(item?: UserItem) {
-    return item?.separator == true || item?.done == true
-  }
-
   function itemSeekExcluded(item: UserItem): boolean {
     return hideDone && itemSkipped(item)
   }
@@ -163,199 +89,16 @@ function Randomize(controls: any): JSX.Element {
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
   }, [items.length && items || null, current[0], current[1], inExecution])
 
-  function itemsAndTimer(items: UserItem[], m: string | undefined, eval_: boolean, contents: string, total: Timer | undefined): [UserItem[], Timer | undefined] {
-    if (!eval_) return [items, total]
-
-    // console.clear()
-    let memory: Map<any, any> = memoryFromString(m)
-    const [lines, _] = evalContentsMem(contents, memory)
-    return [lines.map(rl => toUserItem(rl)), undefined]
-  }
-
+  // Thin wrappers over the pure reducers in RandomizeState: bind setState and
+  // inject the bits the reducers need (bpm, now). All the actual state logic —
+  // and its tests — live in that module.
   function recalc(a: Args) {
-    setState((s: RState | undefined) => {
-      const contentsOr: string = a.contents === '' ? a.contents : (a.contents || state?.text || '')
-      const execute = a.execute === undefined ? state?.execute : a.execute
-      const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
-
-      // Everything below works deck-locally on the cursor's deck: pull that
-      // deck's flat list out, reorder/seek within it, then fold it (and the
-      // resolved index) back into the deck bag.
-      const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
-      const deck = prevCursor[0]
-      const prevDeckItems = deckItems(s?.items || decksOf<UserItem>([]), deck)
-
-      let [initItems, totalTimer] = itemsAndTimer(prevDeckItems, s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
-      const [deckList, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, prevCursor[1], s?.metro?.bpm || defaultBpm, a.item || {})
-      const memoryMap = mapParse(memory)
-
-      // The cursor is resolved by GenericList: a bury/unreview reorder already
-      // set it; otherwise translate the advance request into a seek/set/stay.
-      // Exclusion is built from the locally-resolved hideDone (which a.hideDone
-      // may be flipping in this very update), not the stale render closure.
-      const excludeSeek = (item: UserItem) => hideDone !== false && itemSkipped(item)
-      const decksAfterReorder: Decks<UserItem> = { ...(s?.items || {}), [deck]: deckList }
-      const reorderedCursor: DeckCursor = [deck, reorderedCurrent !== null ? reorderedCurrent : prevCursor[1]]
-      const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]! as Direction) : null
-      const [resolvedDecks, resolvedCursor]: [Decks<UserItem>, DeckCursor] =
-        reorderedCurrent !== null
-          ? [decksAfterReorder, reorderedCursor]
-          : seekDirection !== null
-            ? deckSeek(decksAfterReorder, reorderedCursor, seekDirection, excludeSeek)
-            : a.advance?.at(0) === "set"
-              ? deckSetCurrent(decksAfterReorder, reorderedCursor, a.advance![1]! satisfies number, excludeSeek)
-              : deckSeek(decksAfterReorder, reorderedCursor, Direction.Zero, excludeSeek) // resolve off an excluded current
-
-      const items = deckItems(resolvedDecks, deck)
-      const nextCursor: DeckCursor = a.eval ? [deck, 0] : resolvedCursor
-
-      const newItem = deckGet(resolvedDecks, nextCursor)
-      const newKey = newItem && newItem.key
-      const newCard: CardData | null = newKey && findCard(memoryMap, newItem.key || '') || null
-      const newBpm: number = (newCard && newCard.bpm ? newCard.bpm : undefined) || defaultBpm
-      const metro: Metro = pipe(s?.metro || {}, prevMetro => newKey ? recalcMetro(prevMetro, { bpm: newBpm }) : prevMetro)
-
-      const newState = {
-        version: currentStateVersion,
-
-        ...s,
-        text: contentsOr,
-
-        items: resolvedDecks,
-        outLineCount: items.length,
-        memory: newKey ? setItemBpmMemory(newKey, memory, newBpm) : memory,
-
-        execute: execute,
-        current: nextCursor,
-        hideDone: hideDone,
-        totalTimer,
-
-        metro,
-      } satisfies RState
-
-      return modifyTimerState(newState, 'local-as-global')
-    })
-  }
-
-  function modifyTimerPure(
-    tIn: Timer | undefined,
-    command: TimerAction,
-    now: number,
-  ): Timer {
-    const t: Timer = tIn || freshTimer(now)
-
-    if (command == 'no-op') return t
-
-    if (command == 'start' || command == 'restart') {
-      return (!t || command == 'restart') ? freshTimerOrRestart(now, t) : toStartedTimer(t, now)
-    }
-
-    if (command == 'stop') {
-      return toStoppedTimer(t, now)
-    }
-
-    if (command[0] == 'subtract') {
-      return timerSubtract(t, command[1], now)
-    }
-
-    return freshTimer(0) // impossible
-  }
-
-  function modifyTimerState(s: RState | undefined, commandIn: TimerCommand, target: null | 'local' = null): RState {
-    const now = Date.now()
-    if (!s) return defaultState satisfies RState
-
-    let commandGlobal: TimerAction | undefined
-    let commandLocal: TimerAction
-
-    if (commandIn == 'local-as-global') {
-      commandLocal = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
-      commandGlobal = 'no-op'
-    } else if (commandIn == 'subtract-and-restart') {
-      const currentItem = s ? deckGet(s.items || {}, s.current || [DEFAULT_DECK, 0]) : null
-      commandGlobal = ['subtract', currentItem?.timer || null]
-      commandLocal = 'restart'
-    } else {
-      if (target != 'local') commandGlobal = commandIn
-      commandLocal = commandIn
-    }
-
-    // Timers live on items, so only the cursor's deck has a running timer; every
-    // item in every other deck is implicitly stopped. We only touch that deck.
-    const [curDeck, curIndex] = s?.current || [DEFAULT_DECK, 0]
-    const decks = s.items || {}
-    return {
-      ...s,
-      totalTimer: modifyTimerPure(s?.totalTimer || undefined, commandGlobal || 'no-op', now),
-      items: {
-        ...decks,
-        [curDeck]: deckItems(decks, curDeck).map((item, index) => {
-          return {
-            ...item,
-            timer: modifyTimerPure(item?.timer, index == curIndex ? commandLocal : 'stop', now),
-          }
-        }),
-      },
-    }
+    setState((s: RState | undefined) =>
+      reduceRecalc(s, a, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
   }
 
   function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
-    setState((s: RState | undefined) => modifyTimerState(s, commandIn, target))
-  }
-
-  function modifyItemState(
-    inItems: UserItem[] | undefined,
-    m: string | undefined,
-    current: number,
-    currentMetro: number,
-    controls: ItemActions,
-  ): [UserItem[], string, number | null] {
-    const items = inItems || []
-
-    const newMemory = withMemory(m, memory => {
-      if (controls.reviewed === true && items[current].key)
-        cardSet(memory, items[current].key, { reviewed: Date.now(), bpm: currentMetro })
-
-      if (controls.unreview === true && items[current].key)
-        cardSet(memory, items[current].key, { reviewed: 0, })
-    })
-
-    const updatedItems: UserItem[] = items.map((item, index) => {
-      if (index != current) return item
-      if (controls.regenerate === 'new') {
-        if (!item.source) return item
-        return evalRenderLine(item, memoryFromString(m)) satisfies UserItem
-      } else if (controls.regenerate === 'next') {
-        if (!item.source) return item
-        return rotateInterpolableLine(item, controls.regenerateKey)
-      } else return { ...item, done: controls.done === undefined ? item.done : controls.done } satisfies UserItem
-    })
-
-    // bury ("drop down three") and unreview ("to top") are GenericList reorders:
-    // they move the item and resolve the cursor themselves, so recalc skips its
-    // own seek for them (signalled by returning a non-null new current).
-    const list: ListState<UserItem> = { items: updatedItems, current }
-    const reordered: ListState<UserItem> | null =
-      controls.bury === true ? dropThree(list, itemSeekExcluded)
-        : controls.unreview === true ? toTop(list)
-          : null
-
-    return reordered
-      ? [reordered.items, newMemory, reordered.current]
-      : [updatedItems, newMemory, null]
-  }
-
-  function setItemBpmMemory(key: string | null, m: string | undefined, bpm: number): string {
-    return withMemory(m, memory => {
-      if (key) cardSet(memory, key, { bpm: bpm })
-    })
-  }
-
-  function setItemBpm(bpm: number) {
-    setState((s: RState | undefined) => {
-      const key = (s && deckGet(s.items || {}, s.current || [DEFAULT_DECK, 0]))?.key
-      return { ...s, memory: setItemBpmMemory(key ?? null, s?.memory, bpm), }
-    })
+    setState((s: RState | undefined) => reduceTimer(s, commandIn, target, Date.now()))
   }
 
   // UI
@@ -489,19 +232,8 @@ function Randomize(controls: any): JSX.Element {
     setTimeout(() => nextFrame(animKey, Date.now()), timeout)
   }
 
-  function recalcMetro(old: Metro, diff: Metro): Metro {
-    const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value != null && value != undefined))
-    const fresh = { opened: false, power: false, bpm: defaultBpm, ...old, ...diffFilt }
-    fresh.bpm = clamp(Math.floor(fresh.bpm), 20, 500)
-    return fresh
-  }
-
   function metroState(diff: Metro) {
-    setState((sIn: RState | undefined) => {
-      const state = ({ version: 4, ...sIn, metro: recalcMetro(sIn?.metro || {}, diff) })
-      setItemBpm(state.metro.bpm || defaultBpm)
-      return state
-    })
+    setState((sIn: RState | undefined) => reduceMetro(sIn, diff))
   }
 
   function executionStats(): JSX.Element {
@@ -608,7 +340,7 @@ function Randomize(controls: any): JSX.Element {
                 {items[currentIndex]?.key?.match(/DS$/) && sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {metroPower && <Metro bpm={metro.bpm || defaultBpm} volume={metro.volume || 0} />}
+                {metroPower && <MetroComponent bpm={metro.bpm || defaultBpm} volume={metro.volume || 0} />}
               </div>
             </ErrorBoundary>
           </div>
