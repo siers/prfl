@@ -18,7 +18,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  itemSkipped, reduceMetro, reduceRecalc, reduceSpawn, reduceTimer,
+  deckPath, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 
@@ -106,6 +106,14 @@ function Randomize(controls: any): JSX.Element {
     setState((s: RState | undefined) => reduceSpawn(s, mode, Date.now()))
   }
 
+  function popOut() {
+    setState((s: RState | undefined) => reducePopOne(s, Date.now()))
+  }
+
+  function popToLevel(level: number) {
+    setState((s: RState | undefined) => reducePopTo(s, level, Date.now()))
+  }
+
   // UI
 
   function timerContent(timer: Timer | undefined, type: 'local' | 'global'): string {
@@ -130,13 +138,30 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function executionControlButtons(): JSX.Element {
+    const nested = (state?.cursorStack?.length || 0) > 0
     return <>
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => recalc({ hideDone: !hideDone, })}>👁️</a>
       <a className="pr-3 microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
       <a className="pr-3 metro-button select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</a>
+      {nested && <a className="pr-3 select-none" title="leave deck, go back" onClick={_ => popOut()}>🔙</a>}
       <a className="pr-3" onClick={event => advanceRef.current('prev', event)}>⬅️</a>
       <a className="pr-3" onClick={event => advanceRef.current('next', event)}>➡️</a>
     </>
+  }
+
+  // Breadcrumb of the deck path; each crumb but the last pops back to its level.
+  function breadcrumb(): JSX.Element | null {
+    const path = deckPath(state)
+    if (path.length <= 1) return null // top level — nothing to show
+    return <div className="w-full px-3 pt-1 text-xs font-mono text-[#888] select-none">
+      {path.map((deck, i) => {
+        const isLast = i === path.length - 1
+        return <span key={i}>
+          {i > 0 && <span className="px-1">▸</span>}
+          <a className={isLast ? '' : 'underline cursor-pointer'} onClick={_ => !isLast && popToLevel(i)}>{deck}</a>
+        </span>
+      })}
+    </div>
   }
 
   function editor(): JSX.Element {
@@ -337,6 +362,7 @@ function Randomize(controls: any): JSX.Element {
       {inExecution &&
         <div className="relative">
           <div className={"w-[100dvw] flex flex-col justfiy-center"} style={({ height: "calc(90dvh)" })}>
+            {breadcrumb()}
             {executionStats()}
 
             <ErrorBoundary fallback={<>item render crash</>}>

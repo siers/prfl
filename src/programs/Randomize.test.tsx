@@ -147,4 +147,27 @@ describe('Randomize — spawn buttons', () => {
       'Scale: play [C] [up]', 'Scale: play [C] [down]',
     ])
   })
+
+  test('🔙 leaves the spawned deck and returns to the parent item', () => {
+    const { container, getByText } = setupExecuting(SPAWNABLE)
+    act(() => { fireEvent.click(getByText('⛓️')) }) // descend
+    expect(currentItemText(container)).toBe('Scale: play [C] [up]')
+
+    act(() => { fireEvent.click(getByText('🔙')) }) // back out
+    expect(currentItemText(container)).toContain('Scale: play [C D] [up down]') // parent again (with its buttons)
+  })
+
+  test('breadcrumb shows the deck path and a crumb pops back to its level', () => {
+    const { container, getByText, queryByText } = setupExecuting(SPAWNABLE)
+    expect(queryByText('Scale/zip')).toBeNull() // no breadcrumb at top level
+
+    act(() => { fireEvent.click(getByText('⛓️')) }) // descend
+    // path crumbs are rendered: default ▸ Scale/zip
+    expect(getByText('default')).toBeTruthy()
+    expect(getByText('Scale/zip')).toBeTruthy()
+
+    act(() => { fireEvent.click(getByText('default')) }) // pop to root via crumb
+    expect(currentItemText(container)).toContain('Scale: play [C D] [up down]')
+    expect(queryByText('Scale/zip')).toBeNull() // breadcrumb gone again
+  })
 })

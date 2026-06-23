@@ -354,3 +354,35 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number)
   // Start the descended item's timer like a normal advance does.
   return reduceTimer(newState, 'local-as-global', null, now)
 }
+
+// The deck names from the root down to the current deck, for the breadcrumb.
+// Each stacked cursor names the deck it points into; the current cursor adds the
+// deck you're in now. e.g. stack [['default',2]], current ['Scale/zip',0]
+// -> ['default', 'Scale/zip'].
+export function deckPath(s: RState | undefined): string[] {
+  const stack = s?.cursorStack || []
+  const current = s?.current || [DEFAULT_DECK, 0]
+  return [...stack.map(c => c[0]), current[0]]
+}
+
+// Pop back to a breadcrumb level: level `i` corresponds to deckPath()[i]. The
+// last level is the current deck (a no-op). Climbing restores the cursor saved
+// for that level and trims the stack above it.
+export function reducePopTo(s: RState | undefined, level: number, now: number): RState {
+  if (!s) return defaultState satisfies RState
+  const stack = s.cursorStack || []
+  if (level < 0 || level >= stack.length) return s // last level = current deck, nothing to pop
+
+  const newState: RState = {
+    ...s,
+    current: stack[level],
+    cursorStack: stack.slice(0, level),
+  }
+  return reduceTimer(newState, 'local-as-global', null, now)
+}
+
+// Convenience: climb exactly one level (the back/out button).
+export function reducePopOne(s: RState | undefined, now: number): RState {
+  const stack = s?.cursorStack || []
+  return reducePopTo(s, stack.length - 1, now)
+}

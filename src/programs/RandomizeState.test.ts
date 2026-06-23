@@ -4,7 +4,7 @@ import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK } from './GenericList.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reducePopOne, reducePopTo, deckPath,
   defaultBpm,
 } from './RandomizeState.ts'
 
@@ -215,5 +215,43 @@ describe('reduceRecalc — exhaust pops back to the parent', () => {
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
     expect(s.current).toStrictEqual(['Scale/cartesian', 1])
     expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still descended
+  })
+})
+
+describe('breadcrumb / pop navigation', () => {
+  test('deckPath lists root-to-current deck names', () => {
+    expect(deckPath(stateOf(['a']))).toStrictEqual([DEFAULT_DECK])
+    const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'Scale/zip'])
+  })
+
+  test('popOne leaves the spawned deck and restores the parent cursor', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // move within the deck
+    s = reducePopOne(s, NOW)
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0]) // back on the parent item
+    expect(s.cursorStack).toStrictEqual([])
+  })
+
+  test('popOne at the top level is a no-op', () => {
+    const s = stateOf(['a', 'b'], 1)
+    expect(reducePopOne(s, NOW).current).toStrictEqual([DEFAULT_DECK, 1])
+  })
+
+  test('popTo a level trims the stack to that level and restores its cursor', () => {
+    // Build two levels of nesting: default -> Scale/zip -> (spawn again).
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW)
+    // descend a second time from a child that's spawnable? children are leaves,
+    // so simulate a two-deep stack directly to test popTo in isolation.
+    s = { ...s, cursorStack: [[DEFAULT_DECK, 0], ['mid', 3]], current: ['leaf', 2] }
+    const out = reducePopTo(s, 1, NOW) // level 1 = 'mid'
+    expect(out.current).toStrictEqual(['mid', 3])
+    expect(out.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+  })
+
+  test('popTo the last (current) level is a no-op', () => {
+    const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    // path = [default, Scale/zip]; level 1 is current -> no pop
+    expect(reducePopTo(s, 1, NOW).current).toStrictEqual(['Scale/zip', 0])
   })
 })
