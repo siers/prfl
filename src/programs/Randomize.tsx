@@ -18,8 +18,9 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  itemSkipped, reduceMetro, reduceRecalc, reduceTimer,
+  itemSkipped, reduceMetro, reduceRecalc, reduceSpawn, reduceTimer,
 } from './RandomizeState.ts'
+import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -99,6 +100,10 @@ function Randomize(controls: any): JSX.Element {
 
   function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
     setState((s: RState | undefined) => reduceTimer(s, commandIn, target, Date.now()))
+  }
+
+  function spawn(mode: SpawnMode) {
+    setState((s: RState | undefined) => reduceSpawn(s, mode, Date.now()))
   }
 
   // UI
@@ -190,6 +195,7 @@ function Randomize(controls: any): JSX.Element {
       {shownItems.map(([item, index]) => {
         const isCurrent = index == currentIndex
         const showReeval = isCurrent && (items[currentIndex]?.source?.interpols?.length || 0) > 0
+        const showSpawn = isCurrent && isSpawnable(item)
         const showCheckmark = isCurrent && itemSeekExcluded(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)} onClick={_ => recalc({ advance: ['set', index] })}>
           {
@@ -197,6 +203,8 @@ function Randomize(controls: any): JSX.Element {
               {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'new' } })}>🔄</a>}
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>}
+              {showSpawn && <a className="pl-3 select-none" title="spawn zipped deck" onClick={e => { e.stopPropagation(); spawn('zip') }}>⛓️</a>}
+              {showSpawn && <a className="pl-3 select-none" title="spawn cartesian deck" onClick={e => { e.stopPropagation(); spawn('cartesian') }}>🧬</a>}
             </>
           }
         </div>

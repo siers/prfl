@@ -110,3 +110,41 @@ describe('Randomize — render + interaction', () => {
     expect(renderedItems(container)).not.toContain('alpha') // 'alpha' now hidden
   })
 })
+
+describe('Randomize — spawn buttons', () => {
+  // An interpolable line with two multi-value params -> spawnable.
+  const SPAWNABLE = "-=-\nScale: play [s('C,D')]key [s('up,down')]bow"
+
+  test('a plain item shows no spawn buttons', () => {
+    const { queryByText } = setupExecuting(THREE_LINES)
+    expect(queryByText('⛓️')).toBeNull()
+    expect(queryByText('🧬')).toBeNull()
+  })
+
+  test('a spawnable current item shows both spawn buttons', () => {
+    const { getByText } = setupExecuting(SPAWNABLE)
+    expect(getByText('⛓️')).toBeTruthy() // zip
+    expect(getByText('🧬')).toBeTruthy() // cartesian
+  })
+
+  test('⛓️ descends into the zipped deck (position-aligned children)', () => {
+    const { container, getByText } = setupExecuting(SPAWNABLE)
+    act(() => { fireEvent.click(getByText('⛓️')) })
+    // zip of [C,D]×[up,down] -> 2 children; cursor lands on the first
+    expect(currentItemText(container)).toBe('Scale: play [C] [up]')
+    expect(renderedItems(container)).toStrictEqual(['Scale: play [C] [up]', 'Scale: play [D] [down]'])
+  })
+
+  test('🧬 descends into the cartesian deck (cursor on the first combination)', () => {
+    const { container, getByText } = setupExecuting(SPAWNABLE)
+    act(() => { fireEvent.click(getByText('🧬')) })
+    // The execution view only renders a window around the cursor (not all 4
+    // children — that full count is covered in the reducer test). After
+    // descending, the cursor sits on the first combination and the window
+    // begins there.
+    expect(currentItemText(container)).toBe('Scale: play [C] [up]')
+    expect(renderedItems(container).slice(0, 2)).toStrictEqual([
+      'Scale: play [C] [up]', 'Scale: play [C] [down]',
+    ])
+  })
+})
