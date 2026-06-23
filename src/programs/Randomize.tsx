@@ -143,9 +143,9 @@ function Randomize(controls: any): JSX.Element {
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => recalc({ hideDone: !hideDone, })}>👁️</a>
       <a className="pr-3 microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
       <a className="pr-3 metro-button select-none" onClick={_ => metroState({ opened: !metro.opened })}>🥁</a>
-      {nested && <a className="pr-3 select-none" title="leave deck, go back" onClick={_ => popOut()}>🔙</a>}
       <a className="pr-3" onClick={event => advanceRef.current('prev', event)}>⬅️</a>
       <a className="pr-3" onClick={event => advanceRef.current('next', event)}>➡️</a>
+      {nested && <a className="pr-3 select-none" title="leave deck, go back" onClick={_ => popOut()}>🔙</a>}
     </>
   }
 
@@ -153,7 +153,7 @@ function Randomize(controls: any): JSX.Element {
   function breadcrumb(): JSX.Element | null {
     const path = deckPath(state)
     if (path.length <= 1) return null // top level — nothing to show
-    return <div className="w-full px-3 pt-1 text-xs font-mono text-[#888] select-none">
+    return <div className="w-full px-3 pt-1 text-xs text-center text-black select-none">
       {path.map((deck, i) => {
         const isLast = i === path.length - 1
         return <span key={i}>
@@ -362,8 +362,8 @@ function Randomize(controls: any): JSX.Element {
       {inExecution &&
         <div className="relative">
           <div className={"w-[100dvw] flex flex-col justfiy-center"} style={({ height: "calc(90dvh)" })}>
-            {breadcrumb()}
             {executionStats()}
+            {breadcrumb()}
 
             <ErrorBoundary fallback={<>item render crash</>}>
               <div className="relative w-full flex flex-col flex-grow select-none">
