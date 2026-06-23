@@ -2,7 +2,7 @@ import { RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
-import { intersperse, interspersing, interleavingEvery, zipT, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
+import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
 import { keyCenters, Note, rebase, render, semi } from '../lib/ToneLib'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
@@ -142,7 +142,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function timesUntil<A>(length: number, a: A[]): A[] {
-    return (a.length < length ? times(Math.ceil(length / a.length), a).flat() : a).slice(0, length)
+    return timesUntilLib(length, a)
   }
 
   function timesUntilShuf<A>(length: number, a: A[]): A[] {
@@ -229,7 +229,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   function zipLongest<A>(...args: A[][]): A[][] {
-    return zipLongestGen(timesUntil, ...args)
+    return zipLongestLib(...args)
   }
 
   function zipLongestShuf<A>(...args: A[][]): A[][] {

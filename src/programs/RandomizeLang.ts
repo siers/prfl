@@ -327,6 +327,20 @@ export function emptiedInterpolations(l_: RenderLine): RenderLine {
   return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: '-' }), { ...l, contents: l.source.contents })
 }
 
+// Collapse each interpolation to a single chosen value (one per substitution,
+// in substitution order) and re-render via the same substitute path the parent
+// used. Used by deck-spawning to materialise one concrete child per combination
+// without re-deriving the text by hand.
+export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
+  const l = structuredClone(l_)
+
+  if (!l.source?.substitutions) return l
+  return (l.source.substitutions || []).reduce<RenderLine>(
+    (l, s, i) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: values[i] ?? '-' }),
+    { ...l, contents: l.source.contents },
+  )
+}
+
 export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<String, Substitution>] {
   const byMarker: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.marker || '', s]))
   const byTag: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.tag || '', s]))

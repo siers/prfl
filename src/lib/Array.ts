@@ -44,6 +44,28 @@ export function zipT<A>(...ass: A[][]): A[][] {
   )
 }
 
+// Recycle `a` (wrapping from the start) until it is exactly `length` long.
+// [a, b] -> length 3 -> [a, b, a].
+export function timesUntil<A>(length: number, a: A[]): A[] {
+  if (a.length === 0) return []
+  const repeated = Array(Math.ceil(length / a.length)).fill(a).flat() as A[]
+  return repeated.slice(0, length)
+}
+
+// Zip lists, recycling the shorter ones up to the longest length (so nothing is
+// dropped). [[a,b,c],[x,y]] -> [[a,x],[b,y],[c,x]]. This is the house zip rule
+// (RandomizeLangUtils' zipLongest delegates here).
+export function zipLongest<A>(...ass: A[][]): A[][] {
+  const longest = Math.max(0, ...ass.map(a => a.length))
+  return zipT(...ass.map(a => timesUntil(longest, a)))
+}
+
+// Full cartesian product across the lists, in row-major order (last list varies
+// fastest). [[a,b],[x,y]] -> [[a,x],[a,y],[b,x],[b,y]]. Empty input -> [[]].
+export function cartesian<A>(...ass: A[][]): A[][] {
+  return ass.reduce<A[][]>((acc, list) => acc.flatMap(combo => list.map(x => [...combo, x])), [[]])
+}
+
 export function interleavingEvery<A>(into: A[], what: A[], every: number): A[] {
   const chunks = chunk(into, every)
   return zipT(chunks, times(chunks.length).map(_ => what)).flatMap(([as, bs]) => {
