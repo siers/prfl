@@ -7,11 +7,11 @@ import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTy
 import { Timer, padRight, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerLength, timerSubtract, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
 import { mapParse, mapSerialize } from '../lib/Map.js'
-import { arrayMove } from '../lib/Array.js'
 
 import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
-import { linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
+import { Direction, linearSeekNext } from './LinearSeek.ts'
+import { ListState, dropThree, seek as listSeek, setCurrent as listSetCurrent, toTop } from './GenericList.ts'
 import { Metro } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -177,17 +177,26 @@ function Randomize(controls: any): JSX.Element {
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
       let [initItems, totalTimer] = itemsAndTimer(s?.items || [], s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
-      const [items, memory] = modifyItemState(initItems, s?.memory, s?.metro?.bpm || defaultBpm, a.item || {})
+      const [items, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, s?.metro?.bpm || defaultBpm, a.item || {})
       const memoryMap = mapParse(memory)
 
-      const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]!) : null
-      const mustSeek = itemSeekExcluded(items[current]) || seekDirection !== null
-      const nextCurrent: number[] =
-        mustSeek
-          ? linearSeekFullNext(items, s?.current || 0, seekDirection || 1, itemSeekExcluded)
-          : a.advance?.at(0) === "set"
-            ? [a.advance![1]! satisfies number]
-            : [current]
+      // The cursor is resolved by GenericList: a bury/unreview reorder already
+      // set it; otherwise translate the advance request into a seek/set/stay.
+      // Exclusion is built from the locally-resolved hideDone (which a.hideDone
+      // may be flipping in this very update), not the stale render closure.
+      const excludeSeek = (item: UserItem) => hideDone !== false && itemSkipped(item)
+      const list: ListState<UserItem> = { items, current: s?.current || 0 }
+      const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]! as Direction) : null
+      const resolved: number =
+        reorderedCurrent !== null
+          ? reorderedCurrent
+          : seekDirection !== null
+            ? listSeek(list, seekDirection, excludeSeek).current
+            : a.advance?.at(0) === "set"
+              ? listSetCurrent(list, a.advance![1]! satisfies number, excludeSeek).current
+              : listSeek(list, Direction.Zero, excludeSeek).current // resolve off an excluded current
+
+      const nextCurrent: number[] = [resolved]
 
       const newKey = items[nextCurrent[0]] && items[nextCurrent[0]].key
       const newCard: CardData | null = newKey && findCard(memoryMap, items[nextCurrent[0]].key || '') || null
@@ -280,7 +289,7 @@ function Randomize(controls: any): JSX.Element {
     m: string | undefined,
     currentMetro: number,
     controls: ItemActions,
-  ): [UserItem[], string] {
+  ): [UserItem[], string, number | null] {
     const items = inItems || []
 
     const newMemory = withMemory(m, memory => {
@@ -302,15 +311,18 @@ function Randomize(controls: any): JSX.Element {
       } else return { ...item, done: controls.done === undefined ? item.done : controls.done } satisfies UserItem
     })
 
-    const newIndex =
-      controls.bury === true
-        ? clamp(current + 3, 0, inItems?.length ? inItems.length - 1 : 0)
-        : controls.unreview === true
-          ? 0
-          : -999 // not moved
-    const movedItems = newIndex !== -999 ? arrayMove(updatedItems, current, newIndex) : updatedItems
+    // bury ("drop down three") and unreview ("to top") are GenericList reorders:
+    // they move the item and resolve the cursor themselves, so recalc skips its
+    // own seek for them (signalled by returning a non-null new current).
+    const list: ListState<UserItem> = { items: updatedItems, current }
+    const reordered: ListState<UserItem> | null =
+      controls.bury === true ? dropThree(list, itemSeekExcluded)
+        : controls.unreview === true ? toTop(list)
+          : null
 
-    return [movedItems, newMemory]
+    return reordered
+      ? [reordered.items, newMemory, reordered.current]
+      : [updatedItems, newMemory, null]
   }
 
   function setItemBpmMemory(key: string | null, m: string | undefined, bpm: number): string {
@@ -591,7 +603,6 @@ export default Randomize
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
 // TODO: timer: convert controls to clicking the timer label
-// TODO: review: crossing an item out lowers it after other "x"s, also jump over hiddens
 // TODO: parametrization: separator for interpolations
 // TODO: review: star, should move not only the item, but also the cursor
 // TODO: review: star, should move to the first lowest option (that is, high number)
