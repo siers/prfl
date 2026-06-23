@@ -95,6 +95,7 @@ export type Interface = {
 
   pickEarlyBias<A>(as: A[]): A,
   picksEarlyBias<A>(as: A[]): A[],
+  pickTasksStateless<A extends RenderLine>(items: A[]): A[],
 
   // domain specific
   scalePositions: (opts: { arrows?: boolean }) => string,
@@ -289,7 +290,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // Note: uses memory
-  function pickTasksStateless(items: RenderLine[]): RenderLine[] {
+  function pickTasksStateless<A extends RenderLine>(items: A[]): A[] {
     if (items.length == 0) return []
 
     const sorted = (_.sortBy(items, item => {
@@ -583,6 +584,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     pickEarlyBias,
     picksEarlyBias,
+    pickTasksStateless,
 
     scalePositions,
     scalePositionsDbl,

@@ -127,31 +127,33 @@ describe('Randomize — spawn buttons', () => {
     expect(getByText('🧬')).toBeTruthy() // cartesian
   })
 
+  // Children are re-ordered by the schedule (random early-bias) on spawn, so the
+  // render tests assert membership, not order; deterministic order is covered in
+  // the reducer tests via an injected identity scheduler.
+  const ZIP_CHILDREN = ['Scale: play [C] [up]', 'Scale: play [D] [down]']
+
   test('⛓️ descends into the zipped deck (position-aligned children)', () => {
     const { container, getByText } = setupExecuting(SPAWNABLE)
     act(() => { fireEvent.click(getByText('⛓️')) })
-    // zip of [C,D]×[up,down] -> 2 children; cursor lands on the first
-    expect(currentItemText(container)).toBe('Scale: play [C] [up]')
-    expect(renderedItems(container)).toStrictEqual(['Scale: play [C] [up]', 'Scale: play [D] [down]'])
+    // zip of [C,D]×[up,down] -> exactly these 2 children, cursor on one of them
+    expect(renderedItems(container).slice().sort()).toStrictEqual([...ZIP_CHILDREN].sort())
+    expect(ZIP_CHILDREN).toContain(currentItemText(container))
   })
 
-  test('🧬 descends into the cartesian deck (cursor on the first combination)', () => {
+  test('🧬 descends into the cartesian deck (cursor on a combination)', () => {
     const { container, getByText } = setupExecuting(SPAWNABLE)
     act(() => { fireEvent.click(getByText('🧬')) })
     // The execution view only renders a window around the cursor (not all 4
-    // children — that full count is covered in the reducer test). After
-    // descending, the cursor sits on the first combination and the window
-    // begins there.
-    expect(currentItemText(container)).toBe('Scale: play [C] [up]')
-    expect(renderedItems(container).slice(0, 2)).toStrictEqual([
-      'Scale: play [C] [up]', 'Scale: play [C] [down]',
-    ])
+    // children — that full count is covered in the reducer test). The cursor
+    // lands on one of the cartesian combinations.
+    const combos = ['Scale: play [C] [up]', 'Scale: play [C] [down]', 'Scale: play [D] [up]', 'Scale: play [D] [down]']
+    expect(combos).toContain(currentItemText(container))
   })
 
   test('🔙 leaves the spawned deck and returns to the parent item', () => {
     const { container, getByText } = setupExecuting(SPAWNABLE)
     act(() => { fireEvent.click(getByText('⛓️')) }) // descend
-    expect(currentItemText(container)).toBe('Scale: play [C] [up]')
+    expect(ZIP_CHILDREN).toContain(currentItemText(container))
 
     act(() => { fireEvent.click(getByText('🔙')) }) // back out
     expect(currentItemText(container)).toContain('Scale: play [C D] [up down]') // parent again (with its buttons)

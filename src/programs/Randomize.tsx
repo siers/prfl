@@ -154,11 +154,11 @@ function Randomize(controls: any): JSX.Element {
     const path = deckPath(state)
     if (path.length <= 1) return null // top level — nothing to show
     return <div className="w-full px-3 pt-1 text-xs text-center text-black select-none">
-      {path.map((deck, i) => {
+      {path.map((deck: string, i) => {
         const isLast = i === path.length - 1
         return <span key={i}>
           {i > 0 && <span className="px-1">▸</span>}
-          <a className={isLast ? '' : 'underline cursor-pointer'} onClick={_ => !isLast && popToLevel(i)}>{deck}</a>
+          <span className={isLast ? '' : 'underline cursor-pointer'} onClick={_ => !isLast && popToLevel(i)}>{deck}</span>
         </span>
       })}
     </div>

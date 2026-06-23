@@ -289,6 +289,14 @@ export function evalContents(text: string): RenderLine[] {
   return evalContentsMem(text)[0]
 }
 
+// Schedule-sort items the way the todo program does: least-recently-reviewed
+// first (read from `memory`'s cards), with the early-bias random pick on top.
+// Used to (re-)order spawned subdecks so the best-next surfaces even if you pop
+// out before finishing.
+export function scheduleItems<A extends RenderLine>(items: A[], memory: Memory = new Map()): A[] {
+  return randomizeLangUtils(initContext(memory), memory).pickTasksStateless(items)
+}
+
 export function evalContentsS(text: string): string[] {
   return evalContentsMem(text)[0].map(rl => rl.contents)
 }

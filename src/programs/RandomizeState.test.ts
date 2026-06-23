@@ -5,8 +5,12 @@ import { Decks, DEFAULT_DECK } from './GenericList.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reducePopOne, reducePopTo, deckPath,
-  defaultBpm,
+  defaultBpm, Scheduler,
 } from './RandomizeState.ts'
+
+// Inject identity for the spawn scheduler so child order is deterministic
+// (production sorts by schedule with a random early-bias — tested separately).
+const keepOrder: Scheduler = items => items
 
 // Minimal UserItem builder — only the fields the reducers read.
 function item(contents: string, extra: Partial<UserItem> = {}): UserItem {
@@ -176,7 +180,7 @@ function stateWithSpawnable(): RState {
 
 describe('reduceSpawn — descend into a spawned deck', () => {
   test('cartesian spawn creates the deck, descends, and pushes the parent cursor', () => {
-    const out = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW)
+    const out = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
     expect(out.items?.['Scale/cartesian']?.map(i => i.contents)).toStrictEqual([
       'Scale: play [C] [up]', 'Scale: play [C] [down]', 'Scale: play [D] [up]', 'Scale: play [D] [down]',
     ])
@@ -186,7 +190,7 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   })
 
   test('zip spawn produces the position-aligned deck', () => {
-    const out = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    const out = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     expect(out.items?.['Scale/zip']?.map(i => i.contents)).toStrictEqual([
       'Scale: play [C] [up]', 'Scale: play [D] [down]',
     ])
@@ -194,13 +198,32 @@ describe('reduceSpawn — descend into a spawned deck', () => {
 
   test('spawning a non-spawnable item is a no-op', () => {
     const s = stateOf(['plain'])
-    expect(reduceSpawn(s, 'zip', NOW)).toBe(s)
+    expect(reduceSpawn(s, 'zip', NOW, keepOrder)).toBe(s)
+  })
+
+  test('the injected scheduler decides child order', () => {
+    // A scheduler that reverses proves reduceSpawn defers ordering to it.
+    const reversing: Scheduler = items => [...items].reverse()
+    const out = reduceSpawn(stateWithSpawnable(), 'zip', NOW, reversing)
+    expect(out.items?.['Scale/zip']?.map(i => i.contents)).toStrictEqual([
+      'Scale: play [D] [down]', 'Scale: play [C] [up]',
+    ])
+  })
+
+  test('the real schedule keeps every child (a permutation, none lost) ', () => {
+    // The schedule pick is random (early-bias), so we assert membership, not
+    // order: the cartesian deck still has all 4 distinct combinations.
+    const out = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW) // default = scheduleByMemory
+    const got = (out.items?.['Scale/cartesian'] || []).map(i => i.contents).sort()
+    expect(got).toStrictEqual([
+      'Scale: play [C] [down]', 'Scale: play [C] [up]', 'Scale: play [D] [down]', 'Scale: play [D] [up]',
+    ])
   })
 })
 
 describe('reduceRecalc — exhaust pops back to the parent', () => {
   test('seeking forward off the end of a spawned deck returns to the parent cursor', () => {
-    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW) // deck of 2, cursor [Scale/zip, 0]
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder) // deck of 2, cursor [Scale/zip, 0]
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // -> [Scale/zip, 1]
     expect(s.current).toStrictEqual(['Scale/zip', 1])
     expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
@@ -211,7 +234,7 @@ describe('reduceRecalc — exhaust pops back to the parent', () => {
   })
 
   test('seeking forward mid-deck does not pop', () => {
-    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW) // deck of 4
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder) // deck of 4
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
     expect(s.current).toStrictEqual(['Scale/cartesian', 1])
     expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still descended
@@ -221,12 +244,12 @@ describe('reduceRecalc — exhaust pops back to the parent', () => {
 describe('breadcrumb / pop navigation', () => {
   test('deckPath lists root-to-current deck names', () => {
     expect(deckPath(stateOf(['a']))).toStrictEqual([DEFAULT_DECK])
-    const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'Scale/zip'])
   })
 
   test('popOne leaves the spawned deck and restores the parent cursor', () => {
-    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // move within the deck
     s = reducePopOne(s, NOW)
     expect(s.current).toStrictEqual([DEFAULT_DECK, 0]) // back on the parent item
@@ -240,7 +263,7 @@ describe('breadcrumb / pop navigation', () => {
 
   test('popTo a level trims the stack to that level and restores its cursor', () => {
     // Build two levels of nesting: default -> Scale/zip -> (spawn again).
-    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW)
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
     // descend a second time from a child that's spawnable? children are leaves,
     // so simulate a two-deep stack directly to test popTo in isolation.
     s = { ...s, cursorStack: [[DEFAULT_DECK, 0], ['mid', 3]], current: ['leaf', 2] }
@@ -250,7 +273,7 @@ describe('breadcrumb / pop navigation', () => {
   })
 
   test('popTo the last (current) level is a no-op', () => {
-    const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW)
+    const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     // path = [default, Scale/zip]; level 1 is current -> no pop
     expect(reducePopTo(s, 1, NOW).current).toStrictEqual(['Scale/zip', 0])
   })

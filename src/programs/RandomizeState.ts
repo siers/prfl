@@ -9,7 +9,7 @@
 // clock. The cursor/deck mechanics live in GenericList; this module is the
 // Randomize-specific glue: items + memory + timers + metro.
 
-import { evalContentsMem, evalRenderLine, rotateInterpolableLine } from './RandomizeLang.js'
+import { evalContentsMem, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
 import { makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract } from './Timers.ts'
@@ -327,9 +327,16 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   return reduceTimer(newState, 'local-as-global', null, deps.now)
 }
 
+// How spawned children get ordered. Production uses the schedule sort; tests
+// inject identity to keep the order deterministic.
+export type Scheduler = (items: UserItem[], memory: string | undefined) => UserItem[]
+
+export const scheduleByMemory: Scheduler = (items, memory) => scheduleItems(items, memoryFromString(memory))
+
 // Spawn a deck from the current item's parameters, descend into it, and push the
 // current cursor onto the return stack so exhausting the spawned deck pops back.
-export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number): RState {
+// `schedule` re-orders the children (least-recently-reviewed first by default).
+export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number, schedule: Scheduler = scheduleByMemory): RState {
   if (!s) return defaultState satisfies RState
 
   const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
@@ -339,8 +346,12 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number)
   const children = spawnChildren(parent, mode)
   if (children.length === 0) return s // nothing to expand
 
+  // Re-pick the children by schedule (least-recently-reviewed first), so popping
+  // out or not finishing the subdeck still surfaces the best-next on top.
+  const scheduled = schedule(children, s.memory)
+
   const deckName = spawnDeckName(parent, mode)
-  const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: children }
+  const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: scheduled }
   const newCursor: DeckCursor = [deckName, 0]
 
   const newState: RState = {
