@@ -11,27 +11,25 @@ import { mapParse, mapSerialize } from '../lib/Map.js'
 import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
 import { Direction, linearSeekNext } from './LinearSeek.ts'
-import { ListState, dropThree, seek as listSeek, setCurrent as listSetCurrent, toTop } from './GenericList.ts'
+import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './GenericList.ts'
 import { Metro } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
 import { pipe } from '../lib/Function.ts'
 
-const currentStateVersion = 4
+const currentStateVersion = 5
 
-type DeckIndex = number
-// planned data-type = [deckName, index]
-// API:
-// * current == current
-// * linearSeek support
-// * current + 3 (within-deck calculation for the new data type) and arrayMove (deck-local)
-// * get(current), that is lookup from `items: Whatever`
+// The cursor is a [deckName, index] pair into `items`, a bag of named decks.
+// The data type and its API (cursor equality, linearSeek, deck-local current+3 /
+// arrayMove, get(current)) live in GenericList as Decks/DeckCursor. Items never
+// travel between decks; for now there is only the "default" deck.
+type DeckIndex = DeckCursor
 
 type RState = {
-  version: 4,
+  version: 5,
   text?: string,
 
-  items?: UserItem[],
+  items?: Decks<UserItem>,
   outLineCount?: number,
   memory?: string,
   nextMemory?: string,
@@ -45,7 +43,7 @@ type RState = {
 }
 
 const defaultState: RState = {
-  version: 4,
+  version: 5,
 
   text: "Lullaby: play it\nJuggling: do it\nSquats: do it"
 }
@@ -109,13 +107,17 @@ function Randomize(controls: any): JSX.Element {
 
   if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
 
-  const items: UserItem[] = state?.items || []
+  const decks: Decks<UserItem> = state?.items || decksOf<UserItem>([])
   const outLineCount: number = state?.outLineCount || 0
 
-  const current = state?.current || 0
+  const current: DeckCursor = state?.current || [DEFAULT_DECK, 0]
+  // The cursor's deck flattened out, plus the in-deck index — the rest of the
+  // render code still works against a single flat list.
+  const items: UserItem[] = deckItems(decks, current[0])
+  const currentIndex: number = current[1]
 
   const globalTimer = state?.totalTimer
-  const localTimer = items[current]?.timer
+  const localTimer = deckGet(decks, current)?.timer
   const localTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
   const totalTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
 
@@ -140,7 +142,7 @@ function Randomize(controls: any): JSX.Element {
     if (state?.execute !== true) return () => { }
     const id = setInterval(() => { renderTimerToRef(totalTimerRef, globalTimer, 'global'); renderTimerToRef(localTimerRef, localTimer, 'local') }, 45.33)
     return () => clearInterval(id)
-  }, [items, current, globalTimer, state?.execute])
+  }, [items, current[0], current[1], globalTimer, state?.execute])
 
   advanceRef.current = (advance: string | boolean, _event: any) => {
     const advanceDelta =
@@ -157,9 +159,9 @@ function Randomize(controls: any): JSX.Element {
   }
 
   useEffect(() => {
-    if (state === null || state?.items?.length == 0) return () => { }
+    if (state === null || items.length == 0) return () => { }
     if (inPlanning && localTimer?.kind !== 'stopped') modifyTimer('stop')
-  }, [items.length && items || null, current, inExecution])
+  }, [items.length && items || null, current[0], current[1], inExecution])
 
   function itemsAndTimer(items: UserItem[], m: string | undefined, eval_: boolean, contents: string, total: Timer | undefined): [UserItem[], Timer | undefined] {
     if (!eval_) return [items, total]
@@ -176,8 +178,15 @@ function Randomize(controls: any): JSX.Element {
       const execute = a.execute === undefined ? state?.execute : a.execute
       const hideDone = a.hideDone === undefined ? state?.hideDone : a.hideDone
 
-      let [initItems, totalTimer] = itemsAndTimer(s?.items || [], s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
-      const [items, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, s?.metro?.bpm || defaultBpm, a.item || {})
+      // Everything below works deck-locally on the cursor's deck: pull that
+      // deck's flat list out, reorder/seek within it, then fold it (and the
+      // resolved index) back into the deck bag.
+      const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
+      const deck = prevCursor[0]
+      const prevDeckItems = deckItems(s?.items || decksOf<UserItem>([]), deck)
+
+      let [initItems, totalTimer] = itemsAndTimer(prevDeckItems, s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
+      const [deckList, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, prevCursor[1], s?.metro?.bpm || defaultBpm, a.item || {})
       const memoryMap = mapParse(memory)
 
       // The cursor is resolved by GenericList: a bury/unreview reorder already
@@ -185,21 +194,24 @@ function Randomize(controls: any): JSX.Element {
       // Exclusion is built from the locally-resolved hideDone (which a.hideDone
       // may be flipping in this very update), not the stale render closure.
       const excludeSeek = (item: UserItem) => hideDone !== false && itemSkipped(item)
-      const list: ListState<UserItem> = { items, current: s?.current || 0 }
+      const decksAfterReorder: Decks<UserItem> = { ...(s?.items || {}), [deck]: deckList }
+      const reorderedCursor: DeckCursor = [deck, reorderedCurrent !== null ? reorderedCurrent : prevCursor[1]]
       const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]! as Direction) : null
-      const resolved: number =
+      const [resolvedDecks, resolvedCursor]: [Decks<UserItem>, DeckCursor] =
         reorderedCurrent !== null
-          ? reorderedCurrent
+          ? [decksAfterReorder, reorderedCursor]
           : seekDirection !== null
-            ? listSeek(list, seekDirection, excludeSeek).current
+            ? deckSeek(decksAfterReorder, reorderedCursor, seekDirection, excludeSeek)
             : a.advance?.at(0) === "set"
-              ? listSetCurrent(list, a.advance![1]! satisfies number, excludeSeek).current
-              : listSeek(list, Direction.Zero, excludeSeek).current // resolve off an excluded current
+              ? deckSetCurrent(decksAfterReorder, reorderedCursor, a.advance![1]! satisfies number, excludeSeek)
+              : deckSeek(decksAfterReorder, reorderedCursor, Direction.Zero, excludeSeek) // resolve off an excluded current
 
-      const nextCurrent: number[] = [resolved]
+      const items = deckItems(resolvedDecks, deck)
+      const nextCursor: DeckCursor = a.eval ? [deck, 0] : resolvedCursor
 
-      const newKey = items[nextCurrent[0]] && items[nextCurrent[0]].key
-      const newCard: CardData | null = newKey && findCard(memoryMap, items[nextCurrent[0]].key || '') || null
+      const newItem = deckGet(resolvedDecks, nextCursor)
+      const newKey = newItem && newItem.key
+      const newCard: CardData | null = newKey && findCard(memoryMap, newItem.key || '') || null
       const newBpm: number = (newCard && newCard.bpm ? newCard.bpm : undefined) || defaultBpm
       const metro: Metro = pipe(s?.metro || {}, prevMetro => newKey ? recalcMetro(prevMetro, { bpm: newBpm }) : prevMetro)
 
@@ -209,12 +221,12 @@ function Randomize(controls: any): JSX.Element {
         ...s,
         text: contentsOr,
 
-        items: items,
+        items: resolvedDecks,
         outLineCount: items.length,
         memory: newKey ? setItemBpmMemory(newKey, memory, newBpm) : memory,
 
         execute: execute,
-        current: a.eval ? 0 : (nextCurrent.length > 0 ? nextCurrent[0] : s?.current),
+        current: nextCursor,
         hideDone: hideDone,
         totalTimer,
 
@@ -260,7 +272,7 @@ function Randomize(controls: any): JSX.Element {
       commandLocal = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
       commandGlobal = 'no-op'
     } else if (commandIn == 'subtract-and-restart') {
-      const currentItem = s?.items ? s?.items[current] : null
+      const currentItem = s ? deckGet(s.items || {}, s.current || [DEFAULT_DECK, 0]) : null
       commandGlobal = ['subtract', currentItem?.timer || null]
       commandLocal = 'restart'
     } else {
@@ -268,15 +280,22 @@ function Randomize(controls: any): JSX.Element {
       commandLocal = commandIn
     }
 
+    // Timers live on items, so only the cursor's deck has a running timer; every
+    // item in every other deck is implicitly stopped. We only touch that deck.
+    const [curDeck, curIndex] = s?.current || [DEFAULT_DECK, 0]
+    const decks = s.items || {}
     return {
       ...s,
       totalTimer: modifyTimerPure(s?.totalTimer || undefined, commandGlobal || 'no-op', now),
-      items: (s.items || []).map((item, index) => {
-        return {
-          ...item,
-          timer: modifyTimerPure(item?.timer, index == s?.current ? commandLocal : 'stop', now),
-        }
-      })
+      items: {
+        ...decks,
+        [curDeck]: deckItems(decks, curDeck).map((item, index) => {
+          return {
+            ...item,
+            timer: modifyTimerPure(item?.timer, index == curIndex ? commandLocal : 'stop', now),
+          }
+        }),
+      },
     }
   }
 
@@ -287,6 +306,7 @@ function Randomize(controls: any): JSX.Element {
   function modifyItemState(
     inItems: UserItem[] | undefined,
     m: string | undefined,
+    current: number,
     currentMetro: number,
     controls: ItemActions,
   ): [UserItem[], string, number | null] {
@@ -333,8 +353,8 @@ function Randomize(controls: any): JSX.Element {
 
   function setItemBpm(bpm: number) {
     setState((s: RState | undefined) => {
-      const key = items[typeof s?.current === 'number' ? s?.current : -1]?.key
-      return { ...s, memory: setItemBpmMemory(key, s?.memory, bpm), }
+      const key = (s && deckGet(s.items || {}, s.current || [DEFAULT_DECK, 0]))?.key
+      return { ...s, memory: setItemBpmMemory(key ?? null, s?.memory, bpm), }
     })
   }
 
@@ -388,13 +408,13 @@ function Randomize(controls: any): JSX.Element {
   function itemStyle(item: UserItem, index: number): React.CSSProperties {
     const card = findCardFromMemory(state.memory, item)
     const color =
-      index == current ? undefined
+      index == currentIndex ? undefined
         : item.done && hoursBetweenNow(card?.reviewed) > 12 ? 'red'
           : item.done ? '#4caf50'
             : timerLength(item.timer || null, Date.now()) >= 180 ? 'orange'
               : '#bbb'
     return {
-      ...(index == current && { fontSize: '2rem' }),
+      ...(index == currentIndex && { fontSize: '2rem' }),
       ...(color && { color })
     }
   }
@@ -414,19 +434,19 @@ function Randomize(controls: any): JSX.Element {
 
   function executionItems(): JSX.Element {
     const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
-      const found = linearSeekNext(items, current, delta, itemSeekExcluded)
+      const found = linearSeekNext(items, currentIndex, delta, itemSeekExcluded)
         .slice(0, delta == 0 ? 1 : Math.abs(delta * 2))
         .map(idx => [items[idx], idx] satisfies [UserItem, number])
 
       return delta == -1 ? found.reverse() : found
     })
 
-    items.length > 0 && shownItems.length == 0 && shownItems.push([items[current], current])
+    items.length > 0 && shownItems.length == 0 && shownItems.push([items[currentIndex], currentIndex])
 
     return <>
       {shownItems.map(([item, index]) => {
-        const isCurrent = index == current
-        const showReeval = isCurrent && (items[current]?.source?.interpols?.length || 0) > 0
+        const isCurrent = index == currentIndex
+        const showReeval = isCurrent && (items[currentIndex]?.source?.interpols?.length || 0) > 0
         const showCheckmark = isCurrent && itemSeekExcluded(item)
         return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)} onClick={_ => recalc({ advance: ['set', index] })}>
           {
@@ -499,8 +519,8 @@ function Randomize(controls: any): JSX.Element {
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
-    const shownItemNr = Object.fromEntries(currentMap)[current]
-    const currentItemNr = 1 + (hideDone ? shownItemNr : current)
+    const shownItemNr = Object.fromEntries(currentMap)[currentIndex]
+    const currentItemNr = 1 + (hideDone ? shownItemNr : currentIndex)
     const undoneCount = currentMap.length
 
     const itemCounter = <>{currentItemNr || '-'}/{undoneCount}{outLineCount != undoneCount ? `(${outLineCount})` : ''}</>
@@ -585,7 +605,7 @@ function Randomize(controls: any): JSX.Element {
                   {executionItems()}
                 </div>
 
-                {items[current]?.key?.match(/DS$/) && sheetDisplay(items[current]?.source?.substitutions || [])}
+                {items[currentIndex]?.key?.match(/DS$/) && sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
                 {metroPower && <Metro bpm={metro.bpm || defaultBpm} volume={metro.volume || 0} />}
