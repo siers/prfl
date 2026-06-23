@@ -96,7 +96,7 @@ type Assert<T extends true> = T
 export type _assertOut = Assert<Equals<RenderLine, RenderLineDerived>>
 
 // pattern for rendered lines that denotes their flashcard identificator
-export const LineKeyPattern = /^ *([a-zA-Z0-9\-#]+)(: .*|)$/
+export const LineKeyPattern = /^ *([a-zA-Z0-9\-#\[\]]+)(: .*|)$/
 
 export type Header = {
   kind: 'header',
