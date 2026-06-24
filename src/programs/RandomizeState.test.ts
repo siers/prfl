@@ -221,23 +221,22 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   })
 })
 
-describe('reduceRecalc — exhaust pops back to the parent', () => {
-  test('seeking forward off the end of a spawned deck returns to the parent cursor', () => {
-    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder) // deck of 2, cursor [Scale/zip, 0]
-    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // -> [Scale/zip, 1]
+describe('reduceRecalc — finishing a spawned deck does NOT auto-leave it', () => {
+  test('seeking off the end stays on the last item, keeping the stack', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder) // deck of 2
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // -> last item
     expect(s.current).toStrictEqual(['Scale/zip', 1])
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
 
-    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // exhausted -> pop
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(s.cursorStack).toStrictEqual([]) // stack emptied
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // past the end: clamp, no pop
+    expect(s.current).toStrictEqual(['Scale/zip', 1]) // still on the last item
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still in the deck
   })
 
-  test('seeking forward mid-deck does not pop', () => {
+  test('seeking forward mid-deck stays in the deck', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder) // deck of 4
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
     expect(s.current).toStrictEqual(['Scale/cartesian', 1])
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still descended
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
   })
 })
 

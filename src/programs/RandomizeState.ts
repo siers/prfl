@@ -16,7 +16,7 @@ import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer,
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
-import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, cursorEq, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent, Exclude } from './GenericList.ts'
+import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent, Exclude } from './GenericList.ts'
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 
 export const currentStateVersion = 5
@@ -288,16 +288,11 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
           ? deckSetCurrent(decksAfterReorder, reorderedCursor, a.advance![1]! satisfies number, excludeSeek)
           : deckSeek(decksAfterReorder, reorderedCursor, Direction.Zero, excludeSeek) // resolve off an excluded current
 
-  // Exhaust → pop: a forward seek inside a spawned deck that couldn't advance
-  // (stayed put at the end) returns to the parent item the spawn descended from.
-  const stack = s?.cursorStack || []
-  const exhausted = seekDirection !== null && seekDirection > 0 && stack.length > 0
-    && cursorEq(resolvedCursor, reorderedCursor)
-  const [poppedStack, poppedCursor]: [DeckCursor[], DeckCursor] =
-    exhausted ? [stack.slice(0, -1), stack[stack.length - 1]] : [stack, resolvedCursor]
-
+  // Seeking off the end of a spawned deck stays on the last item — we do NOT
+  // auto-leave the deck on exhaustion. Leaving is explicit (back button /
+  // breadcrumb), so finishing all items keeps you in the deck.
   const items = deckItems(resolvedDecks, deck)
-  const nextCursor: DeckCursor = a.eval ? [deck, 0] : poppedCursor
+  const nextCursor: DeckCursor = a.eval ? [deck, 0] : resolvedCursor
 
   const newItem = deckGet(resolvedDecks, nextCursor)
   const newKey = newItem && newItem.key
@@ -317,7 +312,6 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
     execute: execute,
     current: nextCursor,
-    cursorStack: poppedStack,
     hideDone: hideDone,
     totalTimer,
 
