@@ -398,7 +398,6 @@ export default Randomize
 // TODO: execution: hide other items after a small timeout
 // TODO: scales: bowings/delete notes replace with pauses
 // TODO: scales: remove half-positions in ToneLibViolin
-// TODO: parametrization: decks which you can go deeper into
 // TODO: state: google drive api (for images)
 // TODO: UI: streamlining (useful for scales, swipes, pop-up buttons for extended, play/stop on the left)
 // TODO: parametrization: these could be scheduled with no random (maybe)
