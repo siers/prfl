@@ -2,12 +2,11 @@
 import { createRoot } from 'react-dom/client'
 import './main.css'
 import App from './App.jsx'
-import { isDev } from './debug.js'
 
 let clearStateClickCount = 0
 
 setTimeout(() => {
-  if (isDev && document.getElementById('root').children.length == 0) {
+  if (document.getElementById('root').children.length == 0) {
     document.addEventListener('click', () => {
       clearStateClickCount += 1
 
