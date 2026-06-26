@@ -22,6 +22,7 @@ import {
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { burstEmojiNotif } from './Burst.tsx'
+import { SwipeDirection, useWipe } from './SwipeHandlers.tsx'
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -162,7 +163,7 @@ function Randomize(controls: any): JSX.Element {
         const isLast = i === path.length - 1
         return <span key={i}>
           {i > 0 && <span className="px-1">▸</span>}
-          <span className={isLast ? '' : 'underline cursor-pointer'} onClick={_ => !isLast && popToLevel(i)}>{deck}</span>
+          <span className={isLast ? '' : 'cursor-pointer'} onClick={_ => !isLast && popToLevel(i)}>{deck}</span>
         </span>
       })}
     </div>
@@ -209,7 +210,7 @@ function Randomize(controls: any): JSX.Element {
     </>
   }
 
-  function executionItems(): JSX.Element {
+  function itemRender(): JSX.Element {
     const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
       const found = linearSeekNext(items, currentIndex, delta, itemSeekExcluded)
         .slice(0, delta == 0 ? 1 : Math.abs(delta * 2))
@@ -226,7 +227,16 @@ function Randomize(controls: any): JSX.Element {
         const showReeval = isCurrent && (items[currentIndex]?.source?.interpols?.length || 0) > 0
         const showSpawn = isCurrent && isSpawnable(item)
         const showCheckmark = isCurrent && itemSeekExcluded(item)
-        return <div key={index} className="w-full text-center text-wrap" style={itemStyle(item, index)} onClick={_ => recalc({ advance: ['set', index] })}>
+
+        let wipeHandlers = useWipe((d: SwipeDirection) => {
+          if (d == 'E') itemReview()
+          if (d == 'W') itemSuspend()
+          if (d == 'N') itemSurface()
+          if (d == 'S') itemBury()
+        })
+        wipeHandlers.style = { ...wipeHandlers.style, ...itemStyle(item, index) }
+
+        return <div key={index} className="w-full text-center text-wrap" onClick={_ => recalc({ advance: ['set', index] })} {...wipeHandlers}>
           {
             showCheckmark ? <>✅</> : <>
               {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}
@@ -273,6 +283,22 @@ function Randomize(controls: any): JSX.Element {
     setState((sIn: RState | undefined) => reduceMetro(sIn, diff))
   }
 
+  function itemReview() {
+    recalc({ item: { reviewed: true, done: true, bury: false }, burst: '✅' })
+  }
+
+  function itemBury() {
+    recalc({ item: { reviewed: false, done: false, bury: true }, burst: '✘' })
+  }
+
+  function itemSuspend() {
+    recalc({ item: { reviewed: false, done: true, bury: false }, burst: '📚' })
+  }
+
+  function itemSurface() {
+    recalc({ item: { unreview: true }, burst: '🌟' })
+  }
+
   function executionStats(): JSX.Element {
     const timerControls = <>
       <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 px-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
@@ -280,11 +306,12 @@ function Randomize(controls: any): JSX.Element {
       <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 px-2 select-none">⏪</span>
     </>
 
+    // unit-tests still use these
     const reviewControls = <>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: true, done: true, bury: false }, burst: '✅' })}>✅</a>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: false, bury: true }, burst: '✘' })}>✘</a>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: true, bury: false }, burst: '📚' })}>📚</a>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { unreview: true }, burst: '🌟' })}>🌟</a>
+      <a className="pr-4 select-none" onClick={() => itemReview()}>✅</a>
+      <a className="pr-4 select-none" onClick={() => itemBury()}>✘</a>
+      <a className="pr-4 select-none" onClick={() => itemSuspend()}>📚</a>
+      <a className="pr-4 select-none" onClick={() => itemSurface()}>🌟</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])
@@ -302,7 +329,7 @@ function Randomize(controls: any): JSX.Element {
       </div>
 
       <div className="flex flex-row justify-center pt-2">
-        <div className="text-left px-5">{reviewControls}</div>
+        <div className="text-left px-5 hidden">{reviewControls}</div>
         <div className="text-right px-5">{timerControls}</div>
       </div>
     </div>
@@ -373,7 +400,7 @@ function Randomize(controls: any): JSX.Element {
             <ErrorBoundary fallback={<>item render crash</>}>
               <div className="relative w-full flex flex-col flex-grow select-none">
                 <div className="flex-1 content-center">
-                  {executionItems()}
+                  {itemRender()}
                 </div>
 
                 {items[currentIndex]?.key?.match(/DS$/) && sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
