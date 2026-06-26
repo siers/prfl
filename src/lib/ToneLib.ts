@@ -10,7 +10,7 @@ export const names: Name[] = ['c', 'd', 'e', 'f', 'g', 'a', 'b']
 // const namesMap: Record<Name, number> = { c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6 }
 const namesSemiMap = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }
 
-const intervalMap = {
+const intervalMap: Record<number, string> = {
   0: 'unison',
   1: 'second',
   2: 'third',
@@ -135,7 +135,7 @@ function stepTo(n: Note, to: Note): Note {
   return next
 }
 
-export function nameInterval(int: number) {
+export function nameInterval(int: number): string {
   return intervalMap[Math.abs(int) % 7]
 }
 

@@ -389,9 +389,6 @@ export default Randomize
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
 // TODO: timer: convert controls to clicking the timer label
-// TODO: parametrization: separator for interpolations
-// TODO: review: star, should move not only the item, but also the cursor
-// TODO: review: star, should move to the first lowest option (that is, high number)
 
 // TODO: execution: make items clickable, switching between the list and a single item, make them scrollable, make items movable
 // TODO: execution: highlight parameters
