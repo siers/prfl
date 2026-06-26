@@ -21,6 +21,7 @@ import {
   deckPath, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
+import { burstEmojiNotif } from './Burst.tsx'
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -94,8 +95,11 @@ function Randomize(controls: any): JSX.Element {
   // inject the bits the reducers need (bpm, now). All the actual state logic —
   // and its tests — live in that module.
   function recalc(a: Args) {
-    setState((s: RState | undefined) =>
-      reduceRecalc(s, a, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
+    setState((s: RState | undefined) => {
+      const calc = reduceRecalc(s, a, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() })
+      a.burst && burstEmojiNotif(a.burst)
+      return calc
+    })
   }
 
   function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
@@ -277,10 +281,10 @@ function Randomize(controls: any): JSX.Element {
     </>
 
     const reviewControls = <>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: true, done: true, bury: false } })}>✅</a>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: false, bury: true } })}>✘</a>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: true, bury: false } })}>📚</a>
-      <a className="pr-4 select-none" onClick={() => recalc({ item: { unreview: true } })}>🌟</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: true, done: true, bury: false }, burst: '✅' })}>✅</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: false, bury: true }, burst: '✘' })}>✘</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { reviewed: false, done: true, bury: false }, burst: '📚' })}>📚</a>
+      <a className="pr-4 select-none" onClick={() => recalc({ item: { unreview: true }, burst: '🌟' })}>🌟</a>
     </>
 
     const currentMap = items.flatMap((i, ith) => itemSkipped(i) ? [] : [ith]).map((ith, jth) => [ith, jth])

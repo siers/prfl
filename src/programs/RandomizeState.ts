@@ -69,6 +69,7 @@ export type Args = {
   advance?: Seek,
   hideDone?: boolean,
   item?: ItemActions,
+  burst?: string,
 }
 
 export type ItemActions = {

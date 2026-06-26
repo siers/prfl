@@ -74,3 +74,30 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
 .wrap[data-mode=randomize] ::selection { background: #eeeeff; }
 
 .wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: calc(4vmin); }
+
+.burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+  top: 85%; left: 50%;
+}
+
+.burst span {
+  position: absolute;
+  transform: translate(-50%, -50%) scale(0.2);
+  font-size: 3.5em;
+  line-height: 1;
+  opacity: 0;
+  animation: burstA 400ms ease-out forwards, burstB 400ms ease-out forwards;
+}
+
+@keyframes burstA {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.2); }
+  50%  { opacity: 1;   transform: translate(-50%, -50%) scale(0.8); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.4); }
+}
+
+@keyframes burstB {
+  0%   { transform: translate(-50%, -50%) scale(0.2); }
+  100% { transform: translate(-50%, -50%) scale(1.4); }
+}
