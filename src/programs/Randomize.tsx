@@ -33,7 +33,7 @@ function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
-  let state: RState = controls.state || defaultState // one mutation only for checking the version and invalidating the whole state
+  let state: RState = controls.state || defaultState // this is no longer possibly any, so there are a lot of question marks still scattered around
   const stateVersion = state && state.version || 0
 
   if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
@@ -47,7 +47,7 @@ function Randomize(controls: any): JSX.Element {
   const items: UserItem[] = deckItems(decks, current[0])
   const currentIndex: number = current[1]
 
-  const globalTimer = state?.totalTimer
+  const globalTimer = (state.cursorStack?.length != 0 ? deckGet(decks, state.cursorStack?.at(-1))?.timer : undefined) || state.totalTimer
   const localTimer = deckGet(decks, current)?.timer
   const localTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
   const totalTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))

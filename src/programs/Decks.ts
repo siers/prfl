@@ -33,7 +33,9 @@ export function deckItems<A>(decks: Decks<A>, deck: string): A[] {
 
 // get(current) — look up the item the cursor points at, or undefined if the
 // deck or index is gone.
-export function deckGet<A>(decks: Decks<A>, [deck, index]: DeckCursor): A | undefined {
+export function deckGet<A>(decks: Decks<A>, dc: DeckCursor | undefined): A | undefined {
+  if (!dc) return
+  const [deck, index] = dc
   return deckItems(decks, deck)[index]
 }
 

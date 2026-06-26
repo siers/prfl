@@ -37,6 +37,7 @@ test('deckGet looks up the cursor item, undefined when out of range', () => {
   expect(deckGet(d, [DEFAULT_DECK, 1])?.v).toBe('b')
   expect(deckGet(d, [DEFAULT_DECK, 9])).toBeUndefined()
   expect(deckGet(d, ['missing', 0])).toBeUndefined()
+  expect(deckGet(d, undefined)).toBeUndefined()
 })
 
 describe('operations are deck-local — the deck name rides along, siblings untouched', () => {
