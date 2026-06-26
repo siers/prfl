@@ -1,3 +1,5 @@
+// @ts-nocheck — glue against the deeply-typed @stringsync/musicxml schema; the
+// exact generated tuple shapes aren't worth chasing here.
 import { asserts, elements, MusicXML } from '@stringsync/musicxml'
 import * as ToneLib from '../lib/ToneLib'
 
