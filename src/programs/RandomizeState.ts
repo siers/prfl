@@ -33,7 +33,7 @@ export type Metro = {
 }
 
 export type RState = {
-  version: 5,
+  version: number,
   text?: string,
 
   items?: Decks<UserItem>,

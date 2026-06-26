@@ -33,7 +33,7 @@ function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
-  let state = controls.state || defaultState // one mutation only for checking the version and invalidating the whole state
+  let state: RState = controls.state || defaultState // one mutation only for checking the version and invalidating the whole state
   const stateVersion = state && state.version || 0
 
   if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
@@ -304,7 +304,8 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
-  const metro = state?.metro || { bpm: defaultBpm }
+  const metro: Metro = state?.metro || { bpm: defaultBpm }
+  const metroBpm: number = metro.bpm || defaultBpm
 
   const ticking = !!globalTimer?.running
   const metroPower = ticking && metro.power
@@ -315,12 +316,12 @@ function Randomize(controls: any): JSX.Element {
   function metroUI() {
     return <div className="w-full top-0 left-0 p-3 flex-0 font-mono">
       <div className="text-center">
-        <div><input type="range" className="w-[80%]" value={linearize(metro.bpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
+        <div><input type="range" className="w-[80%]" value={linearize(metroBpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
-          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm - 1 })}>-1</span>
-          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm - 5 })}>-5</span>
-          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm * 0.5 })}>÷2</span>
-          <span className="p-[1px]" onClick={_ => metroState({ bpm: metro.bpm * 0.333333 })}>÷3</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm - 1 })}>-1</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm - 5 })}>-5</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm * 0.5 })}>÷2</span>
+          <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm * 0.333333 })}>÷3</span>
           <span
             className="p-[2px] inline-block text-center w-[4em]"
             onClick={_ => ticking && metroState({ power: !metro.power })}
@@ -328,10 +329,10 @@ function Randomize(controls: any): JSX.Element {
           >
             @{state?.metro?.bpm}
           </span>
-          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm * 3 })}>3×</span>
-          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm * 2 })}>2×</span>
-          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm + 5 })}>5+</span>
-          <span className="p-[2px]" onClick={_ => metroState({ bpm: metro.bpm + 1 })}>1+</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metroBpm * 3 })}>3×</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metroBpm * 2 })}>2×</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metroBpm + 5 })}>5+</span>
+          <span className="p-[2px]" onClick={_ => metroState({ bpm: metroBpm + 1 })}>1+</span>
         </div>
       </div>
     </div>
@@ -374,7 +375,7 @@ function Randomize(controls: any): JSX.Element {
                 {items[currentIndex]?.key?.match(/DS$/) && sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {metroPower && <MetroComponent bpm={metro.bpm || defaultBpm} volume={metro.volume || 0} />}
+                {metroPower && <MetroComponent bpm={metroBpm} volume={metro.volume || 0} />}
               </div>
             </ErrorBoundary>
           </div>
