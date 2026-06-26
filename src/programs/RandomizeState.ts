@@ -48,6 +48,8 @@ export type RState = {
   // top level. Additive over v5 — old states simply have no stack.
   cursorStack?: DeckCursor[],
   hideDone?: boolean,
+  // itemCounter denominator: false/undefined shows undoneCount, true shows outLineCount.
+  countTotal?: boolean,
   totalTimer?: Timer,
 
   metro?: Metro,

@@ -107,6 +107,10 @@ function Randomize(controls: any): JSX.Element {
     setState((s: RState | undefined) => reduceTimer(s, commandIn, target, Date.now()))
   }
 
+  function toggleCountTotal() {
+    setState((s: RState | undefined) => s && { ...s, countTotal: !s.countTotal })
+  }
+
   function spawn(mode: SpawnMode) {
     setState((s: RState | undefined) => reduceSpawn(s, mode, Date.now()))
   }
@@ -299,7 +303,7 @@ function Randomize(controls: any): JSX.Element {
     recalc({ item: { unreview: true }, burst: '🌟' })
   }
 
-  function executionStats(): JSX.Element {
+  function reviewStats(): JSX.Element {
     const timerControls = <>
       <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 px-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
       <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 px-2 select-none">🔄</span>
@@ -319,7 +323,11 @@ function Randomize(controls: any): JSX.Element {
     const currentItemNr = 1 + (hideDone ? shownItemNr : currentIndex)
     const undoneCount = currentMap.length
 
-    const itemCounter = <>{currentItemNr || '-'}/{undoneCount}{outLineCount != undoneCount ? `(${outLineCount})` : ''}</>
+    const countTotal = state?.countTotal === true
+    const denominator = countTotal ? outLineCount : undoneCount
+    const itemCounter = <span className="cursor-pointer select-none" onClick={toggleCountTotal} title={countTotal ? 'total items' : 'remaining items'}>
+      {currentItemNr || '-'}/{denominator}
+    </span>
 
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center pt-2">
@@ -394,7 +402,7 @@ function Randomize(controls: any): JSX.Element {
       {inExecution &&
         <div className="relative">
           <div className={"w-[100dvw] flex flex-col justfiy-center"} style={({ height: "calc(90dvh)" })}>
-            {executionStats()}
+            {reviewStats()}
             {breadcrumb()}
 
             <ErrorBoundary fallback={<>item render crash</>}>
