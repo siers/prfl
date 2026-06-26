@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { UserItem, toUserItem } from './RandomizeTypes.ts'
 import { evalContents } from './RandomizeLang.js'
-import { Decks, DEFAULT_DECK } from './GenericList.ts'
+import { Decks, DEFAULT_DECK } from './Decks.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reducePopOne, reducePopTo, deckPath,

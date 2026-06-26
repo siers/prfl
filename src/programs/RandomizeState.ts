@@ -16,7 +16,8 @@ import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer,
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
-import { ListState, dropThree, toTop, Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent, Exclude } from './GenericList.ts'
+import { ListState, dropThree, toTop, Exclude } from './GenericList.ts'
+import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './Decks.ts'
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 
 export const currentStateVersion = 5
