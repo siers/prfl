@@ -119,12 +119,20 @@ export function recalcMetro(old: Metro, diff: Metro): Metro {
 
 // ── items ──────────────────────────────────────────────────────────────────
 
-function itemsAndTimer(items: UserItem[], m: string | undefined, eval_: boolean, contents: string, total: Timer | undefined): [UserItem[], Timer | undefined] {
-  if (!eval_) return [items, total]
+// On a (re)eval we rebuild, otherwise return previous
+function itemsAndTimer(
+  decks: Decks<UserItem>,
+  m: string | undefined,
+  eval_: boolean,
+  contents: string,
+  total: Timer | undefined,
+  stack: DeckCursor[]
+): [Decks<UserItem>, Timer | undefined, DeckCursor[]] {
+  if (!eval_) return [decks, total, stack]
 
   let memory: Map<any, any> = memoryFromString(m)
   const [lines, _] = evalContentsMem(contents, memory)
-  return [lines.map(rl => toUserItem(rl)), undefined]
+  return [decksOf(lines.map(rl => toUserItem(rl))), undefined, []]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
@@ -263,11 +271,14 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const execute = a.execute === undefined ? s?.execute : a.execute
   const hideDone = a.hideDone === undefined ? s?.hideDone : a.hideDone
 
+  // On an eval, itemsAndTimer collapses to a fresh sole "default" deck and an
+  // empty stack, so the cursor's deck resets to the root; otherwise we stay on
+  // the deck we were in.
   const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
-  const deck = prevCursor[0]
-  const prevDeckItems = deckItems(s?.items || decksOf<UserItem>([]), deck)
+  const deck = a.eval ? DEFAULT_DECK : prevCursor[0]
 
-  let [initItems, totalTimer] = itemsAndTimer(prevDeckItems, s?.memory, !!a?.eval, contentsOr, s?.totalTimer)
+  const [initDecks, totalTimer, cursorStack] = itemsAndTimer(s?.items || decksOf<UserItem>([]), s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [])
+  const initItems = deckItems(initDecks, deck)
 
   // Exclusion is built from the locally-resolved hideDone (which a.hideDone may
   // be flipping in this very update), not a stale closure.
@@ -277,7 +288,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
   // The cursor is resolved by GenericList: a bury/unreview reorder already set
   // it; otherwise translate the advance request into a seek/set/stay.
-  const decksAfterReorder: Decks<UserItem> = { ...(s?.items || {}), [deck]: deckList }
+  const decksAfterReorder: Decks<UserItem> = { ...initDecks, [deck]: deckList }
   const reorderedCursor: DeckCursor = [deck, reorderedCurrent !== null ? reorderedCurrent : prevCursor[1]]
   const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]! as Direction) : null
   const [resolvedDecks, resolvedCursor]: [Decks<UserItem>, DeckCursor] =
@@ -313,6 +324,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
     execute: execute,
     current: nextCursor,
+    cursorStack,
     hideDone: hideDone,
     totalTimer,
 

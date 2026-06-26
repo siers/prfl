@@ -111,6 +111,20 @@ describe('reduceRecalc — eval & deck wiring', () => {
     expect(s.outLineCount).toBe(3)
   })
 
+  test('eval drops every spawned deck and resets the breadcrumb stack', () => {
+    // Descend into a spawned deck, then reeval new text: the old decks are gone,
+    // only the freshly evaluated default deck remains, and the stack is empty.
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+    expect(Object.keys(s.items!)).toContain('Scale/zip')
+
+    s = reduceRecalc(s, { eval: true, contents: '-=-\none\ntwo' }, deps()) // -=- keeps order
+    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
+    expect(labels(s)).toStrictEqual(['one', 'two'])
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.cursorStack).toStrictEqual([])
+  })
+
   test('reads text/execute/hideDone from the passed state, not a stale closure', () => {
     // s carries text; recalc with no contents must fall back to s.text (the
     // staleness bug the extraction fixes: it used to read the render closure).
