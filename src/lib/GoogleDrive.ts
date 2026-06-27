@@ -143,5 +143,8 @@ export async function fetchFileText(fileId: string, mimeType?: string): Promise<
     ? `${FILES_ENDPOINT}/${fileId}/export?${new URLSearchParams({ key, mimeType: 'text/plain' })}`
     : `${FILES_ENDPOINT}/${fileId}?${new URLSearchParams({ key, alt: 'media' })}`
   const res = await driveFetch(url)
-  return res.text()
+  const text = await res.text()
+  // Google Docs export text/plain with CRLF (\r\n) line endings; normalize to
+  // plain \n so downstream line-based parsing matches the raw .rngl/.rndl files.
+  return mimeType === GOOGLE_DOC ? text.replace(/\r\n/g, '\n') : text
 }
