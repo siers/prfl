@@ -20,12 +20,11 @@ import { cartesian, zipLongest } from '../lib/Array.ts'
 
 export type SpawnMode = 'cartesian' | 'zip'
 
-// The distinct values a single substitution offers, mirroring how
-// interpolateSubtToStringPlain reads each kind.
+// The distinct values a single substitution offers. Substitution contents is
+// already the flat value list, so this is just an identity passthrough kept for
+// naming clarity at the call site.
 export function substValues(c: InterpolateSubstT): string[] {
-  if (c.kind === 'ists') return [c.contents]
-  if (c.kind === 'istas') return c.contents
-  return c.contents.map(a => a.join('')) // istaas: each token-group joins to one value
+  return c
 }
 
 export type Param = { marker: string, tag: string | null, values: string[] }

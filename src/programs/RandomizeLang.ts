@@ -127,21 +127,11 @@ export function parseContents(text: string): Parsed {
 // evaluators
 
 export function interpolateSubtToStringPlain(subst: InterpolateSubstT): string {
-  let out
-
   try {
-    if (subst.kind == 'ists') {
-      out = subst.contents
-    } else if (subst.kind == 'istas') {
-      out = subst.contents.join(' ')
-    } else {
-      out = subst.contents.map(a => a.join('')).join(' ')
-    }
+    return subst.join(' ')
   } catch (e) {
-    out = `exc: ${e}`
+    return `exc: ${e}`
   }
-
-  return out
 }
 
 export function interpolateSubtToString(subst: InterpolateSubstT): string {
@@ -332,7 +322,7 @@ export function emptiedInterpolations(l_: RenderLine): RenderLine {
   const l = structuredClone(l_)
 
   if (!l.source?.substitutions) return l
-  return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: '-' }), { ...l, contents: l.source.contents })
+  return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, ['-']), { ...l, contents: l.source.contents })
 }
 
 // Collapse each interpolation to a single chosen value (one per substitution,
@@ -344,7 +334,7 @@ export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
 
   if (!l.source?.substitutions) return l
   return (l.source.substitutions || []).reduce<RenderLine>(
-    (l, s, i) => substituteInterpolate(l, s.marker, { kind: 'ists', contents: values[i] ?? '-' }),
+    (l, s, i) => substituteInterpolate(l, s.marker, [values[i] ?? '-']),
     { ...l, contents: l.source.contents },
   )
 }

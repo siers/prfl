@@ -26,10 +26,10 @@ export type LineT<E> = {
 
 export type Line = LineT<Eval>
 
-export type ISTAAS = { 'kind': 'istaas', contents: string[][] }
-export type ISTAS = { 'kind': 'istas', contents: string[] }
-export type ISTS = { 'kind': 'ists', contents: string }
-export type InterpolateSubstT = ISTAAS | ISTAS | ISTS
+// A substitution's contents is just the list of values it offers. The various
+// shapes a command can return (string, string[], string[][]) are flattened to
+// this on the way in by toInterpolateSubst.
+export type InterpolateSubstT = string[]
 
 export type Substitution = {
   kind: 'substitution',
@@ -60,7 +60,7 @@ export const InterpolateSchema = z.object({
   tag: z.string().nullable(),
 })
 
-export const InterpolableSubstTSchema = z.custom<ISTS>().or(z.custom<ISTAS>()).or(z.custom<ISTAAS>())
+export const InterpolableSubstTSchema = z.array(z.string())
 
 export const SubstituteSchema = z.object({
   kind: z.literal('substitution'),
@@ -152,15 +152,13 @@ export function toInterpolateSubst(subst: any): InterpolateSubstT {
   const strings = StringArray.safeParse(subst)
   const strings2d = StringArrayArray.safeParse(subst)
 
-  if (strings.success) return { kind: 'istas', contents: strings.data }
-  else if (strings2d.success) return { kind: 'istaas', contents: strings2d.data }
-  else return { kind: 'ists', contents: subst?.toString() || '' }
+  if (strings.success) return strings.data
+  else if (strings2d.success) return strings2d.data.map(a => a.join('')) // each token-group joins to one value
+  else return [subst?.toString() || '']
 }
 
-export function rotateInterpolateSubst(s: InterpolateSubstT) {
-  if (s.kind == 'ists') return s
-  else if (s.kind == 'istas') return { kind: s.kind, contents: arrayShift(s.contents, 1) }
-  else return { kind: s.kind, contents: arrayShift(s.contents, 1) }
+export function rotateInterpolateSubst(s: InterpolateSubstT): InterpolateSubstT {
+  return arrayShift(s, 1)
 }
 
 export type ContentTag = ['tag', string]

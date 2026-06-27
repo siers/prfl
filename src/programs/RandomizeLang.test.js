@@ -263,25 +263,19 @@ describe('evaling items inside a block', () => {
           "kind": "interpolable-line",
           "substitutions": [
             {
-              "contents": {
-                "contents": [
-                  "1",
-                  "2",
-                ],
-                "kind": "istas",
-              },
+              "contents": [
+                "1",
+                "2",
+              ],
               "kind": "substitution",
               "marker": "!!!1",
               "tag": "tag1",
             },
             {
-              "contents": {
-                "contents": [
-                  "3",
-                  "4",
-                ],
-                "kind": "istas",
-              },
+              "contents": [
+                "3",
+                "4",
+              ],
               "kind": "substitution",
               "marker": "!!!2",
               "tag": "tagX",
@@ -325,25 +319,19 @@ describe('rotateInterpolableLine', () => {
         "kind": "interpolable-line",
         "substitutions": [
           {
-            "contents": {
-              "contents": [
-                "1",
-                "2",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "1",
+              "2",
+            ],
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
           },
           {
-            "contents": {
-              "contents": [
-                "1",
-                "2",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "1",
+              "2",
+            ],
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -376,25 +364,19 @@ describe('rotateInterpolableLine', () => {
         "kind": "interpolable-line",
         "substitutions": [
           {
-            "contents": {
-              "contents": [
-                "2",
-                "1",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "2",
+              "1",
+            ],
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
           },
           {
-            "contents": {
-              "contents": [
-                "2",
-                "1",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "2",
+              "1",
+            ],
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -427,25 +409,19 @@ describe('rotateInterpolableLine', () => {
         "kind": "interpolable-line",
         "substitutions": [
           {
-            "contents": {
-              "contents": [
-                "1",
-                "2",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "1",
+              "2",
+            ],
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
           },
           {
-            "contents": {
-              "contents": [
-                "2",
-                "1",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "2",
+              "1",
+            ],
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -518,13 +494,10 @@ describe('renderLineContentWithTags', () => {
         ],
         new Map([[
           "tag", {
-            "contents": {
-              "contents": [
-                "1",
-                "2",
-              ],
-              "kind": "istas",
-            },
+            "contents": [
+              "1",
+              "2",
+            ],
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tag",
