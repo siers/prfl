@@ -37,7 +37,7 @@ function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
   if (!controls.state) {
-    setState(_ => defaultState)
+    setState((_: any) => defaultState)
     return <></>
   }
 
@@ -402,13 +402,16 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
-  // Image block, sibling of sheetDisplay in the flex container. For every
-  // substitution tagged "images", take the first value in its contents list and
-  // substring-match it against the loaded image filenames; show the first hit.
+  // Image block, sibling of sheetDisplay in the flex container. Every
+  // substitution whose tag contains "image" (e.g. image, image1, image2)
+  // contributes one image: take the first value in its contents list and
+  // substring-match it against the loaded image filenames. Tags are sorted by
+  // name so image1/image2/... display in a stable order.
   function imageDisplay(tags: Substitution[]) {
     const images = state?.images || []
     const matches = tags
-      .filter(t => t.tag === 'images')
+      .filter((t): t is Substitution & { tag: string } => !!t.tag && t.tag.includes('image'))
+      .sort((a, b) => a.tag.localeCompare(b.tag))
       .flatMap(t => {
         const needle = t.contents[0]
         if (!needle) return []
