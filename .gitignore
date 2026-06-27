@@ -3,3 +3,6 @@ dist
 .claude
 .DS_Store
 exercises/*
+.env
+.env.*
+!.env.example

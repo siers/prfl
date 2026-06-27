@@ -23,6 +23,7 @@ import {
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { burstEmojiNotif } from './Burst.tsx'
 import { SwipeDirection, useWipe } from './SwipeHandlers.tsx'
+import { DrivePicker } from './DrivePicker.tsx'
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -145,6 +146,7 @@ function Randomize(controls: any): JSX.Element {
       { /* <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => recalc({ save: true })}>💾</a> */}
       <a className="pr-3 select-none" onClick={() => recalc({ eval: true, })}>🔄</a>
       <a className="pr-3 select-none" onClick={() => confirm('delete?') && recalc({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
+      <DrivePicker onLoad={text => recalc({ contents: text, eval: true })} />
 
       <span className="pr-3">
         {state?.outLineCount ? <>{state?.outLineCount} items</> : <></>}
