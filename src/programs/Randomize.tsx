@@ -1,5 +1,5 @@
 import { renderToString } from 'react-dom/server'
-import React, { JSX, RefObject, useEffect, useRef } from 'react'
+import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef } from 'react'
 
 import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
 import { ContentOrTag, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
@@ -304,6 +304,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function reviewStats(): JSX.Element {
+    // probably unit-tests use these
     const timerControls = <>
       <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 px-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
       <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 px-2 select-none">🔄</span>
@@ -329,16 +330,37 @@ function Randomize(controls: any): JSX.Element {
       {currentItemNr || '-'}/{denominator}
     </span>
 
+    let timerLock: number | undefined
+    const timerWipe = useWipe(d => {
+      timerLock = undefined
+      d == 'W' && modifyTimer('subtract-and-restart')
+    })
+    const localTimerMouseDown: (n: number) => MouseEventHandler<HTMLDivElement> = (lock) => (_) => {
+      setTimeout(() => {
+        if (timerLock == lock) {
+          modifyTimer('restart', 'local')
+          burstEmojiNotif('⏳')
+        }
+
+        timerLock = undefined
+      }, 750)
+    }
+    const localTimerMouseUp: MouseEventHandler<HTMLDivElement> = (_) => {
+      if (timerLock != undefined) modifyTimer(localTimer?.running ? 'stop' : 'start')
+      timerLock = undefined
+    }
+
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center pt-2">
         <div className="px-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
-        <div className="px-2 w-[7em] text-center" ref={localTimerRef}></div>
+        <div className="px-2 w-[7em] text-center" {...timerWipe} onMouseDown={e => { timerLock = Math.random(); localTimerMouseDown(timerLock)(e) }} onMouseUp={localTimerMouseUp} ref={localTimerRef}></div>
         <div className="px-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
-      <div className="flex flex-row justify-center pt-2">
+      {/* streamlined away */}
+      <div className="flex flex-row justify-center pt-2 hidden">
         <div className="text-left px-5 hidden">{reviewControls}</div>
-        <div className="text-right px-5">{timerControls}</div>
+        <div className="text-right px-5 hidden">{timerControls}</div>
       </div>
     </div>
   }
