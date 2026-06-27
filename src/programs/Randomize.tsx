@@ -334,26 +334,16 @@ function Randomize(controls: any): JSX.Element {
     const timerWipe = useWipe(d => {
       timerLock = undefined
       d == 'W' && modifyTimer('subtract-and-restart')
+      d == 'N' && modifyTimer('restart', 'local')
     })
-    const localTimerMouseDown: (n: number) => MouseEventHandler<HTMLDivElement> = (lock) => (_) => {
-      setTimeout(() => {
-        if (timerLock == lock) {
-          modifyTimer('restart', 'local')
-          burstEmojiNotif('⏳')
-        }
-
-        timerLock = undefined
-      }, 750)
-    }
     const localTimerMouseUp: MouseEventHandler<HTMLDivElement> = (_) => {
       if (timerLock != undefined) modifyTimer(localTimer?.running ? 'stop' : 'start')
-      timerLock = undefined
     }
 
     return <div className="w-full pb-2 text-center font-mono">
       <div className="flex flex-row justify-center pt-2">
         <div className="px-4 w-[7em] text-[#888]" ref={totalTimerRef}></div>
-        <div className="px-2 w-[7em] text-center" {...timerWipe} onMouseDown={e => { timerLock = Math.random(); localTimerMouseDown(timerLock)(e) }} onMouseUp={localTimerMouseUp} ref={localTimerRef}></div>
+        <div className="px-2 w-[7em] text-center" {...timerWipe} onMouseDown={_ => { timerLock = Math.random() }} onMouseUp={localTimerMouseUp} ref={localTimerRef}></div>
         <div className="px-4 w-[7em] text-[#888] text-right">{itemCounter}</div>
       </div>
 
