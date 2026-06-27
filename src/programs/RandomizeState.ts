@@ -14,6 +14,7 @@ import { makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
+import type { ImageEntry } from '../lib/GoogleDrive.ts'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
 import { ListState, dropThree, toTop, Exclude } from './GenericList.ts'
@@ -53,6 +54,11 @@ export type RState = {
   totalTimer?: Timer,
 
   metro?: Metro,
+
+  // Images gathered from the Drive folder, as [filename, rawUrl]. The URL is a
+  // frameless media URL with the key embedded — fine, the key already ships in
+  // the bundle. UI wiring (the <img> tags) lives in the component.
+  images?: ImageEntry[],
 }
 
 export const defaultState: RState = {

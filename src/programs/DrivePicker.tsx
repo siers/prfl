@@ -1,5 +1,5 @@
 import { JSX, useState } from 'react'
-import { DriveFile, fetchFileText, getApiKey, listFolder } from '../lib/GoogleDrive.ts'
+import { DriveFile, ImageEntry, fetchFileText, getApiKey, listFolder, listImages } from '../lib/GoogleDrive.ts'
 
 // The folder to browse. Hardcodable via env (VITE_GDRIVE_FOLDER_ID) so the
 // common case is zero-click; falls back to a prompt if unset so it still works
@@ -9,6 +9,9 @@ const DEFAULT_FOLDER_ID = import.meta.env.VITE_GDRIVE_FOLDER_ID || ''
 type Props = {
   // Called with the downloaded file text once the user picks a file.
   onLoad: (text: string) => void
+  // Optional: called with the folder's images as [filename, rawUrl] tuples when
+  // the user loads images. Omit to hide the image control.
+  onImages?: (images: ImageEntry[]) => void
 }
 
 type Status =
@@ -20,7 +23,7 @@ type Status =
 
 // A small picker that lists a public Drive folder and loads the chosen file's
 // text into the editor. Renders as a single 📁 control that expands to a list.
-export function DrivePicker({ onLoad }: Props): JSX.Element {
+export function DrivePicker({ onLoad, onImages }: Props): JSX.Element {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [folderId, setFolderId] = useState(DEFAULT_FOLDER_ID)
@@ -64,6 +67,19 @@ export function DrivePicker({ onLoad }: Props): JSX.Element {
     }
   }
 
+  async function loadImages() {
+    if (!onImages) return
+    setStatus({ kind: 'loading' })
+    try {
+      const images = await listImages(folderId)
+      onImages(images)
+      setOpen(false)
+      setStatus({ kind: 'idle' })
+    } catch (e) {
+      setStatus({ kind: 'error', message: e instanceof Error ? e.message : String(e) })
+    }
+  }
+
   return (
     <span className="relative inline-block">
       <a className="pr-3 select-none" title="load from Google Drive" onClick={toggle}>📁</a>
@@ -87,8 +103,9 @@ export function DrivePicker({ onLoad }: Props): JSX.Element {
               ))
           )}
           {(status.kind === 'listed' || status.kind === 'error') && (
-            <div className="mt-1 border-t pt-1 text-xs text-gray-500">
+            <div className="mt-1 flex gap-3 border-t pt-1 text-xs text-gray-500">
               <span className="cursor-pointer select-none" onClick={() => refreshList(folderId)}>🔄 refresh</span>
+              {onImages && <span className="cursor-pointer select-none" onClick={loadImages}>🖼️ load images</span>}
             </div>
           )}
         </div>

@@ -80,6 +80,60 @@ export async function listFolder(folderIdOrUrl: string): Promise<DriveFile[]> {
 // alt=media 403s on them — they must go through the export endpoint instead.
 const GOOGLE_DOC = 'application/vnd.google-apps.document'
 
+// [filename, rawUrl] for an image. The URL is the media endpoint with the key
+// embedded so it drops straight into <img src> with no Drive frame.
+export type ImageEntry = [string, string]
+
+// Raw, frameless media URL for a public file. Embeds the API key — fine here
+// since the key already ships in the bundle and only reads public files.
+export function mediaUrl(fileId: string): string {
+  const params = new URLSearchParams({ key: getApiKey(), alt: 'media' })
+  return `${FILES_ENDPOINT}/${fileId}?${params}`
+}
+
+const FOLDER_MIME = 'application/vnd.google-apps.folder'
+
+// All direct children of a folder (one page, up to 1000). No pagination — folders
+// are assumed to hold well under 1000 entries.
+async function listChildren(folderId: string): Promise<DriveFile[]> {
+  const params = new URLSearchParams({
+    key: requireKey(),
+    q: `'${folderId}' in parents and trashed = false`,
+    fields: 'files(id,name,mimeType)',
+    orderBy: 'name',
+    pageSize: '1000',
+  })
+  const res = await driveFetch(`${FILES_ENDPOINT}?${params}`)
+  const data = (await res.json()) as { files?: DriveFile[] }
+  return data.files || []
+}
+
+// List image files under a public folder, recursing into subfolders, as
+// [filename, rawUrl] tuples. Subfolder images are prefixed with their path
+// (e.g. "scales/g-major.png") to stay unique and meaningful; top-level files
+// keep their bare name. Subfolder listings run in parallel; visited folder IDs
+// are tracked so shortcut-induced cycles can't loop forever.
+export async function listImages(folderIdOrUrl: string): Promise<ImageEntry[]> {
+  const rootId = normalizeFolderId(folderIdOrUrl)
+  const seen = new Set<string>()
+
+  async function walk(folderId: string, prefix: string): Promise<ImageEntry[]> {
+    if (seen.has(folderId)) return []
+    seen.add(folderId)
+
+    const children = await listChildren(folderId)
+    const images: ImageEntry[] = children
+      .filter(f => f.mimeType.startsWith('image/'))
+      .map(f => [prefix + f.name, mediaUrl(f.id)] satisfies ImageEntry)
+    const subfolders = children.filter(f => f.mimeType === FOLDER_MIME)
+
+    const nested = await Promise.all(subfolders.map(sub => walk(sub.id, `${prefix}${sub.name}/`)))
+    return [...images, ...nested.flat()]
+  }
+
+  return walk(rootId, '')
+}
+
 // Download a file as text. Plain-text files (our .rngl / .rndl sources) download
 // their raw bytes; a Google Doc is exported flattened to text/plain (newlines,
 // no formatting). Pass the mimeType from the listing to pick the right path.

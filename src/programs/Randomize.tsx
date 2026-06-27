@@ -146,7 +146,10 @@ function Randomize(controls: any): JSX.Element {
       { /* <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => recalc({ save: true })}>💾</a> */}
       <a className="pr-3 select-none" onClick={() => recalc({ eval: true, })}>🔄</a>
       <a className="pr-3 select-none" onClick={() => confirm('delete?') && recalc({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
-      <DrivePicker onLoad={text => recalc({ contents: text, eval: true })} />
+      <DrivePicker
+        onLoad={text => recalc({ contents: text, eval: true })}
+        onImages={images => setState((s: RState | undefined) => s && { ...s, images })}
+      />
 
       <span className="pr-3">
         {state?.outLineCount ? <>{state?.outLineCount} items</> : <></>}
