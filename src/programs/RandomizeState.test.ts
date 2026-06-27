@@ -5,7 +5,7 @@ import { Decks, DEFAULT_DECK } from './Decks.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reducePopOne, reducePopTo, deckPath,
-  defaultBpm, Scheduler,
+  defaultBpm, defaultState, Scheduler,
 } from './RandomizeState.ts'
 
 // Inject identity for the spawn scheduler so child order is deterministic
@@ -251,6 +251,20 @@ describe('reduceRecalc — finishing a spawned deck does NOT auto-leave it', () 
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
     expect(s.current).toStrictEqual(['Scale/cartesian', 1])
     expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+  })
+})
+
+describe('defaultState eval', () => {
+  test('evaluting defaultState produces sane items and cursor', () => {
+    const out = reduceRecalc(defaultState, { eval: true }, deps())
+    const defaultItems = out.items?.[DEFAULT_DECK] ?? []
+    expect(defaultItems.length).toBe(3)
+    // defaultState text has no -=- separator so items are shuffled; check membership
+    expect(defaultItems.map(i => i.contents).sort()).toStrictEqual(['Juggling: do it', 'Lullaby: play it', 'Squats: do it'])
+    expect(out.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(out.outLineCount).toBe(3)
+    expect(out.version).toBe(5)
+    expect(out.text).toBe(defaultState.text)
   })
 })
 

@@ -35,6 +35,11 @@ function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
+  if (!controls.state) {
+    setState(_ => defaultState)
+    return <></>
+  }
+
   let state: RState = controls.state || defaultState // this is no longer possibly any, so there are a lot of question marks still scattered around
   const stateVersion = state && state.version || 0
 
@@ -86,6 +91,10 @@ function Randomize(controls: any): JSX.Element {
     // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) recalc({ eval: true })
     if (Math.abs(advanceDelta) == 1) recalc({ advance: ['seek', advanceDelta] })
   }
+
+  useEffect(() => {
+    if (state?.text && items.length == 0) recalc({ eval: true })
+  }, [])
 
   useEffect(() => {
     if (state === null || items.length == 0) return () => { }
@@ -273,10 +282,9 @@ function Randomize(controls: any): JSX.Element {
 
       elem.style.opacity = `${Math.round(opacity * 100)}%`
 
-      const cutoff = breakMin / breakMax
+      // const cutoff = breakMin / breakMax
       const volume = -100 * (1 - progress)
       metroState({ volume: volume })
-      console.log('setting the volume to', { progress, opacity, cutoff, volume })
 
       setTimeout(() => nextFrame(key, start), timeout)
     }
