@@ -135,12 +135,13 @@ function itemsAndTimer(
   eval_: boolean,
   contents: string,
   total: Timer | undefined,
-  stack: DeckCursor[]
+  stack: DeckCursor[],
+  images: ImageEntry[] | undefined,
 ): [Decks<UserItem>, Timer | undefined, DeckCursor[]] {
   if (!eval_) return [decks, total, stack]
 
   let memory: Map<any, any> = memoryFromString(m)
-  const [lines, _] = evalContentsMem(contents, memory)
+  const [lines, _] = evalContentsMem(contents, memory, { images })
   return [decksOf(lines.map(rl => toUserItem(rl))), undefined, []]
 }
 
@@ -155,6 +156,7 @@ export function modifyItemState(
   controls: ItemActions,
   exclude: Exclude<UserItem>,
   now: number,
+  images?: ImageEntry[],
 ): [UserItem[], string, number | null] {
   const items = inItems || []
 
@@ -170,7 +172,7 @@ export function modifyItemState(
     if (index != current) return item
     if (controls.regenerate === 'new') {
       if (!item.source) return item
-      return evalRenderLine(item, memoryFromString(m)) satisfies UserItem
+      return evalRenderLine(item, memoryFromString(m), { images }) satisfies UserItem
     } else if (controls.regenerate === 'next') {
       if (!item.source) return item
       return rotateInterpolableLine(item, controls.regenerateKey)
@@ -286,13 +288,13 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const deck = a.eval ? DEFAULT_DECK : prevCursor[0]
 
-  const [initDecks, totalTimer, cursorStack] = itemsAndTimer(s?.items || decksOf<UserItem>([]), s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [])
+  const [initDecks, totalTimer, cursorStack] = itemsAndTimer(s?.items || decksOf<UserItem>([]), s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images)
   const initItems = deckItems(initDecks, deck)
 
   // Exclusion is built from the locally-resolved hideDone (which a.hideDone may
   // be flipping in this very update), not a stale closure.
   const excludeSeek = excludeFor(hideDone !== false)
-  const [deckList, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, prevCursor[1], deps.bpm, a.item || {}, excludeSeek, deps.now)
+  const [deckList, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, prevCursor[1], deps.bpm, a.item || {}, excludeSeek, deps.now, s?.images)
   const memoryMap = mapParse(memory)
 
   // The cursor is resolved by GenericList: a bury/unreview reorder already set

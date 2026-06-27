@@ -4,6 +4,14 @@ import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
+import type { ImageEntry } from '../lib/GoogleDrive'
+
+// Extra, host-supplied bits the high-level evaluators thread down into the DSL
+// context (e.g. the images globbed by `glob`). Each entry lands in the context
+// map under its key, so utilities in RandomizeLangUtils can read them.
+export type AdditionalContext = {
+  images?: ImageEntry[],
+}
 
 // lib
 
@@ -247,20 +255,22 @@ function evalBlock(block: Block, context: Context): RenderLine[] {
   return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
-function initContext(memory: Memory): Map<string, any> {
+function initContext(memory: Memory, additionalContext: AdditionalContext = {}): Map<string, any> {
   const ic = new Map<string, any>([
     ['memory', memory],
     ['evalItem', (i: Item) => evalItem(i, ic)],
   ])
 
+  for (const [key, value] of Object.entries(additionalContext)) ic.set(key, value)
+
   return ic
 }
 
-export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [EvaluationResult, Memory] {
+export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory] {
   const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const evaluationInit: EvaluationContext = [[], initContext(memory)]
+  const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext)]
   const [mainBlocks, context]: EvaluationContext = blocks.reduce(([mainBlocks, context], b) => {
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
@@ -275,8 +285,8 @@ export function evalContentsMem(text: string, oldMemory: Memory = new Map()): [E
   return [intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(), context.get('memory') as Memory]
 }
 
-export function evalContents(text: string): RenderLine[] {
-  return evalContentsMem(text)[0]
+export function evalContents(text: string, additionalContext: AdditionalContext = {}): RenderLine[] {
+  return evalContentsMem(text, new Map(), additionalContext)[0]
 }
 
 // Schedule-sort items the way the todo program does: least-recently-reviewed
@@ -291,12 +301,12 @@ export function evalContentsS(text: string): string[] {
   return evalContentsMem(text)[0].map(rl => rl.contents)
 }
 
-export function evalRenderLine(l: RenderLine, mem: Memory = new Map()): RenderLine {
+export function evalRenderLine(l: RenderLine, mem: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine {
   if (!l.source) return l
 
   return {
     ...l,
-    ...evalInterpolates({ ...l, contents: l?.source?.contents, source: null }, l?.source.interpols, initContext(mem))
+    ...evalInterpolates({ ...l, contents: l?.source?.contents, source: null }, l?.source.interpols, initContext(mem, additionalContext))
   }
 }
 

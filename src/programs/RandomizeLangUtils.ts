@@ -1,5 +1,6 @@
 import { RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
+import type { ImageEntry } from '../lib/GoogleDrive'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
@@ -96,6 +97,9 @@ export type Interface = {
   pickEarlyBias<A>(as: A[]): A,
   picksEarlyBias<A>(as: A[]): A[],
   pickTasksStateless<A extends RenderLine>(items: A[]): A[],
+
+  // state
+  glob: (pattern: string) => string[],
 
   // domain specific
   scalePositions: (opts: { arrows?: boolean }) => string,
@@ -494,6 +498,24 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return pickKeys({ ...settings, shuffle: true, split: parseInt(pick('34')) })
   }
 
+  // state
+
+  // Glob the images gathered into the state (threaded in via additionalContext,
+  // read from `context`). A pattern with `*`/`?` is treated as a glob over the
+  // whole filename; a plain pattern is a substring match. Returns the matching
+  // filenames (the image block resolves filenames back to URLs).
+  function glob(pattern: string): string[] {
+    const images: ImageEntry[] = context.get('images') || []
+    const names = images.map(([filename]) => filename)
+
+    if (/[*?]/.test(pattern)) {
+      const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
+      return names.filter(name => re.test(name))
+    }
+
+    return names.filter(name => name.includes(pattern))
+  }
+
   // violin
 
   function scalePositions(opts: { arrows?: boolean } = {}) {
@@ -585,6 +607,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     pickEarlyBias,
     picksEarlyBias,
     pickTasksStateless,
+
+    glob,
 
     scalePositions,
     scalePositionsDbl,
