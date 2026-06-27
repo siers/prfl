@@ -402,6 +402,29 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
+  // Image block, sibling of sheetDisplay in the flex container. For every
+  // substitution tagged "images", take the first value in its contents list and
+  // substring-match it against the loaded image filenames; show the first hit.
+  function imageDisplay(tags: Substitution[]) {
+    const images = state?.images || []
+    const matches = tags
+      .filter(t => t.tag === 'images')
+      .flatMap(t => {
+        const needle = t.contents[0]
+        if (!needle) return []
+        const hit = images.find(([filename]) => filename.includes(needle))
+        return hit ? [hit] : []
+      })
+
+    if (matches.length === 0) return null
+
+    return <div className="flex flex-col items-center grow">
+      {matches.map(([filename, url], i) =>
+        <img key={i} src={url} alt={filename} title={filename} className="max-w-full max-h-full object-contain" />
+      )}
+    </div>
+  }
+
   function sheetDisplay(tags: Substitution[]) {
     const params = Object.fromEntries(tags.filter(t => t.tag).map(t => [t.tag, interpolateSubtToStringPlain(t.contents).split(' ')[0]]))
 
@@ -437,6 +460,8 @@ function Randomize(controls: any): JSX.Element {
                 </div>
 
                 {items[currentIndex]?.key?.match(/DS$/) && sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
+
+                {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
                 {metroPower && <MetroComponent bpm={metroBpm} volume={metro.volume || 0} />}
