@@ -481,26 +481,19 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: timer: convert controls to clicking the timer label
+// TODO: content: pickKeys (zip(letter, accidental))
 
-// TODO: execution: make items clickable, switching between the list and a single item, make them scrollable, make items movable
+// TODO: execution: make items clickable, hide nonreviewed (timeout?), make them scrollable, make items movable
 // TODO: execution: highlight parameters
-// TODO: execution: hide other items after a small timeout
-// TODO: scales: bowings/delete notes replace with pauses
-// TODO: scales: remove half-positions in ToneLibViolin
-// TODO: state: google drive api (for images)
-// TODO: UI: streamlining (useful for scales, swipes, pop-up buttons for extended, play/stop on the left)
+// TODO: content: scales: bowings/delete notes replace with pauses
+// TODO: content: scales: remove half-positions in ToneLibViolin
 // TODO: parametrization: these could be scheduled with no random (maybe)
-// TODO: review: "x" should drop three while skipping the done ones
 // TODO: combinatorics: flip versions, remove unique (scales markov)
 // TODO: review: accumulate review time
 // TODO: content: scales diatonic zip, check out other zips?
-// TODO: content: pickKeys (zip(letter, accidental))
 // TODO: scheduling: randomness param
 // TODO: scheduling: check that for two/three items, random doesn't screw with it
-// TODO: metronome: "x" review still doesn't respect metronome
 
-// TODO: lang: (8HZO) tags to each item
 // TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
@@ -512,27 +505,18 @@ export default Randomize
 // TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
 // TODO: content: (MD4F) would require a special action for that would influence the deck
 
-// TODO: state: use a CRDT-storage server
-// TODO: state: check if I can read anki database locally
-
-// TODO: execution: breakout into a subdeck by interpolation explosion
 // TODO: execution: interpolations must be orderable by frequency the same way subdecks would
-// TODO: execution: interpolation subdecks should combine with zip, randomization will happen in the next practice
 // TODO: parametrization: enable subsets of a column, allow shuffling per-column
 // TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
-// TODO: seek: add an array of valid visited routes, starting with the current route
-// TODO: (GHQZ) seek: make cursor an opaque, guarded type to enable multi-layer cursors and understand the actual api
-// TODO: (GHQZ) seek: make the cursors point to decks by key on a deckmap, no multi-dim decks
-// TODO: parametrization: enable adding tags to each interpolation (usecase: _________)
-// TODO: parametrization: forward button doesn't work when there are two interpolations
-
-// TODO: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
 
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
 
+// TODO: backlog: state: use a CRDT-storage server
+// TODO: backlog: state: check if I can read anki database locally
 // TODO: backlog: metronome: power status is false on start unless permissions are correct
 // TODO: backlog: metronome: tap to get rhythm
 // TODO: backlog: interpret: make sure that eval gets a new scope, not window, so it could be wiped between rerandomization (comlink)
 // TODO: backlog: scheduling: give "gas" to tasks, so they get temporarily bumped (solved by "bury" button and dynamic scheduling by date)
 
+// TODO: closed: execution: rerandomizeable blocks (can't imagine a way to achieve this, but try thinking of a good usecase first)
 // TODO: closed: how to balance random exposition with integration cards (subdecks may help) (a: just use interpolations as exposition starting points, problem solved)
