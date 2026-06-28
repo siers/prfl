@@ -352,6 +352,10 @@ function letterKeys(): string[] {
   )
 }
 
+function keys(): string[] {
+  return letterKeys()
+}
+
 // violin
 
 function scalePositions(opts: { arrows?: boolean } = {}) {
@@ -459,6 +463,7 @@ export type Interface = {
   pickKeys: (settings?: PickKeysInt) => string[][],
   pickKeysShuf: (settings?: PickKeysInt) => string[][],
   letterKeys: () => string[],
+  keys: () => string[],
 
   pickEarlyBias<A>(as: A[]): A,
   picksEarlyBias<A>(as: A[]): A[],
@@ -630,6 +635,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     pickKeys,
     pickKeysShuf,
     letterKeys,
+    keys,
 
     pickEarlyBias,
     picksEarlyBias,
