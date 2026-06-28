@@ -68,13 +68,13 @@ export function DrivePicker({ onLoad, onImages }: Props): JSX.Element {
     }
   }
 
-  // Images come from the GitHub-backed assets repo, not Drive — keyless, cached
-  // per day. `force` (the reload button) bypasses the cache and re-hits the API.
-  async function loadImages(force = false) {
+  // Images come from the GitHub-backed assets repo, not Drive — keyless. Listing
+  // only happens on this explicit click, so it always re-fetches.
+  async function loadImages() {
     if (!onImages) return
     setStatus({ kind: 'loading' })
     try {
-      const images = await listImages(force)
+      const images = await listImages()
       onImages(images)
       setOpen(false)
       setStatus({ kind: 'idle' })
@@ -108,8 +108,7 @@ export function DrivePicker({ onLoad, onImages }: Props): JSX.Element {
           {(status.kind === 'listed' || status.kind === 'error') && (
             <div className="mt-1 flex gap-3 border-t pt-1 text-xs text-gray-500">
               <span className="cursor-pointer select-none" onClick={() => refreshList(folderId)}>🔄 refresh</span>
-              {onImages && <span className="cursor-pointer select-none" onClick={() => loadImages(false)}>🖼️ load images</span>}
-              {onImages && <span className="cursor-pointer select-none" onClick={() => loadImages(true)} title="re-fetch from GitHub, bypassing today's cache">♻️ reload images</span>}
+              {onImages && <span className="cursor-pointer select-none" onClick={() => loadImages()}>🖼️ load images</span>}
             </div>
           )}
         </div>

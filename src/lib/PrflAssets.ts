@@ -8,9 +8,9 @@
 //   * the file *list* comes from the GitHub Trees API in a single keyless call
 //     (Access-Control-Allow-Origin: *), filtered to image blobs.
 //
-// The Trees API is rate-limited to 60 req/hr per IP unauthenticated, so the
-// listing is cached in localStorage for the current day; an explicit reload
-// (force=true) bypasses the cache.
+// The Trees API is rate-limited to 60 req/hr per IP unauthenticated, but the
+// listing only happens on an explicit button click, so we just re-fetch each
+// time rather than caching.
 
 // [filename, rawUrl] for an image — same shape the rest of the app already uses
 // (glob substring-matches on filename, the image block resolves filename→url).
@@ -36,46 +36,11 @@ function assetUrl(path: string): string {
   return BASE_URL + path.split('/').map(encodeURIComponent).join('/')
 }
 
-// Per-day cache key. The date stamp is part of the key, so a new day naturally
-// misses and re-fetches; old days' entries are overwritten on the next load.
-const CACHE_KEY = 'prflAssetsImages'
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function readCache(): ImageEntry[] | null {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as { date: string; images: ImageEntry[] }
-    return parsed.date === today() ? parsed.images : null
-  } catch {
-    return null
-  }
-}
-
-function writeCache(images: ImageEntry[]): void {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ date: today(), images }))
-  } catch {
-    // localStorage full/unavailable — listing still works, just uncached.
-  }
-}
-
 // List the repo's images as [filename, url] tuples. The whole repo tree comes
 // back in one Trees API call; we keep the image blobs and map their paths to
 // Pages URLs. The path is already the unique, subfolder-prefixed filename, so it
 // drops straight into the existing filename-based matching.
-//
-// Cached for the current day. Pass force=true (the reload button) to bypass the
-// cache and re-hit the API.
-export async function listImages(force = false): Promise<ImageEntry[]> {
-  if (!force) {
-    const cached = readCache()
-    if (cached) return cached
-  }
-
+export async function listImages(): Promise<ImageEntry[]> {
   const res = await fetch(TREES_ENDPOINT)
   if (!res.ok) {
     const body = await res.text().catch(() => '')
@@ -94,6 +59,5 @@ export async function listImages(force = false): Promise<ImageEntry[]> {
     .filter(e => e.type === 'blob' && IMAGE_EXT.test(e.path))
     .map(e => [e.path, assetUrl(e.path)] satisfies ImageEntry)
 
-  writeCache(images)
   return images
 }
