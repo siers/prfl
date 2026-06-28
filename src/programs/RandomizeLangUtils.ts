@@ -478,6 +478,21 @@ export type Interface = {
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
 }
 
+// Glob the images gathered into the state (threaded in via additionalContext,
+// read from `context`). A pattern with `*`/`?` is treated as a glob over the
+// whole filename; a plain pattern is a substring match. Returns the matching
+// filenames (the image block resolves filenames back to URLs).
+function glob(pattern: string, images: ImageEntry[]): string[] {
+  const names = images.map(([filename]) => filename)
+
+  if (/[*?]/.test(pattern)) {
+    const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
+    return names.filter(name => re.test(name))
+  }
+
+  return names.filter(name => name.includes(pattern))
+}
+
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
   // Note: uses memory
   function pickTasksStateless<A extends RenderLine>(items: A[]): A[] {
@@ -494,22 +509,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // state
-
-  // Glob the images gathered into the state (threaded in via additionalContext,
-  // read from `context`). A pattern with `*`/`?` is treated as a glob over the
-  // whole filename; a plain pattern is a substring match. Returns the matching
-  // filenames (the image block resolves filenames back to URLs).
-  function glob(pattern: string): string[] {
-    const images: ImageEntry[] = context.get('images') || []
-    const names = images.map(([filename]) => filename)
-
-    if (/[*?]/.test(pattern)) {
-      const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
-      return names.filter(name => re.test(name))
-    }
-
-    return names.filter(name => name.includes(pattern))
-  }
 
   function block(name: string, ...args: any): string[] {
     return blockLines(name, ...args).map(rl => rl.contents)
@@ -641,7 +640,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     picksEarlyBias,
     pickTasksStateless,
 
-    glob,
+    glob: (pattern: string) => glob(pattern, context.get('images') || []),
 
     scalePositions,
     scalePositionsDbl,
