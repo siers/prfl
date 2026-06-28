@@ -2,6 +2,8 @@ import { directRange, transpose, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt } from './Random'
 import { enharmonics, Key, majorKey, Note, parseNote, rename, render, semi } from './ToneLib'
 
+// TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
+
 type String = {
   base: Note,
   positions: Note[], // C major, open string + all positions up until second octave

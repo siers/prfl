@@ -479,32 +479,28 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: execution: make items clickable, hide nonreviewed (timeout?), make them scrollable, make items movable
-// TODO: execution: highlight parameters
-// TODO: content: scales: bowings/delete notes replace with pauses
-// TODO: content: scales: remove half-positions in ToneLibViolin
-// TODO: parametrization: these could be scheduled with no random (maybe)
-// TODO: review: accumulate review time
-// TODO: content: scales diatonic zip, check out other zips?
-// TODO: scheduling: randomness param
-// TODO: scheduling: check that for two/three items, random doesn't screw with it
-
-// TODO: scheduling: make item heavier for the scheduler depending on a tag (7RZH)
-// TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
-// TODO: execution: save card reviews in a list, with review lengths
-// TODO: execution: indicate tasks which are complete fresh (no review or the time put in is small, schedule fewer fresh ones)
-// TODO: subprogram: drones
+// TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
+// TODO: execution: hide nonreviewed (timeout?), make them scrollable
 
-// TODO: lang: add tags to block, only main blocks may have items without keys
-// TODO: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
-// TODO: content: (MD4F) would require a special action for that would influence the deck
+// TODO: content: scales: bowings/delete notes replace with pauses
+//
+// TODO: review: accumulate review time in card
+// TODO: execution: track reviews/freshness, leverage for scheduling
 
-// TODO: execution: interpolations must be orderable by frequency the same way subdecks would
-// TODO: parametrization: enable subsets of a column, allow shuffling per-column
+// TODO: paramatrization: use the scheduler in interpolations mode (fw button = review)
+// TODO: parametrization: spawning params: column subsets, subset per column
 // TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 
+// TODO: subprogram: drones
+
+// ---
+
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
+
+// TODO: boring: lang: add tags to block, only main blocks may have items without keys
+// TODO: boring: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
+// TODO: boring: content: (MD4F) would require a special action for that would influence the deck
 
 // TODO: backlog: state: use a CRDT-storage server
 // TODO: backlog: state: check if I can read anki database locally
