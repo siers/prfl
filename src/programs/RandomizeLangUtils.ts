@@ -4,7 +4,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keyCenters, Note, rebase, render, semi } from '../lib/ToneLib'
+import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, render, semi } from '../lib/ToneLib'
 import { chromaticSlide } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import * as Comb from 'ts-combinatorics'
@@ -343,6 +343,15 @@ function pickKeysShuf(settings?: PickKeysInt): string[][] {
   return pickKeys({ ...settings, shuffle: true, split: parseInt(pick('34')) })
 }
 
+function letterKeys(): string[] {
+  return majorKeyCentersWeighted().map(([, ...chunks]) => {
+    const weights = chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight))
+    return new Picker(weights.map(x => x[0]), { weights: weights }).pick() as Note
+  }).map(n =>
+    render(n, false)
+  )
+}
+
 // violin
 
 function scalePositions(opts: { arrows?: boolean } = {}) {
@@ -449,6 +458,7 @@ export type Interface = {
 
   pickKeys: (settings?: PickKeysInt) => string[][],
   pickKeysShuf: (settings?: PickKeysInt) => string[][],
+  letterKeys: () => string[],
 
   pickEarlyBias<A>(as: A[]): A,
   picksEarlyBias<A>(as: A[]): A[],
@@ -619,6 +629,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     pickKeys,
     pickKeysShuf,
+    letterKeys,
 
     pickEarlyBias,
     picksEarlyBias,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { parseNote, render, rebase, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval } from './ToneLib.ts'
+import { parseNote, render, rebase, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights } from './ToneLib.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -86,5 +86,62 @@ describe('ToneLib', () => {
   test('rename', () => {
     const gb = findMajor(parseNote('gb')!)!
     expect(render(rename(parseNote('b')!, gb))).toEqual('Bb4')
+  })
+
+  test('majorKeyCentersPerLetter', () => {
+    const r = (n: Note) => render(n, false)
+    expect(majorKeyCentersPerLetter().map(g => g.map(r))).toStrictEqual([
+      ['Cb', 'C', 'C#'],
+      ['Db', 'D'],
+      ['Eb', 'E'],
+      ['F', 'F#'],
+      ['Gb', 'G'],
+      ['Ab', 'A'],
+      ['Bb', 'B'],
+    ])
+  })
+
+  test('majorKeyCentersWeighted', () => {
+    const r = (n: Note) => render(n, false)
+    const shaped = majorKeyCentersWeighted().map(([natural, ...chunks]) =>
+      [r(natural), ...chunks.map(([notes, weight]) => [notes.map(r), weight] as const)],
+    )
+    expect(shaped).toStrictEqual([
+      ['C', [['C'], 0.5], [['Cb', 'C#'], 0.5]],
+      ['D', [['D'], 0.5], [['Db'], 0.5]],
+      ['E', [['E'], 0.5], [['Eb'], 0.5]],
+      ['F', [['F'], 0.5], [['F#'], 0.5]],
+      ['G', [['G'], 0.5], [['Gb'], 0.5]],
+      ['A', [['A'], 0.5], [['Ab'], 0.5]],
+      ['B', [['B'], 0.5], [['Bb'], 0.5]],
+    ])
+
+    // weights within each letter sum to 1
+    majorKeyCentersWeighted().forEach(([, ...chunks]) => {
+      expect(chunks.reduce((sum, [, w]) => sum + w, 0)).toBeCloseTo(1)
+    })
+  })
+
+  test('majorKeyCentersWeights', () => {
+    const shaped = majorKeyCentersWeights().map(([n, w]) => [render(n, false), w])
+    expect(shaped).toStrictEqual([
+      ['C', 0.5], ['Cb', 0.25], ['C#', 0.25],
+      ['D', 0.5], ['Db', 0.5],
+      ['E', 0.5], ['Eb', 0.5],
+      ['F', 0.5], ['F#', 0.5],
+      ['G', 0.5], ['Gb', 0.5],
+      ['A', 0.5], ['Ab', 0.5],
+      ['B', 0.5], ['Bb', 0.5],
+    ])
+
+    // every weighted note is a real tonic, weights per letter sum to 1
+    const byLetter = Object.values(
+      majorKeyCentersWeights().reduce<Record<string, number>>((acc, [n, w]) => {
+        acc[n.name] = (acc[n.name] ?? 0) + w
+        return acc
+      }, {}),
+    )
+    expect(byLetter).toHaveLength(7)
+    byLetter.forEach(sum => expect(sum).toBeCloseTo(1))
   })
 })

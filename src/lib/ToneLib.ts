@@ -281,6 +281,34 @@ export function nameLeadingDim7(): string[] {
   return keysDominantFlatNine().map(k => [third, fifth, seventh, ninth % octave].map(n => render(k[n])).join(' '))
 }
 
+// group the major key tonics by letter name, ordered C D E F G A B,
+// each inner array holding that letter's tonics ordered by accidental (b, natural, #)
+export function majorKeyCentersPerLetter(): Note[][] {
+  const centers = keyCenters().map(normalize)
+  return names.map(name =>
+    _.sortBy(centers.filter(c => c.name === name), c => c.alter),
+  )
+}
+
+// count the number of accidentals per tonic (first note in key), order and chunk per number of accidenals
+export function majorKeyCentersWeighted(): [Note, ...[Note[], number][]][] {
+  return majorKeyCentersPerLetter().map(letter => {
+    const chunks = Object.values(_.groupBy(letter, c => Math.abs(c.alter)))
+    const weight = 1 / chunks.length
+    const natural = letter.find(c => c.alter === 0)!
+    return [natural, ...chunks.map(chunk => [chunk, weight] as [Note[], number])]
+  })
+}
+
+export function keyChunkWeights(notes: Note[], weight: number): [Note, number][] {
+  return notes.map(note => [note, weight / notes.length] as [Note, number])
+}
+
+export function majorKeyCentersWeights(): [Note, number][] {
+  return majorKeyCentersWeighted().flatMap(([, ...chunks]) =>
+    chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight)))
+}
+
 // === § Quiz
 
 export function notesMissing(k: Key, l: Key): Set<string> {

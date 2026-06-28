@@ -479,8 +479,6 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: content: pickKeys (zip(letter, accidental))
-
 // TODO: execution: make items clickable, hide nonreviewed (timeout?), make them scrollable, make items movable
 // TODO: execution: highlight parameters
 // TODO: content: scales: bowings/delete notes replace with pauses
