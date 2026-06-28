@@ -419,9 +419,9 @@ function Randomize(controls: any): JSX.Element {
 
     if (matches.length === 0) return null
 
-    return <div className="flex flex-col items-center grow">
+    return <div className="flex flex-col items-center grow min-h-0">
       {matches.map(([filename, url], i) =>
-        <img key={i} src={url} alt={filename} title={filename} className="max-w-full max-h-full object-contain" />
+        <img key={i} src={url} alt={filename} title={filename} className="flex-1 min-h-0 max-w-full object-contain" />
       )}
     </div>
   }
@@ -450,12 +450,12 @@ function Randomize(controls: any): JSX.Element {
 
       {inExecution &&
         <div className="relative">
-          <div className={"w-[100dvw] flex flex-col justfiy-center"} style={({ height: "calc(90dvh)" })}>
+          <div className={"w-[100dvw] flex flex-col"} style={({ height: "calc(90dvh)" })}>
             {reviewStats()}
             {breadcrumb()}
 
             <ErrorBoundary fallback={<>item render crash</>}>
-              <div className="relative w-full flex flex-col flex-grow select-none">
+              <div className="relative w-full flex flex-col flex-grow min-h-0 select-none">
                 <div className="flex-1 content-center">
                   {itemRender()}
                 </div>
