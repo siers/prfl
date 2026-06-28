@@ -328,25 +328,45 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
   } else return l
 }
 
+// The flashcard "hidden answer" view: blank each interpolated part to '-' so the
+// answer isn't shown. A substitution narrowed to a single value (a spawned leaf)
+// is already concrete — there's nothing to hide — so render its value instead of
+// blanking it.
 export function emptiedInterpolations(l_: RenderLine): RenderLine {
   const l = structuredClone(l_)
 
   if (!l.source?.substitutions) return l
-  return (l.source.substitutions || []).reduce<RenderLine>((l, s) => substituteInterpolate(l, s.marker, ['-']), { ...l, contents: l.source.contents })
+  return (l.source.substitutions || []).reduce<RenderLine>(
+    (l, s) => substituteInterpolate(l, s.marker, s.contents.length === 1 ? s.contents : ['-']),
+    { ...l, contents: l.source.contents },
+  )
 }
 
 // Collapse each interpolation to a single chosen value (one per substitution,
 // in substitution order) and re-render via the same substitute path the parent
 // used. Used by deck-spawning to materialise one concrete child per combination
 // without re-deriving the text by hand.
+//
+// The source is kept (not discarded): each substitution is narrowed to its
+// single chosen value while preserving its marker and tag. That keeps tag-driven
+// rendering (images, sheets, content-with-tags) working on spawned children,
+// which would otherwise lose all tag metadata. The interpols are dropped, since a
+// collapsed leaf has nothing left to (re-)evaluate — that keeps it frozen (no
+// re-eval, not spawnable) while its tags live on.
 export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
   const l = structuredClone(l_)
 
   if (!l.source?.substitutions) return l
-  return (l.source.substitutions || []).reduce<RenderLine>(
-    (l, s, i) => substituteInterpolate(l, s.marker, [values[i] ?? '-']),
+  const newSubst = (l.source.substitutions || []).map((s, i) =>
+    ({ ...s, contents: [values[i] ?? '-'] })
+  )
+
+  const resubst = newSubst.reduce<RenderLine>(
+    (l, s) => substituteInterpolate(l, s.marker, s.contents),
     { ...l, contents: l.source.contents },
   )
+
+  return { ...resubst, source: { ...l.source, interpols: [], substitutions: newSubst } }
 }
 
 export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<String, Substitution>] {

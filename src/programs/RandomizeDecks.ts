@@ -54,13 +54,15 @@ function childKey(parentKey: string | null, combo: string[]): string | null {
 
 // Build one child line for a single combination by collapsing each
 // interpolation to its chosen value through the lang's own substitute path
-// (not a hand-rolled replace), then freezing it into a concrete leaf.
+// (not a hand-rolled replace). The collapsed source is kept so tags survive on
+// the child (each substitution is narrowed to its single chosen value), but
+// because every substitution now offers only one value the child is no longer
+// spawnable (see isSpawnable).
 function childItem(parent: UserItem, combo: string[]): UserItem {
   const collapsed = collapseToValues(parent, combo)
   return toUserItem({
     ...collapsed,
     key: childKey(parent.key, combo),
-    source: null, // children are concrete leaves — no further interpolation
   })
 }
 

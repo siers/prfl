@@ -77,9 +77,16 @@ describe('child keys & deck name', () => {
     expect(spawnDeckName(item, 'cartesian')).toBe('Scale/cartesian')
   })
 
-  test('children are concrete leaves: no source, so not spawnable again', () => {
+  test('children keep a collapsed source: each substitution narrowed to its one value', () => {
     const children = spawnChildren(evalItem(SCALE), 'zip')
-    expect(children.every(c => c.source === null)).toBe(true)
+    expect(children.every(c => c.source !== null)).toBe(true)
+    // values narrowed to the chosen one, markers and tags preserved
+    expect(children[0].source?.substitutions?.map(s => s.contents)).toStrictEqual([['C'], ['up']])
+    expect(children[0].source?.substitutions?.map(s => s.tag)).toStrictEqual(['key', 'bow'])
+  })
+
+  test('children are single-valued, so not spawnable again', () => {
+    const children = spawnChildren(evalItem(SCALE), 'zip')
     expect(children.every(c => !isSpawnable(c))).toBe(true)
   })
 })
