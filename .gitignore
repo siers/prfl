@@ -6,3 +6,4 @@ exercises/*
 .env
 .env.*
 !.env.example
+.vite

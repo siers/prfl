@@ -4,7 +4,7 @@ import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
-import type { ImageEntry } from '../lib/GoogleDrive'
+import type { ImageEntry } from '../lib/PrflAssets'
 
 // Extra, host-supplied bits the high-level evaluators thread down into the DSL
 // context (e.g. the images globbed by `glob`). Each entry lands in the context

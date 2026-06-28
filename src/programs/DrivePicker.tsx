@@ -1,5 +1,6 @@
 import { JSX, useState } from 'react'
-import { DriveFile, ImageEntry, fetchFileText, getApiKey, listFolder, listImages } from '../lib/GoogleDrive.ts'
+import { DriveFile, fetchFileText, getApiKey, listFolder } from '../lib/GoogleDrive.ts'
+import { ImageEntry, listImages } from '../lib/PrflAssets.ts'
 
 // The folder to browse. Hardcodable via env (VITE_GDRIVE_FOLDER_ID) so the
 // common case is zero-click; falls back to a prompt if unset so it still works
@@ -67,11 +68,13 @@ export function DrivePicker({ onLoad, onImages }: Props): JSX.Element {
     }
   }
 
-  async function loadImages() {
+  // Images come from the GitHub-backed assets repo, not Drive — keyless, cached
+  // per day. `force` (the reload button) bypasses the cache and re-hits the API.
+  async function loadImages(force = false) {
     if (!onImages) return
     setStatus({ kind: 'loading' })
     try {
-      const images = await listImages(folderId)
+      const images = await listImages(force)
       onImages(images)
       setOpen(false)
       setStatus({ kind: 'idle' })
@@ -105,7 +108,8 @@ export function DrivePicker({ onLoad, onImages }: Props): JSX.Element {
           {(status.kind === 'listed' || status.kind === 'error') && (
             <div className="mt-1 flex gap-3 border-t pt-1 text-xs text-gray-500">
               <span className="cursor-pointer select-none" onClick={() => refreshList(folderId)}>🔄 refresh</span>
-              {onImages && <span className="cursor-pointer select-none" onClick={loadImages}>🖼️ load images</span>}
+              {onImages && <span className="cursor-pointer select-none" onClick={() => loadImages(false)}>🖼️ load images</span>}
+              {onImages && <span className="cursor-pointer select-none" onClick={() => loadImages(true)} title="re-fetch from GitHub, bypassing today's cache">♻️ reload images</span>}
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
-import type { ImageEntry } from '../lib/GoogleDrive'
+import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
