@@ -361,8 +361,8 @@ test('glob', () => {
     ['1filename.jpg', 'urlB'],
     ['filename2.jpg', 'urlC'],
   ])).toStrictEqual([
-    'filename1.jpg',
-    '1filename.jpg',
+    'filename1',
+    '1filename',
   ])
 
   expect(glob('entertainer', [

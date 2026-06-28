@@ -5,7 +5,7 @@ export function chunk<A>(arr: A[], len: number) {
 }
 
 // forwards only
-export function directRange(start: number, stop: number) {
+export function directRange(start: number, stop: number): number[] {
   if (start > stop)
     return []
   else

@@ -12,6 +12,7 @@ import * as Comb from 'ts-combinatorics'
 import _ from 'lodash'
 import murmur from 'murmurhash3js'
 import { Picker } from 'bentools-picker'
+import { pipe } from '../lib/Function'
 
 function s(s: string): string[] {
   let out: string[]
@@ -490,18 +491,23 @@ export function glob(pattern: string, images: ImageEntry[]): string[] {
     return names.filter(name => re.test(name))
   }
 
-  return names
+  const basenames = names
     .filter(name => name.includes(pattern))
     .map(name => {
       const m1 = name.match(/[^\/]+$/)
       if (!m1) return name
 
-      const m2 = m1[0].match(/^([A-Z0-9]+-[A-Z0-9]+).*/i)
+      const m2 = m1[0].match(/^([A-Z0-9]+(-[A-Z0-9]+)*)/i)
       if (!m2) return name
       console.log({ m2 })
 
       return m2[1]
     })
+
+  return directRange(1, 7).flatMap((length: number) => {
+    const abbrevs = basenames.map(a => a.split('-').slice(0, length).join('-'))
+    return _.uniq(abbrevs).length == basenames.length ? [abbrevs] : []
+  })[0] || basenames
 }
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
