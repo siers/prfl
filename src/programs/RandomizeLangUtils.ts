@@ -482,7 +482,7 @@ export type Interface = {
 // read from `context`). A pattern with `*`/`?` is treated as a glob over the
 // whole filename; a plain pattern is a substring match. Returns the matching
 // filenames (the image block resolves filenames back to URLs).
-function glob(pattern: string, images: ImageEntry[]): string[] {
+export function glob(pattern: string, images: ImageEntry[]): string[] {
   const names = images.map(([filename]) => filename)
 
   if (/[*?]/.test(pattern)) {
@@ -490,7 +490,18 @@ function glob(pattern: string, images: ImageEntry[]): string[] {
     return names.filter(name => re.test(name))
   }
 
-  return names.filter(name => name.includes(pattern))
+  return names
+    .filter(name => name.includes(pattern))
+    .map(name => {
+      const m1 = name.match(/[^\/]+$/)
+      if (!m1) return name
+
+      const m2 = m1[0].match(/^([A-Z0-9]+-[A-Z0-9]+).*/i)
+      if (!m2) return name
+      console.log({ m2 })
+
+      return m2[1]
+    })
 }
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {

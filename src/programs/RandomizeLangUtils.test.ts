@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { randomizeLangUtils } from './RandomizeLangUtils'
+import { randomizeLangUtils, glob } from './RandomizeLangUtils'
 import _ from 'lodash'
 
 const {
@@ -353,4 +353,25 @@ test('zipLongest', () => {
 
   expect(zipLongest(a, b)).toStrictEqual(out)
   expect(zipLongest(b, a)).toStrictEqual(out.map(a => a.reverse()))
+})
+
+test('glob', () => {
+  expect(glob('1', [
+    ['filename1.jpg', 'urlA'],
+    ['1filename.jpg', 'urlB'],
+    ['filename2.jpg', 'urlC'],
+  ])).toStrictEqual([
+    'filename1.jpg',
+    '1filename.jpg',
+  ])
+
+  expect(glob('entertainer', [
+    ['nnnnnnnnnnn/entertainer-aaa-foobarbaz.jpg', 'urlA'],
+    ['entertainer/entertainer-abcd-foobarboo.jpg', 'urlA'],
+    ['1filename', 'urlB'],
+    ['filename2', 'urlC'],
+  ])).toStrictEqual([
+    'entertainer-aaa',
+    'entertainer-abcd',
+  ])
 })
