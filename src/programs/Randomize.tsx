@@ -36,15 +36,13 @@ function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
-  if (!controls.state) {
-    setState((_: any) => defaultState)
-    return <></>
-  }
-
-  let state: RState = controls.state || defaultState // this is no longer possibly any, so there are a lot of question marks still scattered around
+  const state: RState = controls.state || defaultState // this is no longer possibly any, so there are a lot of question marks still scattered around
   const stateVersion = state && state.version || 0
 
-  if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
+  useEffect(() => {
+    if (!controls.state) { setState((_: any) => defaultState); return }
+    if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
+  }, [controls.state, stateVersion])
 
   const decks: Decks<UserItem> = state?.items || decksOf<UserItem>([])
   const outLineCount: number = state?.outLineCount || 0
