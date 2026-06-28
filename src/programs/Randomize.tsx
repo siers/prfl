@@ -486,7 +486,6 @@ export default Randomize
 // TODO: content: scales: bowings/delete notes replace with pauses
 // TODO: content: scales: remove half-positions in ToneLibViolin
 // TODO: parametrization: these could be scheduled with no random (maybe)
-// TODO: combinatorics: flip versions, remove unique (scales markov)
 // TODO: review: accumulate review time
 // TODO: content: scales diatonic zip, check out other zips?
 // TODO: scheduling: randomness param

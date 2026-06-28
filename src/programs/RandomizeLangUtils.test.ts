@@ -18,6 +18,8 @@ const {
   zipInterleave,
   zipLongest,
   shuffle,
+  comb,
+  combMirr,
   perm,
   power,
   powerBuckets,
@@ -138,6 +140,34 @@ test('shuffle', () => {
   expect(shuffle(s('a'))).toStrictEqual(s('a'))
   expect(Array(...shuffle(s(long))).toSorted()).toStrictEqual(Array(...s(long)).toSorted())
   expect(shuffle(s(long))).not.toStrictEqual(s(long))
+})
+
+test('comb', () => {
+  expect(comb(s('GDAE'), 2)).toStrictEqual([
+    ["G", "D"],
+    ["G", "A"],
+    ["G", "E"],
+    ["D", "A"],
+    ["D", "E"],
+    ["A", "E"],
+  ])
+})
+
+test('combMirr', () => {
+  expect(combMirr(s('1234'), 2)).toStrictEqual([
+    ["1", "2"],
+    ["1", "3"],
+    ["1", "4"],
+    ["2", "1"],
+    ["2", "3"],
+    ["2", "4"],
+    ["3", "1"],
+    ["3", "2"],
+    ["3", "4"],
+    ["4", "1"],
+    ["4", "2"],
+    ["4", "3"],
+  ])
 })
 
 test('perm', () => {

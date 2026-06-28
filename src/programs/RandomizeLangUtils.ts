@@ -170,6 +170,18 @@ function shuffleX<A>(a: A[] | string, number: number): A[] {
   return times(number, list).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)), [])
 }
 
+function comb<A>(a: A[], n: number): A[][] {
+  return [... new Comb.Combination(a, n)]
+}
+
+function combMirr<A>(a: A[], n: number): A[][] {
+  return _.uniq(comb(a, n).flatMap(c => [c, [...c].reverse()])).sort()
+}
+
+function perm<A>(a: A[]): A[][] {
+  return [...new Comb.Permutation(a)]
+}
+
 function pick<A>(array: A[] | string): A | string {
   if (typeof array === 'string') return pickArray(ss(array))
   else return pickArray(array)
@@ -400,6 +412,7 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   comb<A>(a: A[], n: number): A[][],
+  combMirr<A>(a: A[], n: number): A[][],
   perm<A>(a: A[]): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
@@ -573,8 +586,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     shuffle,
     shuffleM,
     shuffleX,
-    comb: <A>(a: A[], n: number) => [... new Comb.Combination(a, n)],
-    perm: <A>(a: A[]) => [...new Comb.Permutation(a)],
+    comb,
+    combMirr,
+    perm,
     power,
     powerBuckets,
     powerInnerBuckets: <A>(a: A[]) => powerBuckets(a).slice(1, -1),
