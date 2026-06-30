@@ -354,7 +354,7 @@ function letterKeys(): string[] {
 }
 
 function keys(): string[] {
-  return letterKeys()
+  return shuffle(letterKeys())
 }
 
 // violin
