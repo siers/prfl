@@ -311,7 +311,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemSurface() {
-    recalc({ item: { unreview: true }, burst: '🌟' })
+    recalc({ item: { unreview: true, done: false }, burst: '🌟' })
   }
 
   function reviewStats(): JSX.Element {
