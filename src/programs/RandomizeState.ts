@@ -176,15 +176,20 @@ export function modifyItemState(
     } else if (controls.regenerate === 'next') {
       if (!item.source) return item
       return rotateInterpolableLine(item, controls.regenerateKey)
-    } else return { ...item, done: controls.done === undefined ? item.done : controls.done } satisfies UserItem
+    } else return {
+      ...item,
+      done: controls.done === undefined ? item.done : controls.done,
+      dropped: controls.bury === true ? true : controls.unreview === true ? false : item.dropped,
+    } satisfies UserItem
   })
 
   // bury ("drop down three") and unreview ("to top") are GenericList reorders:
   // they move the item and resolve the cursor themselves, so recalc skips its
   // own seek for them (signalled by returning a non-null new current).
+  const excludeForBury: Exclude<UserItem> = item => exclude(item) || (item.dropped === true && item !== updatedItems[current])
   const list: ListState<UserItem> = { items: updatedItems, current }
   const reordered: ListState<UserItem> | null =
-    controls.bury === true ? dropThree(list, exclude)
+    controls.bury === true ? dropThree(list, excludeForBury)
       : controls.unreview === true ? toTop(list)
         : null
 

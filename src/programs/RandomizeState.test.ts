@@ -86,10 +86,26 @@ describe('reduceRecalc — item actions', () => {
     expect(s.current?.[0]).toBe(DEFAULT_DECK) // still the same deck
   })
 
-  test('unreview (star) moves the current item to the front and follows it', () => {
+  test('bury marks the item dropped, and a second bury skips already-dropped items when counting three', () => {
+    let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(true)
+
+    // cursor now sits on 'b' (index 0); burying again moves 'b' past c (1),
+    // d (2), skips already-dropped 'a' (doesn't count), then past e (3) —
+    // landing after e.
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['c', 'd', 'a', 'e', 'b', 'f'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'b')?.dropped).toBe(true)
+  })
+
+  test('unreview (star) moves the current item to the front, follows it, and clears dropped', () => {
     let s = stateOf(['a', 'b', 'c', 'd'], 2) // on 'c'
+    s = reduceRecalc(s, { item: { bury: true } }, deps({ hideDone: false }))
+    s = reduceRecalc(s, { advance: ['set', labels(s).indexOf('c')] }, deps({ hideDone: false }))
     s = reduceRecalc(s, { item: { unreview: true } }, deps())
-    expect(labels(s)).toStrictEqual(['c', 'a', 'b', 'd'])
+    expect(s.items?.[DEFAULT_DECK]?.[0].dropped).toBeFalsy()
     expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
   })
 
