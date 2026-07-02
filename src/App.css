@@ -88,7 +88,7 @@ sub { font-size: xx-large; } /* weird name, but renders as small */
   font-size: 3.5em;
   line-height: 1;
   opacity: 0;
-  animation: burstA 400ms ease-out forwards, burstB 400ms ease-out forwards;
+  animation: burstA 550ms ease-out forwards, burstB 550ms ease-out forwards;
 }
 
 @keyframes burstA {
