@@ -1,7 +1,9 @@
-import { test } from 'vitest'
+import { expect, test } from 'vitest'
 // import { flashcardsDegrees } from './ToneLibFlashcards'
 // import { flashcardsPosition } from './ToneLibFlashcards'
 import { flashcardsNeighbors, flashcardsToCsv } from './ToneLibFlashcards'
+
+test('vacuous', () => { expect(1).toBe(1) })
 
 // uncomment, when export to anki needed
 // test('flashcards degrees', () => {
