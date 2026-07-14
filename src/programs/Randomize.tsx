@@ -486,6 +486,8 @@ export default Randomize
 // TODO: content: scales: bowings/delete notes replace with pauses
 //
 // TODO: review: accumulate review time in card
+// TODO: review: mark cards as in poor execution capability
+// TODO: review: conundrum: if you zip cards, you don't generate the full space, you can't problematic cards bump in front of the queue
 // TODO: execution: track reviews/freshness, leverage for scheduling
 
 // TODO: paramatrization: use the scheduler in interpolations mode (fw button = review)
