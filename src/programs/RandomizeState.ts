@@ -238,22 +238,27 @@ export function reduceTimer(s: RState | undefined, commandIn: TimerCommand, targ
     commandLocal = commandIn
   }
 
-  // Timers live on items, so only the cursor's deck has a running timer; every
-  // item in every other deck is implicitly stopped. We only touch that deck.
-  const [curDeck, curIndex] = s?.current || [DEFAULT_DECK, 0]
-  const decks = s.items || {}
+  const leafCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
+  const stack = s?.cursorStack || []
+  const commandAncestors: TimerAction = commandGlobal === 'start' || commandGlobal === 'stop' ? commandGlobal : 'no-op'
+
+  const chain: [DeckCursor, TimerAction, TimerAction][] = [
+    ...stack.map(cursor => [cursor, commandAncestors, 'no-op'] satisfies [DeckCursor, TimerAction, TimerAction]),
+    [leafCursor, commandLocal, 'stop'],
+  ]
+
+  const items: Decks<UserItem> = chain.reduce((acc, [[deck, index], command, siblingCommand]) => ({
+    ...acc,
+    [deck]: deckItems(acc, deck).map((item, i) => ({
+      ...item,
+      timer: modifyTimerPure(item?.timer, i == index ? command : siblingCommand, now),
+    })),
+  }), s.items || {})
+
   return {
     ...s,
     totalTimer: modifyTimerPure(s?.totalTimer || undefined, commandGlobal || 'no-op', now),
-    items: {
-      ...decks,
-      [curDeck]: deckItems(decks, curDeck).map((item, index) => {
-        return {
-          ...item,
-          timer: modifyTimerPure(item?.timer, index == curIndex ? commandLocal : 'stop', now),
-        }
-      }),
-    },
+    items,
   }
 }
 

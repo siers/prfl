@@ -182,6 +182,35 @@ describe('reduceTimer', () => {
   test('undefined state returns the default state, no throw', () => {
     expect(reduceTimer(undefined, 'start', null, NOW).version).toBe(5)
   })
+
+  test('stop/start while nested propagates up the cursorStack chain, not just the leaf', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder) // descends, starts the leaf timer
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // parent item still running
+
+    s = reduceTimer(s, 'stop', null, NOW + 1000)
+    expect(s.items!['Scale/zip'][0].timer?.running).toBe(false) // leaf paused
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(false) // ancestor paused too
+
+    s = reduceTimer(s, 'start', null, NOW + 2000)
+    expect(s.items!['Scale/zip'][0].timer?.running).toBe(true)
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // ancestor resumed too
+  })
+
+  test('a local-only command does not touch ancestor timers', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = reduceTimer(s, 'restart', 'local', NOW + 1000)
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // untouched, still running
+  })
+
+  test('subtract-and-restart only discounts the total timer, leaving ancestor item timers alone', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    const ancestorBefore = s.items![DEFAULT_DECK][0].timer
+    expect(ancestorBefore?.running).toBe(true) // carried over running from before the spawn
+
+    s = reduceTimer(s, 'subtract-and-restart', null, NOW + 1000)
+    expect(s.items![DEFAULT_DECK][0].timer).toStrictEqual(ancestorBefore) // untouched, not double-subtracted
+  })
 })
 
 describe('reduceSetBpm / reduceMetro', () => {
