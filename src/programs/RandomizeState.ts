@@ -223,28 +223,42 @@ function modifyTimerPure(tIn: Timer | undefined, command: TimerAction, now: numb
 export function reduceTimer(s: RState | undefined, commandIn: TimerCommand, target: null | 'local' = null, now: number): RState {
   if (!s) return defaultState satisfies RState
 
-  let commandGlobal: TimerAction | undefined
-  let commandLocal: TimerAction
-
-  if (commandIn == 'local-as-global') {
-    commandLocal = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
-    commandGlobal = 'no-op'
-  } else if (commandIn == 'subtract-and-restart') {
-    const currentItem = deckGet(s.items || {}, s.current || [DEFAULT_DECK, 0])
-    commandGlobal = ['subtract', currentItem?.timer || null]
-    commandLocal = 'restart'
-  } else {
-    if (target != 'local') commandGlobal = commandIn
-    commandLocal = commandIn
-  }
-
   const leafCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const stack = s?.cursorStack || []
-  const commandAncestors: TimerAction = commandGlobal === 'start' || commandGlobal === 'stop' ? commandGlobal : 'no-op'
+
+  // totalTimer is the one true running clock: start/stop/subtract always land
+  // there, and only there — never on ancestor/outer item timers, which would
+  // otherwise double-apply the same command up the whole chain.
+  let commandTotal: TimerAction
+  let commandLeaf: TimerAction // the leaf may additionally get 'restart', unlike totalTimer
+
+  if (commandIn == 'local-as-global') {
+    commandTotal = 'no-op'
+    commandLeaf = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
+  } else if (commandIn == 'subtract-and-restart') {
+    const currentItem = deckGet(s.items || {}, leafCursor)
+    commandTotal = ['subtract', currentItem?.timer || null]
+    commandLeaf = 'restart'
+  } else if (target == 'local') {
+    commandTotal = 'no-op'
+    commandLeaf = commandIn // restart/start/stop stays leaf-only
+  } else {
+    commandTotal = commandIn // start/stop
+    commandLeaf = commandIn
+  }
+
+  const totalTimer = modifyTimerPure(s?.totalTimer || undefined, commandTotal, now)
+
+  // Ancestors/outer never run their own command — every level above the leaf
+  // is always just resynced to totalTimer's resulting running state, so a
+  // command that changes totalTimer (start/stop/subtract) or a plain switch of
+  // the current item (advance/spawn/pop, via local-as-global) both keep the
+  // whole chain consistent with one ground truth.
+  const commandUpChain: TimerAction = totalTimer.kind == 'started' ? 'start' : 'stop'
 
   const chain: [DeckCursor, TimerAction, TimerAction][] = [
-    ...stack.map(cursor => [cursor, commandAncestors, 'no-op'] satisfies [DeckCursor, TimerAction, TimerAction]),
-    [leafCursor, commandLocal, 'stop'],
+    ...stack.map(cursor => [cursor, commandUpChain, 'no-op'] satisfies [DeckCursor, TimerAction, TimerAction]),
+    [leafCursor, commandLeaf, 'stop'],
   ]
 
   const items: Decks<UserItem> = chain.reduce((acc, [[deck, index], command, siblingCommand]) => ({
@@ -257,7 +271,7 @@ export function reduceTimer(s: RState | undefined, commandIn: TimerCommand, targ
 
   return {
     ...s,
-    totalTimer: modifyTimerPure(s?.totalTimer || undefined, commandGlobal || 'no-op', now),
+    totalTimer,
     items,
   }
 }

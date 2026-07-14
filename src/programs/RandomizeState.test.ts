@@ -203,13 +203,34 @@ describe('reduceTimer', () => {
     expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // untouched, still running
   })
 
-  test('subtract-and-restart only discounts the total timer, leaving ancestor item timers alone', () => {
-    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    const ancestorBefore = s.items![DEFAULT_DECK][0].timer
-    expect(ancestorBefore?.running).toBe(true) // carried over running from before the spawn
+  test('subtract-and-restart at the top level discounts totalTimer by the leaf item’s elapsed time', () => {
+    let s = stateOf(['a', 'b'])
+    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } } // 5s elapsed so far
+    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf ran for 1s
+    s = reduceTimer(s, 'subtract-and-restart', null, NOW)
+    // totalTimer had 5s elapsed; discount the leaf's 1s -> 4s remains, expressed as start = now - 4000
+    expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true })
+  })
 
+  test('subtract-and-restart while nested still discounts totalTimer, and every ancestor resyncs to it', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } } // 5s elapsed so far
+    s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s elapsed
+
+    s = reduceTimer(s, 'subtract-and-restart', null, NOW)
+    expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // discounted by the leaf's 1s
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // ancestor resynced to totalTimer's (still running) state
+    expect(s.items!['Scale/zip'][0].timer?.running).toBe(true) // leaf restarted
+  })
+
+  test('subtract-and-restart two levels deep resyncs every ancestor to totalTimer', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    // Fake a second level of nesting on top: innermost ancestor is 'Scale/zip'[0].
+    s = { ...s, cursorStack: [...s.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], items: { ...s.items, leaf: [item('x')] } }
+    s = { ...s, totalTimer: { kind: 'stopped', length: 5000, running: false } } // totalTimer currently stopped
     s = reduceTimer(s, 'subtract-and-restart', null, NOW + 1000)
-    expect(s.items![DEFAULT_DECK][0].timer).toStrictEqual(ancestorBefore) // untouched, not double-subtracted
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(false) // outer ancestor resynced to totalTimer (stopped)
+    expect(s.items!['Scale/zip'][0].timer?.running).toBe(false) // inner ancestor resynced too
   })
 })
 
