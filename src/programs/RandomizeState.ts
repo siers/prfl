@@ -1,13 +1,4 @@
 // Pure state reducers for Randomize.
-//
-// These were closures inside the Randomize component; extracting them to module
-// scope makes the state transitions pure and directly unit-testable, and — by
-// construction — they can only read their `s` argument, never a stale render-
-// time `state` closure (which the in-component recalc used to do).
-//
-// Time is injected as `now` so tests are deterministic without faking the
-// clock. The cursor/deck mechanics live in GenericList; this module is the
-// Randomize-specific glue: items + memory + timers + metro.
 
 import { evalContentsMem, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
 import { makeEmptyMemory } from './RandomizeLangTypes.js'
@@ -44,20 +35,15 @@ export type RState = {
 
   execute?: boolean,
   current?: DeckIndex,
-  // Decks you descended into, parent-first. Spawning pushes the parent cursor;
-  // exhausting/leaving a spawned deck pops back to it. Empty/undefined at the
-  // top level. Additive over v5 — old states simply have no stack.
+  // Decks you descended into, parent-first. Spawning pushes the parent cursor.
   cursorStack?: DeckCursor[],
   hideDone?: boolean,
-  // itemCounter denominator: false/undefined shows undoneCount, true shows outLineCount.
   countTotal?: boolean,
   totalTimer?: Timer,
 
   metro?: Metro,
 
-  // Images gathered from the Drive folder, as [filename, rawUrl]. The URL is a
-  // frameless media URL with the key embedded — fine, the key already ships in
-  // the bundle. UI wiring (the <img> tags) lives in the component.
+  // Images gathered from the Drive folder, as [filename, rawUrl]. The URL is a frameless media URL with the key embedded.
   images?: ImageEntry[],
 }
 
@@ -92,7 +78,7 @@ export type ItemActions = {
 export type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
 export type TimerAction = 'start' | 'stop' | 'restart' | ['subtract', Timer | null] | 'no-op'
 
-// ── small helpers ──────────────────────────────────────────────────────────
+// ── helpers ──────────────────────────────────────────────────────────
 
 function withMemory(mem: string | undefined, f: (memory: any) => void): string {
   const memory = mem ? mapParse(mem) : makeEmptyMemory()
@@ -176,17 +162,21 @@ export function modifyItemState(
     } else if (controls.regenerate === 'next') {
       if (!item.source) return item
       return rotateInterpolableLine(item, controls.regenerateKey)
-    } else return {
-      ...item,
-      done: controls.done === undefined ? item.done : controls.done,
-      dropped: controls.bury === true ? true : controls.unreview === true ? false : item.dropped,
-    } satisfies UserItem
+    } else {
+      const dropped = typeof item.dropped == 'number' ? item.dropped : 0
+      return {
+        ...item,
+        done: controls.done === undefined ? item.done : controls.done,
+        dropped: (dropped + (controls.bury === true ? 1 : 0)) * (controls.unreview === true ? 0 : 1),
+      } satisfies UserItem
+    }
   })
 
+  const currentDroppedCount = (updatedItems[current] && updatedItems[current].dropped) || 0
   // bury ("drop down three") and unreview ("to top") are GenericList reorders:
   // they move the item and resolve the cursor themselves, so recalc skips its
   // own seek for them (signalled by returning a non-null new current).
-  const excludeForBury: Exclude<UserItem> = item => exclude(item) || (item.dropped === true && item !== updatedItems[current])
+  const excludeForBury: Exclude<UserItem> = it => exclude(it) || ((it.dropped || 0) + 1 != currentDroppedCount && it !== updatedItems[current])
   const list: ListState<UserItem> = { items: updatedItems, current }
   const reordered: ListState<UserItem> | null =
     controls.bury === true ? dropThree(list, excludeForBury)

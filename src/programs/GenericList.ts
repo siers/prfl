@@ -29,9 +29,6 @@ function clampIndex<A>(items: A[], index: number): number {
   return Math.max(0, Math.min(items.length - 1, index))
 }
 
-// Seek to the next non-excluded item in `direction` (+1 / -1). With Direction.Zero
-// the cursor stays put unless it's sitting on an excluded item, in which case it
-// resolves forward off it.
 export function seek<A>(state: ListState<A>, direction: Direction, exclude: Exclude<A>): ListState<A> {
   if (state.items.length === 0) return state
 
@@ -49,11 +46,6 @@ export function setCurrent<A>(state: ListState<A>, index: number, exclude: Exclu
   return exclude(moved.items[moved.current]) ? seek(moved, Direction.Forward, exclude) : moved
 }
 
-// "drop down three" — bury the current item past the next three *visible* items
-// (so it ends up below two of them and lands fourth in the visible order),
-// clamped to the last visible slot. Counting visible items, not raw indices,
-// means excluded items in between don't shorten the drop. Cursor stays on the
-// same index, so it lands on whatever bubbled up into the current slot.
 export function dropThree<A>(state: ListState<A>, exclude: Exclude<A>): ListState<A> {
   if (state.items.length === 0) return state
 
@@ -62,12 +54,9 @@ export function dropThree<A>(state: ListState<A>, exclude: Exclude<A>): ListStat
 
   const target = ahead[Math.min(2, ahead.length - 1)] // third visible ahead, or the last
   const items = arrayMove(state.items, state.current, target)
-  const settled = { ...state, items }
-  return exclude(settled.items[settled.current]) ? seek(settled, Direction.Forward, exclude) : settled
+  return { ...state, items }
 }
 
-// "to top" — Randomize's star/unreview: move the current item to the front and
-// put the cursor on it.
 export function toTop<A>(state: ListState<A>): ListState<A> {
   if (state.items.length === 0) return state
 
@@ -75,7 +64,6 @@ export function toTop<A>(state: ListState<A>): ListState<A> {
   return { ...state, items, current: 0 }
 }
 
-// The items currently visible (non-excluded), paired with their real indices.
 export function visible<A>(state: ListState<A>, exclude: Exclude<A>): [A, number][] {
   return state.items.flatMap((item, i) => exclude(item) ? [] : [[item, i] as [A, number]])
 }

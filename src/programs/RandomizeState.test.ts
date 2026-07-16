@@ -8,11 +8,8 @@ import {
   defaultBpm, defaultState, Scheduler,
 } from './RandomizeState.ts'
 
-// Inject identity for the spawn scheduler so child order is deterministic
-// (production sorts by schedule with a random early-bias — tested separately).
 const keepOrder: Scheduler = items => items
 
-// Minimal UserItem builder — only the fields the reducers read.
 function item(contents: string, extra: Partial<UserItem> = {}): UserItem {
   return { kind: 'renderline', contents, key: contents, separator: null, source: null, timer: undefined, ...extra }
 }
@@ -20,7 +17,6 @@ function item(contents: string, extra: Partial<UserItem> = {}): UserItem {
 const NOW = 1_000_000
 const deps = (over: Partial<RecalcDeps> = {}): RecalcDeps => ({ hideDone: true, bpm: defaultBpm, now: NOW, ...over })
 
-// A v5 state with a single "default" deck of the given items at cursor index.
 function stateOf(contents: string[], current = 0, over: Partial<RState> = {}): RState {
   const items: Decks<UserItem> = { [DEFAULT_DECK]: contents.map(c => item(c)) }
   return { version: 5, items, current: [DEFAULT_DECK, current], ...over }
@@ -67,7 +63,6 @@ describe('reduceRecalc — item actions', () => {
   test('done + hideDone hides the item and seeks forward off it', () => {
     let s = stateOf(['a', 'b', 'c'])
     s = reduceRecalc(s, { item: { reviewed: true, done: true } }, deps())
-    // 'a' is now done; cursor resolved off it onto 'b'
     expect(at(s)).toBe('b')
     expect(s.items?.[DEFAULT_DECK]?.[0].done).toBe(true)
   })
@@ -90,14 +85,25 @@ describe('reduceRecalc — item actions', () => {
     let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
     s = reduceRecalc(s, { item: { bury: true } }, deps())
     expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
-    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(true)
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(1)
 
-    // cursor now sits on 'b' (index 0); burying again moves 'b' past c (1),
-    // d (2), skips already-dropped 'a' (doesn't count), then past e (3) —
-    // landing after e.
     s = reduceRecalc(s, { item: { bury: true } }, deps())
     expect(labels(s)).toStrictEqual(['c', 'd', 'a', 'e', 'b', 'f'])
-    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'b')?.dropped).toBe(true)
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'b')?.dropped).toBe(1)
+
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['d', 'a', 'e', 'b', 'f', 'c'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'c')?.dropped).toBe(1)
+
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    console.log(s.items)
+    expect(labels(s)).toStrictEqual(['a', 'e', 'b', 'f', 'd', 'c'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'd')?.dropped).toBe(1)
+
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['e', 'b', 'f', 'd', 'c', 'a'])
+    expect(s.current).toStrictEqual(['default', 0])
+    // expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(2)
   })
 
   test('unreview (star) moves the current item to the front, follows it, and clears dropped', () => {
@@ -128,8 +134,6 @@ describe('reduceRecalc — eval & deck wiring', () => {
   })
 
   test('eval drops every spawned deck and resets the breadcrumb stack', () => {
-    // Descend into a spawned deck, then reeval new text: the old decks are gone,
-    // only the freshly evaluated default deck remains, and the stack is empty.
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
     expect(Object.keys(s.items!)).toContain('Scale/zip')
@@ -142,8 +146,6 @@ describe('reduceRecalc — eval & deck wiring', () => {
   })
 
   test('reads text/execute/hideDone from the passed state, not a stale closure', () => {
-    // s carries text; recalc with no contents must fall back to s.text (the
-    // staleness bug the extraction fixes: it used to read the render closure).
     const s: RState = { version: 5, text: '-=-\nx\ny', execute: true, hideDone: false }
     const out = reduceRecalc(s, { eval: true }, deps({ hideDone: false }))
     expect(labels(out)).toStrictEqual(['x', 'y'])
@@ -208,7 +210,6 @@ describe('reduceTimer', () => {
     s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } } // 5s elapsed so far
     s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf ran for 1s
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
-    // totalTimer had 5s elapsed; discount the leaf's 1s -> 4s remains, expressed as start = now - 4000
     expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true })
   })
 
@@ -225,7 +226,6 @@ describe('reduceTimer', () => {
 
   test('subtract-and-restart two levels deep resyncs every ancestor to totalTimer', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    // Fake a second level of nesting on top: innermost ancestor is 'Scale/zip'[0].
     s = { ...s, cursorStack: [...s.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], items: { ...s.items, leaf: [item('x')] } }
     s = { ...s, totalTimer: { kind: 'stopped', length: 5000, running: false } } // totalTimer currently stopped
     s = reduceTimer(s, 'subtract-and-restart', null, NOW + 1000)
@@ -251,8 +251,6 @@ describe('reduceSetBpm / reduceMetro', () => {
   })
 })
 
-// A default deck holding one real interpolable item (built via the evaluator)
-// at the cursor, so spawning has genuine parameters to expand.
 function stateWithSpawnable(): RState {
   const parent = toUserItem(evalContents("Scale: play [s('C,D')]key [s('up,down')]bow")[0])
   return { version: 5, items: { [DEFAULT_DECK]: [parent, item('after')] }, current: [DEFAULT_DECK, 0] }
@@ -282,7 +280,6 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   })
 
   test('the injected scheduler decides child order', () => {
-    // A scheduler that reverses proves reduceSpawn defers ordering to it.
     const reversing: Scheduler = items => [...items].reverse()
     const out = reduceSpawn(stateWithSpawnable(), 'zip', NOW, reversing)
     expect(out.items?.['Scale/zip']?.map(i => i.contents)).toStrictEqual([
@@ -291,8 +288,6 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   })
 
   test('the real schedule keeps every child (a permutation, none lost) ', () => {
-    // The schedule pick is random (early-bias), so we assert membership, not
-    // order: the cartesian deck still has all 4 distinct combinations.
     const out = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW) // default = scheduleByMemory
     const got = (out.items?.['Scale/cartesian'] || []).map(i => i.contents).sort()
     expect(got).toStrictEqual([
@@ -325,7 +320,6 @@ describe('defaultState eval', () => {
     const out = reduceRecalc(defaultState, { eval: true }, deps())
     const defaultItems = out.items?.[DEFAULT_DECK] ?? []
     expect(defaultItems.length).toBe(3)
-    // defaultState text has no -=- separator so items are shuffled; check membership
     expect(defaultItems.map(i => i.contents).sort()).toStrictEqual(['Juggling: do it', 'Lullaby: play it', 'Squats: do it'])
     expect(out.current).toStrictEqual([DEFAULT_DECK, 0])
     expect(out.outLineCount).toBe(3)
@@ -355,10 +349,7 @@ describe('breadcrumb / pop navigation', () => {
   })
 
   test('popTo a level trims the stack to that level and restores its cursor', () => {
-    // Build two levels of nesting: default -> Scale/zip -> (spawn again).
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
-    // descend a second time from a child that's spawnable? children are leaves,
-    // so simulate a two-deep stack directly to test popTo in isolation.
     s = { ...s, cursorStack: [[DEFAULT_DECK, 0], ['mid', 3]], current: ['leaf', 2] }
     const out = reducePopTo(s, 1, NOW) // level 1 = 'mid'
     expect(out.current).toStrictEqual(['mid', 3])
@@ -367,7 +358,6 @@ describe('breadcrumb / pop navigation', () => {
 
   test('popTo the last (current) level is a no-op', () => {
     const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    // path = [default, Scale/zip]; level 1 is current -> no pop
     expect(reducePopTo(s, 1, NOW).current).toStrictEqual(['Scale/zip', 0])
   })
 })

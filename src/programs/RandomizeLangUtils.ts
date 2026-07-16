@@ -499,7 +499,6 @@ export function glob(pattern: string, images: ImageEntry[]): string[] {
 
       const m2 = m1[0].match(/^([A-Z0-9]+(-[A-Z0-9]+)*)/i)
       if (!m2) return name
-      console.log({ m2 })
 
       return m2[1]
     })
@@ -518,7 +517,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const sorted = (_.sortBy(items, item => {
       const cards = cardMemory(memory)
       const otherwiseOrder = murmur.x86.hash32(item.contents)
-      // console.log(`${item.key}.reviewed = ${(cards[item.key || '']?.reviewed || -otherwiseOrder)}`)
+      // c.l(`${item.key}.reviewed = ${(cards[item.key || '']?.reviewed || -otherwiseOrder)}`)
       return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
 

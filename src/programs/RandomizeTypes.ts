@@ -4,7 +4,7 @@ import { RenderLine } from './RandomizeLangTypes.js'
 type UserItemData = {
   timer?: Timer,
   done?: boolean,
-  dropped?: boolean,
+  dropped?: number,
 }
 
 export type UserItem = RenderLine & UserItemData
