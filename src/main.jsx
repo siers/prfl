@@ -2,11 +2,17 @@
 import { createRoot } from 'react-dom/client'
 import './main.css'
 import App from './App.jsx'
+import { burstEmojiNotif } from './programs/Burst.tsx'
 
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js', { scope: import.meta.env.BASE_URL })
   })
+}
+
+if (localStorage.getItem('buildHash') !== __BUILD_HASH__) {
+  localStorage.setItem('buildHash', __BUILD_HASH__)
+  burstEmojiNotif(`🔧`)
 }
 
 let clearStateClickCount = 0
