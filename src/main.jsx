@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './main.css'
 import App from './App.jsx'
 
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: import.meta.env.BASE_URL })
+  })
+}
+
 let clearStateClickCount = 0
 
 setTimeout(() => {
