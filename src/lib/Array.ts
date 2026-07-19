@@ -81,8 +81,8 @@ export function arrayShift<A>(arr: A[], count: number): A[] {
 }
 
 export function arrayMove<A>(arr1: A[], fromIndex: number, toIndex: number) {
-  if (arr1.length <= fromIndex) return arr1
-  if (arr1.length <= toIndex) return arr1
+  if (arr1.length < fromIndex) return arr1
+  if (arr1.length < toIndex) return arr1
 
   const arr = [...arr1]
   const element = arr[fromIndex]

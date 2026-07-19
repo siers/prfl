@@ -16,7 +16,7 @@ const { Forward, Backward } = Direction
 // The model is opaque over A; exclusion is the caller's concern. These tests use
 // a string item that carries its own done/skip flags and an exclude predicate
 // that hides done/skipped items (mirroring how Randomize wires it up).
-type Word = { value: string, done?: boolean, skip?: boolean }
+type Word = { value: string, done?: boolean, skip?: boolean, dropped?: number }
 const words = (s: string): Word[] => s.split(' ').map(value => ({ value }))
 
 let hideDone = true
@@ -125,13 +125,42 @@ test('dropThree counts visible items, dropping past two visible ones', () => {
   expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
 })
 
-test('dropThree is a no-op when nothing visible is ahead', () => {
+test('dropThree is not a no-op when nothing visible is ahead', () => {
   let s = freshState(words('a b c'))
   s.items[1].done = true
   s.items[2].done = true // 'a' is the last visible item
   s = dropThree(s, exclude)
-  expect(labels(s)).toStrictEqual(['a', 'b', 'c']) // unmoved
+  expect(labels(s)).toStrictEqual(['b', 'c', 'a']) // unmoved
 })
+
+test('drop to last', () => {
+  let s = freshState(words('a b c d e f'))
+  window.x = true
+
+  s = dropThree(s, _ => true)
+  expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
+  window.x = false
+})
+
+// test('dropThree with excludeForBury also skips items trailing on dropped count', () => {
+//   const excludeForBury = (currentItem: Word, currentDroppedCount: number): Exclude<Word> =>
+//     it => exclude(it) || ((it.dropped || 0) < currentDroppedCount - 1)
+
+//   let s = freshState(words('a b c d e f'))
+//   s.items[0].dropped = 1
+//   s.items[2].dropped = 1
+//   s.items[3].dropped = 1
+//   s.items[4].dropped = 1
+//   s.items[5].dropped = 1
+
+//   s = dropThree(s, excludeForBury(s.items[0], 2))
+//   expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'a', 'f'])
+
+//   s.items[0].dropped = 3
+
+//   s = dropThree(s, excludeForBury(s.items[0], 3))
+//   expect(labels(s)).toStrictEqual(['c', 'd', 'e', 'a', 'f', 'b'])
+// })
 
 test('toTop moves the current item to the front and follows it', () => {
   let s = freshState(words('a b c d'))

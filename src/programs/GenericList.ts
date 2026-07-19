@@ -1,5 +1,5 @@
 import { arrayMove } from '../lib/Array.ts'
-import { Direction, linearSeekFullNext, linearSeekNext, linearSeekPast } from './LinearSeek.ts'
+import { Direction, linearSeekFullNext, linearSeekPast } from './LinearSeek.ts'
 
 // A generic, framework-agnostic distillation of Randomize's todo-list model.
 // No review/flashcard/timer/metro components — only:

@@ -20,6 +20,7 @@ export function linearSeekPast<A>(
       if (outPermitted <= 0) break
       else {
         outPermitted--;
+        visits.push(current)
         continue
       }
     }

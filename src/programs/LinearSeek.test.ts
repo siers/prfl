@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { Direction, linearSeek, linearSeekFull, linearSeekFullNext, linearSeekNext } from './LinearSeek'
+import { Direction, linearSeek, linearSeekFull, linearSeekFullNext, linearSeekNext, linearSeekPast } from './LinearSeek'
 
 const { Forward, Backward } = Direction
 
@@ -34,4 +34,16 @@ test('linearSeekFullNext collects in both directions', () => {
   const exclude = (a: number) => new Set([1, 5]).has(a)
   expect(linearSeekFullNext([0, 1, 2, 3, 4, 5, 6], 3, Forward, exclude)).toStrictEqual([4, 6, 3, 2, 0])
   expect(linearSeekFullNext([0, 1, 2, 3, 4, 5, 6], 3, Backward, exclude)).toStrictEqual([2, 0, 3, 4, 6])
+})
+
+test('linearSeekPast emits out', () => {
+  const exclude = (a: number) => new Set([1, 3]).has(a)
+  expect(linearSeekPast([0, 1, 2, 3, 4], 0, Forward, exclude, 1)).toStrictEqual([0, 2, 4, 5])
+  expect(linearSeekPast([0, 1, 2, 3, 4], 0, Forward, exclude, 1, 1)).toStrictEqual([2, 4, 5])
+})
+
+test('linearSeekPast emits out, pathological cases', () => {
+  const exclude = (a: number) => new Set([1, 3]).has(a)
+  expect(linearSeekPast([0], 0, Forward, exclude, 1, 1)).toStrictEqual([1])
+  expect(linearSeekPast([0, 1, 2, 3, 4, 5], 0, Forward, always, 1, 1)).toStrictEqual([6])
 })

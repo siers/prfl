@@ -48,17 +48,22 @@ test('arrayMove', () => {
 
   expect(arrayMove([1], 0, 0)).toStrictEqual([1])
 
-  expect(arrayMove(a, 1, 1)).toStrictEqual([1, 2, 3])
   expect(arrayMove(a, 0, 0)).toStrictEqual([1, 2, 3])
+  expect(arrayMove(a, 1, 1)).toStrictEqual([1, 2, 3])
+  expect(arrayMove(a, 2, 2)).toStrictEqual([1, 2, 3])
 
+  expect(arrayMove(a, 0, 3)).toStrictEqual([2, 3, 1])
+
+  expect(arrayMove(a, 0, 2)).toStrictEqual([2, 3, 1])
   expect(arrayMove(a, 1, 2)).toStrictEqual([1, 3, 2])
-  expect(arrayMove(a, 2, 1)).toStrictEqual([1, 3, 2])
   expect(arrayMove(a, 2, 0)).toStrictEqual([3, 1, 2])
+  expect(arrayMove(a, 2, 1)).toStrictEqual([1, 3, 2])
 
   expect(arrayMove(a, 9, 12)).toStrictEqual([1, 2, 3])
   expect(arrayMove(a, 12, 1)).toStrictEqual([1, 2, 3])
   expect(arrayMove(a, 1, 12)).toStrictEqual([1, 2, 3])
 
+  expect(arrayMove([0, 0, 0, 5, 0], 3, 4)).toStrictEqual([0, 0, 0, 0, 5])
   expect(arrayMove([0, 0, 0, 0, 5], 4, 0)).toStrictEqual([5, 0, 0, 0, 0])
 
   expect(a).toStrictEqual([1, 2, 3])
