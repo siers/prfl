@@ -4,24 +4,44 @@ export enum Direction {
   Backward = -1,
 }
 
+export function linearSeekPast<A>(
+  as: A[],
+  current: number,
+  direction: Direction,
+  exclude: (a: A) => boolean,
+  outPermitted: number = 1, // number of times you may go outside array bounds
+  next: number = 0, // swallow N matches
+): number[] {
+  const out: (at: number) => boolean = (at: number) => at >= as.length || at < 0
+  const visits: number[] = []
+
+  do {
+    if (out(current)) {
+      if (outPermitted <= 0) break
+      else {
+        outPermitted--;
+        continue
+      }
+    }
+    if (!exclude(as[current])) {
+      if (next <= 0) visits.push(current)
+      next--
+    }
+
+    if (direction == 0) break
+    else current += Math.sign(direction)
+  } while (true)
+
+  return visits
+}
+
 export function linearSeek<A>(
   as: A[],
   current: number,
   direction: Direction,
   exclude: (a: A) => boolean,
 ): number[] {
-  const out: (at: number) => boolean = (at: number) => at >= as.length || at < 0
-  const visits: number[] = [current].filter(a => !out(a) && !exclude(as[a]))
-
-  if (direction == 0) return visits
-
-  do {
-    current += Math.sign(direction)
-    if (out(current)) break
-    if (!exclude(as[current])) visits.push(current)
-  } while (true)
-
-  return visits
+  return linearSeekPast(as, current, direction, exclude, 0)
 }
 
 export function linearSeekNext<A>(
@@ -30,7 +50,7 @@ export function linearSeekNext<A>(
   direction: Direction,
   exclude: (a: A) => boolean,
 ): number[] {
-  return linearSeek(as, current + direction, direction, exclude)
+  return linearSeekPast(as, current, direction, exclude, 0, 1)
 }
 
 export function linearSeekFull<A>(

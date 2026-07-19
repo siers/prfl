@@ -1,5 +1,5 @@
 import { arrayMove } from '../lib/Array.ts'
-import { Direction, linearSeekFullNext, linearSeekNext } from './LinearSeek.ts'
+import { Direction, linearSeekFullNext, linearSeekNext, linearSeekPast } from './LinearSeek.ts'
 
 // A generic, framework-agnostic distillation of Randomize's todo-list model.
 // No review/flashcard/timer/metro components — only:
@@ -49,11 +49,9 @@ export function setCurrent<A>(state: ListState<A>, index: number, exclude: Exclu
 export function dropThree<A>(state: ListState<A>, exclude: Exclude<A>): ListState<A> {
   if (state.items.length === 0) return state
 
-  const ahead = linearSeekNext(state.items, state.current, Direction.Forward, exclude)
-  if (ahead.length === 0) return state // nothing visible ahead — already at the bottom
+  const ahead = linearSeekPast(state.items, state.current, Direction.Forward, exclude, 1, 1)
+  const items = arrayMove(state.items, state.current, ahead[clampIndex(ahead, 2)])
 
-  const target = ahead[Math.min(2, ahead.length - 1)] // third visible ahead, or the last
-  const items = arrayMove(state.items, state.current, target)
   return { ...state, items }
 }
 

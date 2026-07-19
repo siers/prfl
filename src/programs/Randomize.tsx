@@ -10,7 +10,7 @@ import { mapParse } from '../lib/Map.js'
 
 import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
-import { linearSeekNext } from './LinearSeek.ts'
+import { linearSeekNext, linearSeekPast } from './LinearSeek.ts'
 import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './Decks.ts'
 import { Metro as MetroComponent } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
@@ -228,7 +228,7 @@ function Randomize(controls: any): JSX.Element {
 
   function itemRender(): JSX.Element {
     const shownItems: [UserItem, number][] = [-1, 0, 1].flatMap(delta => {
-      const found = linearSeekNext(items, currentIndex, delta, itemSeekExcluded)
+      const found = linearSeekPast(items, currentIndex, delta, itemSeekExcluded, 0, Math.abs(delta))
         .slice(0, delta == 0 ? 1 : Math.abs(delta * 2))
         .map(idx => [items[idx], idx] satisfies [UserItem, number])
 
@@ -489,12 +489,15 @@ export default Randomize
 // TODO: review: mark cards as in poor execution capability
 // TODO: review: conundrum: if you zip cards, you don't generate the full space, you can't problematic cards bump in front of the queue
 // TODO: execution: track reviews/freshness, leverage for scheduling
+// TODO: review: hierarchical dropping (droping respects items with an equal or -1 drop count)
 
-// TODO: paramatrization: use the scheduler in interpolations mode (fw button = review)
-// TODO: parametrization: spawning params: column subsets, subset per column
-// TODO: parametrization: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
+// TODO: pmz: use the scheduler in interpolations mode (fw button = review)
+// TODO: pmz: spawning params: column subsets, subset per column
+// TODO: pmz: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 
 // TODO: subprogram: drones
+// TODO: pmz: don't regenerate sublists when exiting them
+// TODO: pmz: either hierarchical or multiple keys
 
 // ---
 

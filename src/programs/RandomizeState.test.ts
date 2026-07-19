@@ -96,7 +96,6 @@ describe('reduceRecalc — item actions', () => {
     expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'c')?.dropped).toBe(1)
 
     s = reduceRecalc(s, { item: { bury: true } }, deps())
-    console.log(s.items)
     expect(labels(s)).toStrictEqual(['a', 'e', 'b', 'f', 'd', 'c'])
     expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'd')?.dropped).toBe(1)
 

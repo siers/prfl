@@ -21,7 +21,7 @@ test('collects non-excluded items between excluded ones', () => {
   expect(linearSeek([0, 1, 2, 3, 4], 0, Forward, exclude)).toStrictEqual([0, 2, 4])
 
   expect(linearSeekNext([0, 1, 2, 3, 4], 0, Forward, exclude)).toStrictEqual([2, 4])
-  expect(linearSeekNext([0, 1, 2, 3, 4], 0, 2 as Direction, never)).toStrictEqual([2, 3, 4])
+  expect(linearSeekNext([0, 1, 2, 3, 4], 0, 2 as Direction, never)).toStrictEqual([1, 2, 3, 4])
 })
 
 test('linearSeekFull collects in both directions', () => {
