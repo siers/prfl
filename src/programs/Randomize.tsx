@@ -479,12 +479,29 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
+// TODO: timers: subtract should subtract up the chain, clanker half-assed it
+
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
+
+// TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: hide nonreviewed (timeout?), make them scrollable
+// TODO: execution: missing items after latest seek changes
+// TODO: execution: swipe actions on the item to hide the stack
+// TODO: execution: show params in a stack when only single item shown
+// TODO: execution: deck is not regenerated unless it is empty
+// TODO: execution: param rotations take stuff out (what to do in case there are multiple params, then it's slightly weird)
+
+// TODO: parametrization: some params should not be taken into account when generating subdecks
+// TODO: parametrization: refresh shouldn't clean subdecks
+// TODO: parametrization: enable syntax to create items into subdecks directly
 
 // TODO: content: scales: bowings/delete notes replace with pauses
-//
+// TODO: tonelib: acceptance test for all roots of the minor scales
+
+// TODO: metro: subdecks should use the bpm from the top card, if it's not defined yet 
+// TODO: metro: subdecks should be able to start fresh metro times
+
+// TODO: swipe: add diagonal directions to make it more cancellable, + more minimal distance
 // TODO: review: accumulate review time in card
 // TODO: review: mark cards as in poor execution capability
 // TODO: review: conundrum: if you zip cards, you don't generate the full space, you can't problematic cards bump in front of the queue

@@ -361,7 +361,7 @@ function keys(): string[] {
 
 function scalePositions(opts: { arrows?: boolean } = {}) {
   const arrows: string[] = opts?.arrows === false ? times(8, '') : shuffleX('↑↑↓↓', 2)
-  return zip(ss('123456'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), arrows).map(example =>
+  return zip(ss('1234567'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), arrows).map(example =>
     example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
   ).join(' ')
 }
