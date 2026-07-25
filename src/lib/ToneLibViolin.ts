@@ -1,6 +1,7 @@
 import { directRange, transpose, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt } from './Random'
 import { enharmonics, Key, majorKey, Note, parseNote, rename, render, semi } from './ToneLib'
+import _ from 'lodash'
 
 // TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
 
@@ -100,5 +101,16 @@ export function positionsQuiz(): string[] {
     return string.positions.slice(1).map((fret, index) =>
       `${base}${index + 1} = ${render(fret, false)}`
     )
+  })
+}
+
+export function frets(): string[][] {
+  return strings.map((string, stringIdx) => {
+    const base = semi(string.base)
+
+    return directRange(base + 1, base + 24).map(semi => {
+      const names = _.sortBy(enharmonics(semi), semi => Math.abs(semi.alter)).slice(0, 2).map(n => render(n, true))
+      return `${names.join('/')}-${'IV III II I'.split(' ')[stringIdx]}`
+    })
   })
 }

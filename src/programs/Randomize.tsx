@@ -483,7 +483,6 @@ export default Randomize
 
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 
-// TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: execution: hide nonreviewed (timeout?), make them scrollable
 // TODO: execution: missing items after latest seek changes
 // TODO: execution: swipe actions on the item to hide the stack
@@ -491,10 +490,15 @@ export default Randomize
 // TODO: execution: deck is not regenerated unless it is empty
 // TODO: execution: param rotations take stuff out (what to do in case there are multiple params, then it's slightly weird)
 
+// TODO: evaluational: all cards are always present
+// TODO: evaluational: some blocks are dynamic, always rerendered
+// TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
+
 // TODO: parametrization: some params should not be taken into account when generating subdecks
 // TODO: parametrization: refresh shouldn't clean subdecks
 // TODO: parametrization: enable syntax to create items into subdecks directly
 
+// TODO: content: every tone on the violin as a parameter, so you can use subdecks/parametrization to check every note for tuning
 // TODO: content: scales: bowings/delete notes replace with pauses
 // TODO: tonelib: acceptance test for all roots of the minor scales
 

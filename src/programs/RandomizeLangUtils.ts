@@ -5,7 +5,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, render, semi } from '../lib/ToneLib'
-import { chromaticSlide } from '../lib/ToneLibViolin'
+import { chromaticSlide, frets } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import * as Comb from 'ts-combinatorics'
 
@@ -477,6 +477,7 @@ export type Interface = {
   scalePositions: (opts: { arrows?: boolean }) => string,
   scalePositionsDbl: () => string[],
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
+  frets: () => string[],
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -661,5 +662,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     scalePositions,
     scalePositionsDbl,
     chromaticSlide,
+    frets: () => frets().flat(),
   }
 }

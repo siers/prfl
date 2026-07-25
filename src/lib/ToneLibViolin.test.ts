@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { findTriadOnString, positionsQuiz, strings, stringsAboveOpen, stringsForTonality } from './ToneLibViolin.ts'
+import { findTriadOnString, frets, positionsQuiz, strings, stringsAboveOpen, stringsForTonality } from './ToneLibViolin.ts'
 import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
@@ -47,5 +47,116 @@ describe('ToneLibViolin', () => {
     const sao = transpose(strings.map(s => s.positions))[0].map(n => render(n)).join(' ')
 
     expect(sao).toBe('A3 E4 B4 F#5')
+  })
+
+  test('frets', () => {
+    expect(frets()).toStrictEqual(
+      [
+        [
+          "G#3/Ab3-IV",
+          "A3-IV",
+          "A#3/Bb3-IV",
+          "B3/Cb3-IV",
+          "C4/B#4-IV",
+          "C#4/Db4-IV",
+          "D4-IV",
+          "D#4/Eb4-IV",
+          "E4/Fb4-IV",
+          "F4/E#4-IV",
+          "F#4/Gb4-IV",
+          "G4-IV",
+          "G#4/Ab4-IV",
+          "A4-IV",
+          "A#4/Bb4-IV",
+          "B4/Cb4-IV",
+          "C5/B#5-IV",
+          "C#5/Db5-IV",
+          "D5-IV",
+          "D#5/Eb5-IV",
+          "E5/Fb5-IV",
+          "F5/E#5-IV",
+          "F#5/Gb5-IV",
+          "G5-IV",
+        ],
+        [
+          "D#4/Eb4-III",
+          "E4/Fb4-III",
+          "F4/E#4-III",
+          "F#4/Gb4-III",
+          "G4-III",
+          "G#4/Ab4-III",
+          "A4-III",
+          "A#4/Bb4-III",
+          "B4/Cb4-III",
+          "C5/B#5-III",
+          "C#5/Db5-III",
+          "D5-III",
+          "D#5/Eb5-III",
+          "E5/Fb5-III",
+          "F5/E#5-III",
+          "F#5/Gb5-III",
+          "G5-III",
+          "G#5/Ab5-III",
+          "A5-III",
+          "A#5/Bb5-III",
+          "B5/Cb5-III",
+          "C6/B#6-III",
+          "C#6/Db6-III",
+          "D6-III",
+        ],
+        [
+          "A#4/Bb4-II",
+          "B4/Cb4-II",
+          "C5/B#5-II",
+          "C#5/Db5-II",
+          "D5-II",
+          "D#5/Eb5-II",
+          "E5/Fb5-II",
+          "F5/E#5-II",
+          "F#5/Gb5-II",
+          "G5-II",
+          "G#5/Ab5-II",
+          "A5-II",
+          "A#5/Bb5-II",
+          "B5/Cb5-II",
+          "C6/B#6-II",
+          "C#6/Db6-II",
+          "D6-II",
+          "D#6/Eb6-II",
+          "E6/Fb6-II",
+          "F6/E#6-II",
+          "F#6/Gb6-II",
+          "G6-II",
+          "G#6/Ab6-II",
+          "A6-II",
+        ],
+        [
+          "F5/E#5-I",
+          "F#5/Gb5-I",
+          "G5-I",
+          "G#5/Ab5-I",
+          "A5-I",
+          "A#5/Bb5-I",
+          "B5/Cb5-I",
+          "C6/B#6-I",
+          "C#6/Db6-I",
+          "D6-I",
+          "D#6/Eb6-I",
+          "E6/Fb6-I",
+          "F6/E#6-I",
+          "F#6/Gb6-I",
+          "G6-I",
+          "G#6/Ab6-I",
+          "A6-I",
+          "A#6/Bb6-I",
+          "B6/Cb6-I",
+          "C7/B#7-I",
+          "C#7/Db7-I",
+          "D7-I",
+          "D#7/Eb7-I",
+          "E7/Fb7-I",
+        ],
+      ]
+    )
   })
 })
