@@ -10,7 +10,7 @@ import { mapParse } from '../lib/Map.js'
 
 import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
-import { linearSeekNext, linearSeekPast } from './LinearSeek.ts'
+import { linearSeekPast } from './LinearSeek.ts'
 import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './Decks.ts'
 import { Metro as MetroComponent } from './Metro.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
@@ -307,7 +307,10 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function metroState(diff: Metro) {
-    setState((sIn: RState | undefined) => reduceMetro(sIn, diff))
+    setState((sIn: RState | undefined) => {
+      const next = reduceMetro(sIn, diff)
+      return diff.timer ? reduceTimer(next, diff.timer, null, Date.now()) : next
+    })
   }
 
   function itemReview() {
@@ -398,7 +401,7 @@ function Randomize(controls: any): JSX.Element {
           <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm * 0.333333 })}>÷3</span>
           <span
             className="p-[2px] inline-block text-center w-[4em]"
-            onClick={_ => ticking && metroState({ power: !metro.power })}
+            onClick={_ => metroState({ power: ticking ? !metro.power : true, timer: ticking ? undefined : 'start' })}
             style={{ color: metroPower ? '#000' : '#aaa' }}
           >
             @{state?.metro?.bpm}
@@ -514,7 +517,7 @@ export default Randomize
 // TODO: content: scales: bowings/delete notes replace with pauses
 // TODO: tonelib: acceptance test for all roots of the minor scales
 
-// TODO: metro: subdecks should use the bpm from the top card, if it's not defined yet 
+// TODO: metro: subdecks should use the bpm from the top card, if it's not defined yet
 // TODO: metro: subdecks should be able to start fresh metro times
 
 // TODO: swipe: add diagonal directions to make it more cancellable, + more minimal distance

@@ -22,6 +22,7 @@ export type Metro = {
   power?: boolean,
   bpm?: number,
   volume?: number,
+  timer?: TimerCommand,
 }
 
 export type RState = {
