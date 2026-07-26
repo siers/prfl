@@ -289,6 +289,22 @@ describe('reduceSpawn — descend into a spawned deck', () => {
       'Scale: play [C] [down]', 'Scale: play [C] [up]', 'Scale: play [D] [down]', 'Scale: play [D] [up]',
     ])
   })
+
+  test('re-spawning an already-populated subdeck keeps it as-is (no regeneration)', () => {
+    const deck = 'Scale/cartesian'
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    const original = s.items![deck].map(i => i.contents)
+
+    s = reducePopOne(s, NOW)
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+
+    const reversing: Scheduler = items => [...items].reverse()
+    s = reduceSpawn(s, 'cartesian', NOW, reversing)
+
+    expect(s.items![deck].map(i => i.contents)).toStrictEqual(original) // not reversed
+    expect(s.current).toStrictEqual([deck, 0]) // still descends
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent re-pushed
+  })
 })
 
 describe('reduceRecalc — finishing a spawned deck does NOT auto-leave it', () => {

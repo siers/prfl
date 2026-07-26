@@ -378,11 +378,10 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   const children = spawnChildren(parent, mode)
   if (children.length === 0) return s // nothing to expand
 
-  // Re-pick the children by schedule (least-recently-reviewed first), so popping
-  // out or not finishing the subdeck still surfaces the best-next on top.
-  const scheduled = schedule(children, s.memory)
-
   const deckName = spawnDeckName(parent, mode)
+  const existing = s.items?.[deckName]
+  const scheduled = existing && existing.length > 0 ? existing : schedule(children, s.memory)
+
   const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: scheduled }
   const newCursor: DeckCursor = [deckName, 0]
 

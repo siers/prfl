@@ -495,7 +495,7 @@ export default Randomize
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 
 // TODO: parametrization: some params should not be taken into account when generating subdecks
-// TODO: parametrization: refresh shouldn't clean subdecks
+// TODO: parametrization: subdecks should survive refresh (what was the usecase, again?)
 // TODO: parametrization: enable syntax to create items into subdecks directly
 
 // TODO: content: every tone on the violin as a parameter, so you can use subdecks/parametrization to check every note for tuning
