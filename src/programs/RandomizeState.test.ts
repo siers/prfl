@@ -4,7 +4,7 @@ import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK } from './Decks.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, hasSubdeck, reducePopOne, reducePopTo, deckPath,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler,
 } from './RandomizeState.ts'
 
@@ -341,26 +341,50 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     expect(reduceCleanSubdeck(s, s.items![DEFAULT_DECK][0]).items).toStrictEqual(s.items)
   })
 
-  test('hasSubdeck is false before spawning and true once a non-empty subdeck exists', () => {
+  test('liveSubdeckName goes null again after cleaning the subdeck', () => {
     const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
-    let s = stateWithSpawnable()
-    expect(hasSubdeck(s, parentItem)).toBe(false)
-
-    s = reduceSpawn(s, 'cartesian', NOW, keepOrder)
-    expect(hasSubdeck(s, parentItem)).toBe(true)
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    expect(liveSubdeckName(s, parentItem)).toBe('Scale/cartesian')
 
     s = reduceCleanSubdeck(s, parentItem)
-    expect(hasSubdeck(s, parentItem)).toBe(false)
+    expect(liveSubdeckName(s, parentItem)).toBeNull()
   })
 
-  test('hasSubdeck is false once every item in the subdeck is done', () => {
+  test('liveSubdeckName reports the deck name so the UI can offer "enter" not creation choices', () => {
+    const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
+    expect(liveSubdeckName(stateWithSpawnable(), parentItem)).toBeNull() // nothing spawned yet
+
+    const zipped = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    expect(liveSubdeckName(zipped, parentItem)).toBe('Scale/zip')
+  })
+
+  test('liveSubdeckName is null once every item in the subdeck is done', () => {
     const deck = 'Scale/cartesian'
     const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
-    expect(hasSubdeck(s, parentItem)).toBe(true)
+    expect(liveSubdeckName(s, parentItem)).toBe(deck)
 
     s = { ...s, items: { ...s.items, [deck]: s.items![deck].map(i => ({ ...i, done: true })) } }
-    expect(hasSubdeck(s, parentItem)).toBe(false) // exhausted → clean button hides
+    expect(liveSubdeckName(s, parentItem)).toBeNull()
+  })
+
+  test('entering a deck by name descends into it, mode-agnostic, without rebuilding', () => {
+    const deck = 'Scale/cartesian'
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    const before = s.items![deck].map(i => i.contents)
+    s = reducePopOne(s, NOW)
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+
+    s = reduceEnterDeck(s, deck, NOW)
+
+    expect(s.current).toStrictEqual([deck, 0]) // descended
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent pushed
+    expect(s.items![deck].map(i => i.contents)).toStrictEqual(before) // untouched
+  })
+
+  test('entering a non-existent deck is a no-op', () => {
+    const s = stateOf(['a', 'b'], 1)
+    expect(reduceEnterDeck(s, 'nope', NOW)).toBe(s)
   })
 
   test('spawning into an all-done subdeck regenerates it instead of reusing', () => {

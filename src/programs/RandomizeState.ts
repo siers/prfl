@@ -402,10 +402,23 @@ function subdeckPrefix(item: UserItem): string {
   return `${item.key ?? item.contents}/`
 }
 
-// A subdeck is "live" only while it still has a visible (not done/separator) item.
-export function hasSubdeck(s: RState | undefined, item: UserItem): boolean {
+export function liveSubdeckName(s: RState | undefined, item: UserItem): string | null {
   const prefix = subdeckPrefix(item)
-  return Object.entries(s?.items || {}).some(([deck, items]) => deck.startsWith(prefix) && items.some(i => !itemSkipped(i)))
+  const found = Object.entries(s?.items || {}).find(([deck, items]) => deck.startsWith(prefix) && items.some(i => !itemSkipped(i)))
+  return found ? found[0] : null
+}
+
+// Descend into an existing deck by name. Pushes the current cursor on the stack.
+export function reduceEnterDeck(s: RState | undefined, deckName: string, now: number): RState {
+  if (!s) return defaultState satisfies RState
+  if (!(s.items || {})[deckName]) return s
+
+  const newState: RState = {
+    ...s,
+    current: [deckName, 0],
+    cursorStack: [...(s.cursorStack || []), s.current || [DEFAULT_DECK, 0]],
+  }
+  return reduceTimer(newState, 'local-as-global', null, now)
 }
 
 export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RState {
