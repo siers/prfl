@@ -352,6 +352,32 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     s = reduceCleanSubdeck(s, parentItem)
     expect(hasSubdeck(s, parentItem)).toBe(false)
   })
+
+  test('hasSubdeck is false once every item in the subdeck is done', () => {
+    const deck = 'Scale/cartesian'
+    const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    expect(hasSubdeck(s, parentItem)).toBe(true)
+
+    s = { ...s, items: { ...s.items, [deck]: s.items![deck].map(i => ({ ...i, done: true })) } }
+    expect(hasSubdeck(s, parentItem)).toBe(false) // exhausted → clean button hides
+  })
+
+  test('spawning into an all-done subdeck regenerates it instead of reusing', () => {
+    const deck = 'Scale/cartesian'
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    const original = s.items![deck].map(i => i.contents)
+    s = reducePopOne(s, NOW)
+
+    // exhaust the subdeck
+    s = { ...s, items: { ...s.items, [deck]: s.items![deck].map(i => ({ ...i, done: true })) } }
+
+    // a reordering scheduler proves regeneration (fresh, undone, reversed)
+    const reversing: Scheduler = items => [...items].reverse()
+    s = reduceSpawn(s, 'cartesian', NOW, reversing)
+    expect(s.items![deck].map(i => i.contents)).toStrictEqual([...original].reverse())
+    expect(s.items![deck].every(i => !i.done)).toBe(true)
+  })
 })
 
 describe('reduceRecalc — finishing a spawned deck does NOT auto-leave it', () => {

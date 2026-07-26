@@ -380,7 +380,8 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
 
   const deckName = spawnDeckName(parent, mode)
   const existing = s.items?.[deckName]
-  const scheduled = existing && existing.length > 0 ? existing : schedule(children, s.memory)
+  const reusable = existing && existing.some(i => !itemSkipped(i))
+  const scheduled = reusable ? existing : schedule(children, s.memory)
 
   const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: scheduled }
   const newCursor: DeckCursor = [deckName, 0]
@@ -401,10 +402,10 @@ function subdeckPrefix(item: UserItem): string {
   return `${item.key ?? item.contents}/`
 }
 
+// A subdeck is "live" only while it still has a visible (not done/separator) item.
 export function hasSubdeck(s: RState | undefined, item: UserItem): boolean {
   const prefix = subdeckPrefix(item)
-  console.log(prefix)
-  return Object.entries(s?.items || {}).some(([deck, items]) => deck.startsWith(prefix) && items.length > 0)
+  return Object.entries(s?.items || {}).some(([deck, items]) => deck.startsWith(prefix) && items.some(i => !itemSkipped(i)))
 }
 
 export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RState {

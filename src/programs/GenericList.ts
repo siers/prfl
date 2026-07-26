@@ -13,6 +13,8 @@ import { Direction, linearSeekFullNext, linearSeekPast } from './LinearSeek.ts'
 // `i => hideDone && (i.done || i.separator)`; the cursor/reorder mechanics here
 // don't need to know what any of those mean.
 
+// TODO: these two could be defined in terms of "deckEmpty(..)": showCheckmark / existing.some(i => !itemSkipped(i))
+
 export type ListState<A> = {
   items: A[],
   current: number,
