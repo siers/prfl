@@ -7,6 +7,7 @@ import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipL
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, render, semi } from '../lib/ToneLib'
 import { chromaticSlide, frets } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
+import { uniqueShiftsF } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
@@ -426,6 +427,7 @@ export type Interface = {
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   comb<A>(a: A[], n: number): A[][],
   combMirr<A>(a: A[], n: number): A[][],
+  uniqueShifts(x?: number, y?: number, steps?: number[]): string[],
   perm<A>(a: A[]): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
@@ -618,6 +620,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     shuffleX,
     comb,
     combMirr,
+    uniqueShifts: uniqueShiftsF,
     perm,
     power,
     powerBuckets,
