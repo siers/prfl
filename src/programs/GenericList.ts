@@ -20,6 +20,9 @@ export type ListState<A> = {
 
 export type Exclude<A> = (item: A) => boolean
 
+export const excludeNever = () => false
+export const excludeAlways = () => true
+
 export function freshState<A>(items: A[]): ListState<A> {
   return { items, current: 0 }
 }
@@ -29,6 +32,7 @@ function clampIndex<A>(items: A[], index: number): number {
   return Math.max(0, Math.min(items.length - 1, index))
 }
 
+// direction = 0 is special, it will seek to the next item, only if the current is excluded
 export function seek<A>(state: ListState<A>, direction: Direction, exclude: Exclude<A>): ListState<A> {
   if (state.items.length === 0) return state
 
@@ -46,13 +50,14 @@ export function setCurrent<A>(state: ListState<A>, index: number, exclude: Exclu
   return exclude(moved.items[moved.current]) ? seek(moved, Direction.Forward, exclude) : moved
 }
 
-export function dropThree<A>(state: ListState<A>, exclude: Exclude<A>): ListState<A> {
+export function dropThree<A>(state: ListState<A>, excludeForBury: Exclude<A>, excludeForVisibility: Exclude<A> = excludeNever): ListState<A> {
   if (state.items.length === 0) return state
 
-  const ahead = linearSeekPast(state.items, state.current, Direction.Forward, exclude, 1, 1)
+  const ahead = linearSeekPast(state.items, state.current, Direction.Forward, excludeForBury, 1, 1)
   const items = arrayMove(state.items, state.current, ahead[clampIndex(ahead, 2)])
+  const new_ = { ...state, items }
 
-  return { ...state, items }
+  return seek(new_, 0, excludeForVisibility)
 }
 
 export function toTop<A>(state: ListState<A>): ListState<A> {

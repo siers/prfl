@@ -77,8 +77,16 @@ describe('reduceRecalc — item actions', () => {
   test('bury drops the current item three visible slots down (deck-local)', () => {
     let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
     s = reduceRecalc(s, { item: { bury: true } }, deps())
-    expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
+    expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
     expect(s.current?.[0]).toBe(DEFAULT_DECK) // still the same deck
+  })
+
+  test('bury skips done items when counting three, and clamps to the end if fewer remain', () => {
+    // three items, the second is done (so hidden), cursor on the first, then bury it.
+    let s = stateOf(['a', 'b', 'c'], 0, { items: { [DEFAULT_DECK]: [item('a'), item('b', { done: true }), item('c')] } })
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['b', 'c', 'a']) // 'b' (done) is not counted; only 'c' remains, so 'a' clamps to the end
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 1]) // reorder keeps the in-deck index; the render layer skips 'b' when showing
   })
 
   // test('bury marks the item dropped, and a second bury skips already-dropped items when counting three', () => {

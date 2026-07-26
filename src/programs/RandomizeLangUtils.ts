@@ -12,7 +12,6 @@ import * as Comb from 'ts-combinatorics'
 import _ from 'lodash'
 import murmur from 'murmurhash3js'
 import { Picker } from 'bentools-picker'
-import { pipe } from '../lib/Function'
 
 function s(s: string): string[] {
   let out: string[]

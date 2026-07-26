@@ -176,10 +176,10 @@ export function modifyItemState(
   // bury ("drop down three") and unreview ("to top") are GenericList reorders:
   // they move the item and resolve the cursor themselves, so recalc skips its
   // own seek for them (signalled by returning a non-null new current).
-  const excludeForBury: Exclude<UserItem> = it => exclude(it) || ((it.dropped || 0) >= currentDroppedCount)
+  const excludeForBury: Exclude<UserItem> = it => exclude(it) || ((it.dropped || 0) + 2 <= currentDroppedCount)
   const list: ListState<UserItem> = { items: updatedItems, current }
   const reordered: ListState<UserItem> | null =
-    controls.bury === true ? dropThree(list, excludeForBury)
+    controls.bury === true ? dropThree(list, excludeForBury, exclude)
       : controls.unreview === true ? toTop(list)
         : null
 
