@@ -18,7 +18,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceTimer,
+  deckPath, hasSubdeck, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { burstEmojiNotif } from './Burst.tsx'
@@ -246,6 +246,7 @@ function Randomize(controls: any): JSX.Element {
         const isCurrent = index == currentIndex
         const showReeval = isCurrent && (items[currentIndex]?.source?.interpols?.length || 0) > 0
         const showSpawn = isCurrent && isSpawnable(item)
+        const showClean = isCurrent && hasSubdeck(state, item)
         const showCheckmark = isCurrent && itemSeekExcluded(item)
 
         let wipeHandlers = useWipe((d: SwipeDirection) => {
@@ -264,7 +265,7 @@ function Randomize(controls: any): JSX.Element {
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn zipped deck" onClick={e => { e.stopPropagation(); spawn('zip') }}>⛓️</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn cartesian deck" onClick={e => { e.stopPropagation(); spawn('cartesian') }}>🧬</a>}
-              {showSpawn && <a className="pl-3 select-none" title="clean this subdeck" onClick={e => { e.stopPropagation(); cleanSubdeck(item) }}>🧹</a>}
+              {showClean && <a className="pl-3 select-none" title="clean this subdeck" onClick={e => { e.stopPropagation(); cleanSubdeck(item) }}>🧹</a>}
             </>
           }
         </div>

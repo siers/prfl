@@ -397,10 +397,20 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   return reduceTimer(newState, 'local-as-global', null, now)
 }
 
+function subdeckPrefix(item: UserItem): string {
+  return `${item.key ?? item.contents}/`
+}
+
+export function hasSubdeck(s: RState | undefined, item: UserItem): boolean {
+  const prefix = subdeckPrefix(item)
+  console.log(prefix)
+  return Object.entries(s?.items || {}).some(([deck, items]) => deck.startsWith(prefix) && items.length > 0)
+}
+
 export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RState {
   if (!s) return defaultState satisfies RState
 
-  const prefix = `${item.key ?? item.contents}/`
+  const prefix = subdeckPrefix(item)
   const items = Object.fromEntries(Object.entries(s.items || {}).filter(([deck]) => !deck.startsWith(prefix)))
 
   return { ...s, items }

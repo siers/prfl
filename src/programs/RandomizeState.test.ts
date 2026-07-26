@@ -4,7 +4,7 @@ import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK } from './Decks.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reducePopOne, reducePopTo, deckPath,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, hasSubdeck, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler,
 } from './RandomizeState.ts'
 
@@ -339,6 +339,18 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   test('cleaning an item with no spawned subdeck leaves items unchanged', () => {
     const s = stateOf(['a', 'b'], 1)
     expect(reduceCleanSubdeck(s, s.items![DEFAULT_DECK][0]).items).toStrictEqual(s.items)
+  })
+
+  test('hasSubdeck is false before spawning and true once a non-empty subdeck exists', () => {
+    const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
+    let s = stateWithSpawnable()
+    expect(hasSubdeck(s, parentItem)).toBe(false)
+
+    s = reduceSpawn(s, 'cartesian', NOW, keepOrder)
+    expect(hasSubdeck(s, parentItem)).toBe(true)
+
+    s = reduceCleanSubdeck(s, parentItem)
+    expect(hasSubdeck(s, parentItem)).toBe(false)
   })
 })
 
