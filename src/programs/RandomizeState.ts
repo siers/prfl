@@ -397,6 +397,15 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   return reduceTimer(newState, 'local-as-global', null, now)
 }
 
+export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RState {
+  if (!s) return defaultState satisfies RState
+
+  const prefix = `${item.key ?? item.contents}/`
+  const items = Object.fromEntries(Object.entries(s.items || {}).filter(([deck]) => !deck.startsWith(prefix)))
+
+  return { ...s, items }
+}
+
 // The deck names from the root down to the current deck, for the breadcrumb.
 // Each stacked cursor names the deck it points into; the current cursor adds the
 // deck you're in now. e.g. stack [['default',2]], current ['Scale/zip',0]

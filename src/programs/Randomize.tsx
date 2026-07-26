@@ -18,7 +18,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceTimer,
+  deckPath, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { burstEmojiNotif } from './Burst.tsx'
@@ -125,6 +125,10 @@ function Randomize(controls: any): JSX.Element {
 
   function popOut() {
     setState((s: RState | undefined) => reducePopOne(s, Date.now()))
+  }
+
+  function cleanSubdeck(item: UserItem) {
+    setState((s: RState | undefined) => reduceCleanSubdeck(s, item))
   }
 
   function popToLevel(level: number) {
@@ -260,6 +264,7 @@ function Randomize(controls: any): JSX.Element {
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn zipped deck" onClick={e => { e.stopPropagation(); spawn('zip') }}>⛓️</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn cartesian deck" onClick={e => { e.stopPropagation(); spawn('cartesian') }}>🧬</a>}
+              {showSpawn && <a className="pl-3 select-none" title="clean this subdeck" onClick={e => { e.stopPropagation(); cleanSubdeck(item) }}>🧹</a>}
             </>
           }
         </div>

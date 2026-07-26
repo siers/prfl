@@ -4,7 +4,7 @@ import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK } from './Decks.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reducePopOne, reducePopTo, deckPath,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler,
 } from './RandomizeState.ts'
 
@@ -304,6 +304,41 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     expect(s.items![deck].map(i => i.contents)).toStrictEqual(original) // not reversed
     expect(s.current).toStrictEqual([deck, 0]) // still descends
     expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent re-pushed
+  })
+
+  test('cleaning an item drops its subdeck(s) without moving the cursor or stack', () => {
+    const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
+    // spawn both a zip and a cartesian subdeck from the same item, then pop out
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = reducePopOne(s, NOW)
+    s = reduceSpawn(s, 'cartesian', NOW, keepOrder)
+    s = reducePopOne(s, NOW)
+    expect(Object.keys(s.items!)).toEqual(expect.arrayContaining(['Scale/zip', 'Scale/cartesian']))
+
+    s = reduceCleanSubdeck(s, parentItem)
+
+    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK]) // both subdecks gone
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0]) // cursor untouched
+    expect(s.cursorStack ?? []).toStrictEqual([]) // stack untouched
+  })
+
+  test('re-spawning after a clean rebuilds the subdeck fresh', () => {
+    const parentItem = stateWithSpawnable().items![DEFAULT_DECK][0]
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    const original = s.items!['Scale/cartesian'].map(i => i.contents)
+    s = reducePopOne(s, NOW)
+
+    s = reduceCleanSubdeck(s, parentItem)
+
+    // With the deck gone, reduceSpawn no longer reuses — the scheduler runs afresh.
+    const reversing: Scheduler = items => [...items].reverse()
+    s = reduceSpawn(s, 'cartesian', NOW, reversing)
+    expect(s.items!['Scale/cartesian'].map(i => i.contents)).toStrictEqual([...original].reverse())
+  })
+
+  test('cleaning an item with no spawned subdeck leaves items unchanged', () => {
+    const s = stateOf(['a', 'b'], 1)
+    expect(reduceCleanSubdeck(s, s.items![DEFAULT_DECK][0]).items).toStrictEqual(s.items)
   })
 })
 
