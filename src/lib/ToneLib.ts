@@ -2,7 +2,7 @@
 
 import { Set } from 'immutable'
 import _ from 'lodash'
-import { arrayShift, times } from './Array'
+import { arrayShift, directRange, times } from './Array'
 
 type Name = 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
 
@@ -119,8 +119,15 @@ export function normalize(n: Note): Note {
   return rebase(n, c4)
 }
 
-export function rebaseSemi(note: Note, semiBase: number): Note {
+// rebase into the octave of semiBase, deciding by letter order (spelling) — note that rebase
+// does not embed into [0,11]: accidentals ride along, so the result may sound an octave off pitch
+export function rebaseSemiByLetter(note: Note, semiBase: number): Note {
   return rebase(note, enharmonics(semiBase)[0])
+}
+
+// rebase so the note *sounds at* semiBase, deciding by pitch — keeps name+alter, shifts only octave
+export function rebaseSemiByPitch(note: Note, semiBase: number): Note {
+  return { ...note, octave: note.octave + Math.round((semiBase - semi(note)) / 12) }
 }
 
 function stepUp(n: Note): Note {
@@ -307,6 +314,31 @@ export function keyChunkWeights(notes: Note[], weight: number): [Note, number][]
 export function majorKeyCentersWeights(): [Note, number][] {
   return majorKeyCentersWeighted().flatMap(([, ...chunks]) =>
     chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight)))
+}
+
+// derive an ascending + descending chromatic scale over the tonic's octave (0..+12 semitones).
+// notes from key prefered, when missing, derive with an accidental (±1).
+export function chromaticScale(key: Key): { up: Notes, down: Notes } {
+  const tonic = key[0]
+  const tonicSemi = semi(tonic)
+
+  // seedOffset is the semitone we start from (0 ascending, 12 descending);
+  // subsequent offsets march one semitone at a time toward the other end
+  const derive = (accidental: number, seedOffset: number, offsets: number[]): Notes =>
+    offsets.reduce<Notes>((scale, offset) => {
+      const targetSemi = tonicSemi + offset
+      const match = key.find(n => semi(normalize(n)) % 12 == targetSemi % 12)
+      const previous = scale[scale.length - 1]
+      const note = match
+        ? rebaseSemiByPitch(match, targetSemi)
+        : rebaseSemiByPitch(addAccidental(previous, accidental), targetSemi)
+      return [...scale, note]
+    }, [rebaseSemiByPitch(tonic, tonicSemi + seedOffset)])
+
+  return {
+    up: derive(sharp, 0, directRange(1, 12)),
+    down: derive(flat, 12, [...directRange(0, 11)].reverse()),
+  }
 }
 
 // === § Quiz

@@ -120,8 +120,8 @@ export function randomViolinNotePlain(string, pos, semi) {
 
     const strings = ['G3', 'D4', 'A4', 'E5']
     var [key, [baseNote, targetNote]] = ToneLib.findCommonKey(semiBase, semiTarget)
-    baseNote = ToneLib.rebaseSemi(baseNote, semiBase)
-    targetNote = ToneLib.rebaseSemi(targetNote, semiTarget)
+    baseNote = ToneLib.rebaseSemiByLetter(baseNote, semiBase)
+    targetNote = ToneLib.rebaseSemiByLetter(targetNote, semiTarget)
 
     return fingerMap[semiFinger].map(finger => {
       return {
