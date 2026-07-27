@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale } from './ToneLib.ts'
+import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin } from './ToneLib.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -241,5 +241,38 @@ describe('ToneLib', () => {
     })
 
     expect(Object.keys(chromaticExpected)).toHaveLength(keysMajor().length)
+  })
+
+  test('chromaticScaleZipMin acceptance', () => {
+    const cells = (row: string) => row.trim().split(/\s+/).join(' ')
+    const zipMinExpected: Record<string, string> = {
+      'C ': 'C   C#  D   D#  E   F   F#  G   Ab  A   Bb  B   C',
+      'G ': 'G   G#  A   A#  B   C   C#  D   Eb  E   F   F#  G',
+      'F ': 'F   F#  G   G#  A   Bb  B   C   Db  D   Eb  E   F',
+      'D ': 'D   D#  E   F   F#  G   G#  A   Bb  B   C   C#  D',
+      'Bb': 'Bb  B   C   C#  D   Eb  E   F   Gb  G   Ab  A   Bb',
+      'A ': 'A   A#  B   C   C#  D   D#  E   F   F#  G   G#  A',
+      'Eb': 'Eb  E   F   F#  G   Ab  A   Bb  B   C   Db  D   Eb',
+      'E ': 'E   F   F#  G   G#  A   A#  B   C   C#  D   D#  E',
+      'Ab': 'Ab  A   Bb  B   C   Db  D   Eb  E   F   Gb  G   Ab',
+      'B ': 'B   C   C#  D   D#  E   F   F#  G   G#  A   A#  B',
+      'Db': 'Db  D   Eb  E   F   Gb  G   Ab  A   Bb  B   C   Db',
+      'F#': 'F#  G   G#  A   A#  B   C   C#  D   D#  E   E#  F#',
+      'Gb': 'Gb  G   Ab  A   Bb  Cb  C   Db  D   Eb  E   F   Gb',
+      'C#': 'C#  D   D#  E   E#  F#  G   G#  A   A#  B   B#  C#',
+      'Cb': 'Cb  C   Db  D   Eb  Fb  F   Gb  G   Ab  A   Bb  Cb',
+    }
+
+    Object.entries(zipMinExpected).forEach(([tonic, want]) => {
+      const scale = chromaticScaleZipMin(findMajor(parseNote(tonic.trim())!)!)
+      expect(scale.map(n => render(n, false)).join(' ')).toBe(cells(want))
+
+      scale.forEach((n, i) => {
+        expect(Math.abs(n.alter)).toBeLessThanOrEqual(1)
+        if (i) expect(semi(n) - semi(scale[i - 1])).toBe(1)
+      })
+    })
+
+    expect(Object.keys(zipMinExpected)).toHaveLength(keysMajor().length)
   })
 })

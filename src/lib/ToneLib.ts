@@ -341,6 +341,19 @@ export function chromaticScale(key: Key): { up: Notes, down: Notes } {
   }
 }
 
+// take chromaticScale, zip up/down, pick accidentals by min
+export function chromaticScaleZipMin(key: Key): Notes {
+  const { up, down } = chromaticScale(key)
+  const ascending = [...down].reverse()
+
+  return up.map((sharpNote, i) => {
+    const flatNote = ascending[i]
+    const tie = Math.abs(sharpNote.alter) == Math.abs(flatNote.alter)
+    if (tie) return i < up.length / 2 ? sharpNote : flatNote
+    return Math.abs(sharpNote.alter) < Math.abs(flatNote.alter) ? sharpNote : flatNote
+  })
+}
+
 // === § Quiz
 
 export function notesMissing(k: Key, l: Key): Set<string> {
