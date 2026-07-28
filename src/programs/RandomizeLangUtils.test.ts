@@ -19,7 +19,6 @@ const {
   zipLongest,
   shuffle,
   comb,
-  combMirr,
   perm,
   power,
   powerBuckets,
@@ -153,8 +152,8 @@ test('comb', () => {
   ])
 })
 
-test('combMirr', () => {
-  expect(combMirr(s('1234'), 2)).toStrictEqual([
+test('combMirr = perm(, 2)', () => {
+  expect(perm(s('1234'), 2)).toStrictEqual([
     ["1", "2"],
     ["1", "3"],
     ["1", "4"],

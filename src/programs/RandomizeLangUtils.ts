@@ -175,12 +175,8 @@ function comb<A>(a: A[], n: number): A[][] {
   return [... new Comb.Combination(a, n)]
 }
 
-function combMirr<A>(a: A[], n: number): A[][] {
-  return _.uniq(comb(a, n).flatMap(c => [c, [...c].reverse()])).sort()
-}
-
-function perm<A>(a: A[]): A[][] {
-  return [...new Comb.Permutation(a)]
+function perm<A>(a: A[], size?: number): A[][] {
+  return [...new Comb.Permutation(a, size)]
 }
 
 function pick<A>(array: A[] | string): A | string {
@@ -359,26 +355,8 @@ function keys(): string[] {
 
 // violin
 
-function scalePositions(opts: { arrows?: boolean } = {}) {
-  const arrows: string[] = opts?.arrows === false ? times(8, '') : shuffleX('↑↑↓↓', 2)
-  return zip(ss('1234567'), shuffleX(`GDAE`, 2), shuffleX('uudd', 2), arrows).map(example =>
-    example.replace(/([GE].)[↑↓]/, (_, withoutDirection) => withoutDirection)
-  ).join(' ')
-}
-
-// features:
-// * if going down, position = +2
-// * on GD it's always up, on AE, it's always down. the direction is therefore not shown
-function scalePositionsDbl() {
-  return zip(ss('123456'), shuffleX(`GD DA AE`, 2), shuffleX('uudd', 2), shuffleX('↓↓↑↑', 2)).map(example =>
-    example.replace(/(\d)(GD|DA|AE)(.)([↑↓])/, (_, position, string, bow, direction) => {
-      if (string == 'GD') direction = '↑'
-      const logicalDirection = string == 'AE' ? '↓' : direction
-      if (string == 'GD' || string == 'AE') direction = ''
-      if (logicalDirection == '↓') position = parseInt(position) + 2
-      return position + string + bow + direction
-    })
-  )
+function scalePositions(): string[] {
+  return zip(ss('1234567'), shuffle(ij('', perm(s('GDAE'), 2))), shuffleX('∏V', 2))
 }
 
 type PickKeysInt = {
@@ -426,10 +404,9 @@ export type Interface = {
   shuffleM: <A>(a: A[]) => A[],
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   comb<A>(a: A[], n: number): A[][],
-  combMirr<A>(a: A[], n: number): A[][],
   uniqueShifts(target?: number, inv?: number[]): string[],
   shifts(target?: number, inv?: number[]): string[],
-  perm<A>(a: A[]): A[][],
+  perm<A>(a: A[], size?: number): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
   powerInnerBuckets<A>(a: A[]): A[][][],
@@ -476,8 +453,7 @@ export type Interface = {
   glob: (pattern: string) => string[],
 
   // domain specific
-  scalePositions: (opts: { arrows?: boolean }) => string,
-  scalePositionsDbl: () => string[],
+  scalePositions: () => string[],
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
   frets: () => string[],
 }
@@ -620,7 +596,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     shuffleM,
     shuffleX,
     comb,
-    combMirr,
     uniqueShifts: uniqueShiftsF,
     shifts: (target?: number, inv?: number[]) => shiftFormat(shifts(target, inv)),
     perm,
@@ -664,7 +639,6 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     glob: (pattern: string) => glob(pattern, context.get('images') || []),
 
     scalePositions,
-    scalePositionsDbl,
     chromaticSlide,
     frets: () => frets().flat(),
   }
