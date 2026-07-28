@@ -1,23 +1,47 @@
-import { sortBy, uniqBy, uniq } from 'lodash'
+import { sortBy, uniqBy } from 'lodash'
 
-export function sumsFromTo(x: number, y: number, steps: number[]): number[][] {
-  return go(y - x, steps)
+type Stock = { value: number, count: number }
+
+function stockFromInventory(inv: number[]): Stock[] {
+  const finite = new Map<number, number>()
+  const infinite = new Set<number>()
+
+  for (const n of inv)
+    if (n < 0)
+      infinite.add(-n)
+    else
+      finite.set(n, (finite.get(n) ?? 0) + 1)
+
+  // Load the exhaustible ones up front, inexhaustible ones after.
+  const exhaustible: Stock[] = [...finite].map(([value, count]) => ({ value, count }))
+  const inexhaustible: Stock[] = [...infinite].map(value => ({ value, count: Infinity }))
+  return [...exhaustible, ...inexhaustible]
 }
 
-export function sumsFromToU(x: number, y: number, steps: number[]): number[][] {
-  return uniqueSortedBySize(go(y - x, steps))
+export function sumsTo(target: number, inv: number[]): number[][] {
+  return go(target, stockFromInventory(inv))
 }
 
-function go(remaining: number, steps: number[]): number[][] {
+export function sumsToU(target: number, inv: number[]): number[][] {
+  return uniqueSortedBySize(go(target, stockFromInventory(inv)))
+}
+
+function go(remaining: number, stock: Stock[]): number[][] {
   if (remaining === 0)
     return [[]]
 
   const ways: number[][] = []
 
-  for (const p of steps)
-    if (p <= remaining)
-      for (const rest of go(remaining - p, steps))
-        ways.push([p, ...rest])
+  for (let i = 0; i < stock.length; i++) {
+    const { value, count } = stock[i]
+    if (count > 0 && value <= remaining) {
+      const next = count === Infinity
+        ? stock
+        : stock.with(i, { value, count: count - 1 })
+      for (const rest of go(remaining - value, next))
+        ways.push([value, ...rest])
+    }
+  }
 
   return ways
 }
@@ -27,30 +51,10 @@ function uniqueSortedBySize(ways: number[][]): number[][] {
   return sortBy(unique, way => way.length)
 }
 
-// function hasConsecutiveOnes(as: number[]): boolean {
-//   return as.some((x, idx) => as[idx] == as[idx + 1] && x == 1)
-// }
-
-function atMostOneOne(as: number[]): boolean {
-  return as.filter(a => a == 1).length <= 1
+export function uniqueShifts(target: number = 7, inv: number[] = [-1, -2, -3]): number[][] {
+  return sumsTo(target, inv)
 }
 
-export function uniqueShifts(x: number = 1, y: number = 8, steps: number[] = [1, 2, 3]): number[][] {
-  return sumsFromTo(x, y, steps).filter(shift => atMostOneOne(shift))
-}
-
-export function uniqueShiftsF(x: number = 1, y: number = 8, steps: number[] = [1, 2, 3]): string[] {
-  return uniqueShifts(x, y, steps).map((r) => r.join(''))
-}
-
-export function uniqueShiftsD(x: number = 1, y: number = 8, steps: number[] = [1, 2, 3]): [number, number[]][] {
-  return uniq(
-    sumsFromTo(x, y, steps)
-      .filter(shift => atMostOneOne(shift))
-      .map(fs => [fs.filter(f => f == 1).length, fs.filter(f => f != 1)])
-  )
-}
-
-export function uniqueShiftsDF(x: number = 1, y: number = 8, steps: number[] = [1, 2, 3]): string[] {
-  return uniqueShiftsD(x, y, steps).map(([ones, r]) => `${ones}+${r.join('')}`)
+export function uniqueShiftsF(target: number = 7, inv: number[] = [-1, -2, -3]): string[] {
+  return uniqueShifts(target, inv).map((r) => r.join(''))
 }

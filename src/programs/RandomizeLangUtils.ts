@@ -427,7 +427,7 @@ export type Interface = {
   shuffleX: <A>(a: A[] | string, number: number) => A[],
   comb<A>(a: A[], n: number): A[][],
   combMirr<A>(a: A[], n: number): A[][],
-  uniqueShifts(x?: number, y?: number, steps?: number[]): string[],
+  uniqueShifts(target?: number, inv?: number[]): string[],
   perm<A>(a: A[]): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],

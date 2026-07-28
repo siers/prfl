@@ -1,46 +1,62 @@
 import { describe, expect, test } from 'vitest'
-import { sumsFromTo, sumsFromToU, uniqueShifts, uniqueShiftsD, uniqueShiftsDF, uniqueShiftsF } from './Combinatorics.ts'
+import { sumsFromTo, sumsFromToU, uniqueShifts, uniqueShiftsDF, uniqueShiftsF } from './Combinatorics.ts'
 
 describe('Combinatorics', () => {
-  test('sumsFromTo base: no step fits', () => {
-    expect(sumsFromToU(3, 2, [1])).toEqual([])
+  test('sumsTo base: negative target', () => {
+    expect(sumsToU(-1, [-1])).toEqual([])
   })
 
-  test('sumsFromTo base: single step landing exactly', () => {
-    expect(sumsFromToU(1, 3, [2])).toEqual([[2]])
+  test('sumsTo base: single step landing exactly', () => {
+    expect(sumsToU(2, [-2])).toEqual([[2]])
   })
 
-  test('sumsFromTo: step 2 up to 5', () => {
-    expect(sumsFromToU(1, 5, [2])).toEqual([[2, 2]])
+  test('sumsTo: step 2 up to 4', () => {
+    expect(sumsToU(4, [-2])).toEqual([[2, 2]])
   })
 
-  test('sumsFromTo: steps 1 and 2 up to 3', () => {
-    expect(sumsFromToU(1, 3, [1, 2])).toEqual([[2], [1, 1]])
+  test('sumsTo: steps 1 and 2 up to 2', () => {
+    expect(sumsToU(2, [-1, -2])).toEqual([[2], [1, 1]])
   })
 
-  test('sumsFromTo: steps 2 and 3 up to 5', () => {
-    expect(sumsFromToU(2, 5, [2, 3])).toEqual([[3]])
+  test('sumsTo: steps 2 and 3 up to 3', () => {
+    expect(sumsToU(3, [-2, -3])).toEqual([[3]])
   })
 
-  test('sumsFromTo: every way sums to y - x', () => {
-    for (const way of sumsFromTo(1, 7, [2, 3]))
+  test('sumsTo: every way sums to the target', () => {
+    for (const way of sumsTo(6, [-2, -3]))
       expect(way.reduce((a, b) => a + b, 0)).toBe(6)
   })
 
-  test('sumsFromTo: no duplicate multisets', () => {
-    const ways = sumsFromToU(1, 6, [1, 2, 3])
+  test('sumsTo: no duplicate multisets', () => {
+    const ways = sumsToU(5, [-1, -2, -3])
     const keys = ways.map(w => [...w].sort((a, b) => a - b).join(','))
     expect(new Set(keys).size).toBe(keys.length)
   })
 
-  test('sumsFromTo: sorted by size', () => {
-    const ways = sumsFromToU(2, 9, [2, 3, 4])
+  test('sumsTo: sorted by size', () => {
+    const ways = sumsToU(7, [-2, -3, -4])
     const sizes = ways.map(w => w.length)
     expect(sizes).toEqual([...sizes].sort((a, b) => a - b))
   })
 
+  test('sumsTo: finite inventory limits repeats', () => {
+    expect(sumsToU(6, [2, 2])).toEqual([])
+    expect(sumsToU(4, [2, 2])).toEqual([[2, 2]])
+  })
+
+  test('sumsTo: mixed finite and inexhaustible', () => {
+    expect(sumsToU(5, [1, -2])).toEqual([[1, 2, 2]])
+    expect(sumsToU(4, [1, -2])).toEqual([[2, 2]])
+  })
+
+  test('sumsTo: exhaustible values are tried before inexhaustible ones', () => {
+    const ways = sumsTo(4, [3, -1])
+    expect(ways[0]).toEqual([3, 1])
+    expect(ways).toEqual([[3, 1], [1, 3], [1, 1, 1, 1]])
+  })
+
   test('uniqueShifts 1,7', () => {
-    expect(uniqueShifts()).toStrictEqual(
+    expect(uniqueShifts(7, [1, -2, -3])).toStrictEqual(
       [
         [1, 2, 2, 2,],
         [1, 3, 3,],
@@ -57,7 +73,7 @@ describe('Combinatorics', () => {
   })
 
   test('uniqueShiftsF', () => {
-    expect(uniqueShiftsF()).toStrictEqual(
+    expect(uniqueShiftsF(7, [1, -2, -3])).toStrictEqual(
       [
         "1222",
         "133",
@@ -69,23 +85,6 @@ describe('Combinatorics', () => {
         "313",
         "322",
         "331",
-      ]
-    )
-  })
-
-  test('uniqueShiftsDF', () => {
-    expect(uniqueShiftsDF()).toStrictEqual(
-      [
-        "1+222",
-        "1+33",
-        "1+222",
-        "1+222",
-        "1+222",
-        "0+223",
-        "0+232",
-        "1+33",
-        "0+322",
-        "1+33",
       ]
     )
   })
