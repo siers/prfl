@@ -1,6 +1,6 @@
 import { directRange, transpose, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt } from './Random'
-import { enharmonics, Key, majorKey, Note, parseNote, rename, render, semi } from './ToneLib'
+import { enharmonics, Key, majorKey, Note, parseNote, rename, render, renderN, semi } from './ToneLib'
 import _ from 'lodash'
 
 // TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
@@ -97,9 +97,9 @@ export function chromaticSlide(tonic: Note | string, s: 'G' | 'D' | 'A' | 'E'): 
 
 export function positionsQuiz(): string[] {
   return strings.flatMap(string => {
-    const base = render(string.base, false)
+    const base = renderN(string.base)
     return string.positions.slice(1).map((fret, index) =>
-      `${base}${index + 1} = ${render(fret, false)}`
+      `${base}${index + 1} = ${renderN(fret)}`
     )
   })
 }

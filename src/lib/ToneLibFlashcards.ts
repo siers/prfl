@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { render, addInterval, majorKey, parseNote, nameInterval, names, Note } from './ToneLib'
+import { renderN, addInterval, majorKey, parseNote, nameInterval, names, Note } from './ToneLib'
 import { strings } from './ToneLibViolin'
 import { transpose } from './Array'
 import * as Comb from 'ts-combinatorics'
@@ -19,8 +19,8 @@ export function flashcardsDegrees(): QA[] {
       const toDegree: (_: Note) => number = (n: Note) => names.indexOf(n.name) + 1
 
       const noteQuiz: QA = [
-        `${render(note, false)} ${sign} ${intName} = `,
-        `${render(added, false)}`
+        `${renderN(note)} ${sign} ${intName} = `,
+        `${renderN(added)}`
       ]
 
       const degreeQuiz: QA = [
@@ -33,13 +33,13 @@ export function flashcardsDegrees(): QA[] {
         const based = addInterval(note, -degree + 1)
 
         const tonalityQuiz: QA[] = degree == 1 && int != 1 ? [] : [[
-          `${render(note, false)}${degree} based =`,
-          `${render(based, false)}`,
+          `${renderN(note)}${degree} based =`,
+          `${renderN(based)}`,
         ]]
 
         const combinedQuiz: QA = [
-          `${render(note, false)}${degree} ${sign} ${intName} = `,
-          `${render(added, false)}${addedDeg}`
+          `${renderN(note)}${degree} ${sign} ${intName} = `,
+          `${renderN(added)}${addedDeg}`
         ]
 
         return tonalityQuiz.concat([combinedQuiz])
@@ -59,10 +59,10 @@ export function flashcardsNeighbors(): QA[] {
 
   return names.flatMap(name => {
     const note = parseNote(name)!
-    const neighborsFlat = intervals.flatMap(int => render(addInterval(note, int), false)).join('')
+    const neighborsFlat = intervals.flatMap(int => renderN(addInterval(note, int))).join('')
 
     return [...new Comb.Permutation(neighborsFlat)].map(neighbors =>
-      [neighbors.join(''), render(note, false)] satisfies QA
+      [neighbors.join(''), renderN(note)] satisfies QA
     )
   })
 }
@@ -70,7 +70,7 @@ export function flashcardsNeighbors(): QA[] {
 export function flashcardsPosition(): QA[] {
   return transpose(strings.map(s => s.positions)).slice(0, 8).flatMap((positionFlat, index) => {
     return [...new Comb.Permutation(positionFlat)].map(position => {
-      const notes = position.map(n => render(n, false)).join('')
+      const notes = position.map(n => renderN(n)).join('')
 
       return [notes, `${index}`] satisfies QA
     })

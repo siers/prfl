@@ -4,7 +4,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, render, semi } from '../lib/ToneLib'
+import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
 import { chromaticSlide, frets } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import { shiftFormat, shifts, uniqueShiftsF } from '../lib/Combinatorics'
@@ -333,7 +333,7 @@ function pickKeys(settings?: PickKeysInt): string[][] {
   const chunks = divide(ordered, settings.div || 1).map(c => shuf ? shuffle(c) : c)
   const shufChunks = shuf ? shuffle(chunks) : chunks
 
-  return shufChunks.map(c => c.map(k => render(k, false)))
+  return shufChunks.map(c => c.map(k => renderN(k)))
 }
 
 function pickKeysShuf(settings?: PickKeysInt): string[][] {
@@ -345,7 +345,7 @@ function letterKeys(): string[] {
     const weights = chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight))
     return new Picker(weights.map(x => x[0]), { weights: weights }).pick() as Note
   }).map(n =>
-    render(n, false)
+    renderN(n)
   )
 }
 

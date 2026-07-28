@@ -163,8 +163,7 @@ describe('ToneLib', () => {
   })
 
   test('majorKeyCentersPerLetter', () => {
-    const r = (n: Note) => render(n, false)
-    expect(majorKeyCentersPerLetter().map(g => g.map(r))).toStrictEqual([
+    expect(majorKeyCentersPerLetter().map(g => g.map(renderN))).toStrictEqual([
       ['Cb', 'C', 'C#'],
       ['Db', 'D'],
       ['Eb', 'E'],
@@ -176,9 +175,8 @@ describe('ToneLib', () => {
   })
 
   test('majorKeyCentersWeighted', () => {
-    const r = (n: Note) => render(n, false)
     const shaped = majorKeyCentersWeighted().map(([natural, ...chunks]) =>
-      [r(natural), ...chunks.map(([notes, weight]) => [notes.map(r), weight] as const)],
+      [renderN(natural), ...chunks.map(([notes, weight]) => [notes.map(renderN), weight] as const)],
     )
     expect(shaped).toStrictEqual([
       ['C', [['C'], 0.5], [['Cb', 'C#'], 0.5]],
@@ -197,7 +195,7 @@ describe('ToneLib', () => {
   })
 
   test('majorKeyCentersWeights', () => {
-    const shaped = majorKeyCentersWeights().map(([n, w]) => [render(n, false), w])
+    const shaped = majorKeyCentersWeights().map(([n, w]) => [renderN(n), w])
     expect(shaped).toStrictEqual([
       ['C', 0.5], ['Cb', 0.25], ['C#', 0.25],
       ['D', 0.5], ['Db', 0.5],
@@ -285,7 +283,7 @@ describe('ToneLib', () => {
 
     Object.entries(chromaticExpected).forEach(([tonic, want]) => {
       const { up, down } = chromaticScale(findMajor(parseNote(tonic)!)!)
-      const spell = (ns: Note[]) => ns.map(n => render(n, false)).join(' ')
+      const spell = (ns: Note[]) => ns.map(n => renderN(n)).join(' ')
       expect(spell(up)).toBe(want.up)
       expect(spell(down)).toBe(want.down)
 
@@ -318,7 +316,7 @@ describe('ToneLib', () => {
 
     Object.entries(zipMinExpected).forEach(([tonic, want]) => {
       const scale = chromaticScaleZipMin(findMajor(parseNote(tonic.trim())!)!)
-      expect(scale.map(n => render(n, false)).join(' ')).toBe(cells(want))
+      expect(scale.map(n => renderN(n)).join(' ')).toBe(cells(want))
 
       scale.forEach((n, i) => {
         expect(Math.abs(n.alter)).toBeLessThanOrEqual(1)

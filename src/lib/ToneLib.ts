@@ -182,7 +182,7 @@ export function allNotes(): Notes {
 }
 
 export function normalizedNotesRendered(k: Notes): Set<string> {
-  return Set(k.map(n => render(normalize(n), false)))
+  return Set(k.map(n => renderN(normalize(n))))
 }
 
 export function allNotesRendered(): Set<string> {
@@ -247,7 +247,7 @@ export function findMajor(tonic: Note): Key | undefined {
 }
 
 export function majorKey(note: Note): Key | undefined {
-  return keysMajor().find(k => render(k[0], false) == render(note, false))
+  return keysMajor().find(k => renderN(k[0]) == renderN(note))
 }
 
 export function keyCenters(mode: number = 0): Note[] {
