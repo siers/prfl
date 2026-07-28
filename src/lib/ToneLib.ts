@@ -92,6 +92,11 @@ export function render(n: Note, octave: Boolean = true): string {
   return n.name.toUpperCase() + alt + (octave ? n.octave : '')
 }
 
+// note / no octave
+export function renderN(n: Note): string {
+  return render(n, false)
+}
+
 export function addAccidental(note: Note, accidental: number): Note {
   return { ...note, alter: note.alter + accidental }
 }
@@ -170,7 +175,7 @@ function uniqueNotes(n: Notes): Notes {
   return Object.values(uniq)
 }
 
-const allNotesGenerated: Note[] = allNotes()
+export const allNotesGenerated: Note[] = allNotes()
 
 export function allNotes(): Notes {
   return keysMajor().flat()

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin } from './ToneLib.ts'
+import _ from 'lodash'
+import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes } from './ToneLib.ts'
 import { directRange } from './Array.ts'
 
 describe('ToneLib', () => {
@@ -121,6 +122,44 @@ describe('ToneLib', () => {
   test('rename', () => {
     const gb = findMajor(parseNote('gb')!)!
     expect(render(rename(parseNote('b')!, gb))).toEqual('Bb4')
+  })
+
+  test('minor key acceptance test & check differing roots', () => {
+    const rootsForMode = (n: number) => keysMajor().map(k => normalize(k[n])).map(renderN)
+
+    const all = allNotes().map(renderN)
+    const majorRoots = new Set(rootsForMode(0))
+    const minorRoots = new Set(rootsForMode(5))
+
+    const majorOnlyRoots = [...majorRoots.difference(minorRoots)]
+    const minorOnlyRoots = [...minorRoots.difference(majorRoots)]
+
+    const notesWithoutRoots = [...new Set(all).difference(majorRoots.union(minorRoots))]
+
+    expect(notesWithoutRoots).toStrictEqual(["E#", "B#", "Fb"])
+
+    expect(majorOnlyRoots).toStrictEqual(["Db", "Gb", "Cb"])
+    expect(minorOnlyRoots).toStrictEqual(["G#", "D#", "A#"])
+
+    expect(rootsForMode(5)).toStrictEqual(
+      [
+        "A",
+        "E",
+        "D",
+        "B",
+        "G",
+        "F#",
+        "C",
+        "C#",
+        "F",
+        "G#",
+        "Bb",
+        "D#",
+        "Eb",
+        "A#",
+        "Ab",
+      ]
+    )
   })
 
   test('majorKeyCentersPerLetter', () => {
