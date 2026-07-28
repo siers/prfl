@@ -1,5 +1,5 @@
 import { groupBy, identity, shuffle, sortBy, uniqBy } from 'lodash'
-import { zipLongest } from './Array.ts'
+import { zipLongest } from './Array'
 
 type Stock = { value: number, count: number }
 
@@ -37,14 +37,14 @@ function groupByMultiset(ways: number[][]): [number[], number[][]][] {
   return Object.values(groups).map(group => [sortBy(group[0]), group])
 }
 
-// Distinct variants interleaved (zipLongest) across multiset groups for fairness.
-// `manip` transforms each variant before interleaving (identity by default).
+// All distinct variants, concatenated group by group (each variant exactly once).
+// `manip` transforms each variant (identity by default).
 export function sumsToFair(
   target: number,
   inv: number[],
-  manip: (variant: number[]) => number[] = identity,
+  reorder: <A>(variant: A[]) => A[] = identity,
 ): number[][] {
-  const groupings = sumsToG(target, inv).map(([, variants]) => variants.map(manip))
+  const groupings = reorder(reorder(sumsToG(target, inv).map(([, variants]) => reorder(variants))))
   return zipLongest(...groupings).flat()
 }
 
@@ -79,9 +79,13 @@ export function uniqueShifts(target: number = 7, inv: number[] = [-1, -2, -3]): 
 
 // Fairly interleaved variants with each variant's order shuffled.
 export function shifts(target: number = 7, inv: number[] = [-1, -2, -3]): number[][] {
-  return sumsToFair(target, inv, shuffle)
+  return sumsToFair(target, inv, l => shuffle(l).slice(0, 50))
 }
 
 export function uniqueShiftsF(target: number = 7, inv: number[] = [-1, -2, -3]): string[] {
   return uniqueShifts(target, inv).map((r) => r.join(''))
+}
+
+export function shiftFormat(s: number[][]): string[] {
+  return s.map((r) => r.join(''))
 }
