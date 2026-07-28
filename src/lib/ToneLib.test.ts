@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin } from './ToneLib.ts'
+import { directRange } from './Array.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -23,11 +24,24 @@ describe('ToneLib', () => {
   })
 
   test('enharmonics', () => {
-    expect(enharmonics(39).map(n => render(n))).toStrictEqual(['Cb3', 'B3'])
-    expect(enharmonics(40).map(n => render(n))).toStrictEqual(['C4', 'B#4'])
-    expect(enharmonics(41).map(n => render(n))).toStrictEqual(['C#4', 'Db4'])
-    expect(enharmonics(55).map(n => render(n))).toStrictEqual(['D#5', 'Eb5'])
-    expect(enharmonics(56).map(n => render(n))).toStrictEqual(['E5', 'Fb5'])
+    const range = directRange(semi(parseNote('c4')!), semi(parseNote('c5')!))
+    expect(range.map(s => enharmonics(s).map(n => render(n)).join(' '))).toStrictEqual(
+      [
+        "C4 B#4",
+        "C#4 Db4",
+        "D4",
+        "D#4 Eb4",
+        "E4 Fb4",
+        "F4 E#4",
+        "F#4 Gb4",
+        "G4",
+        "G#4 Ab4",
+        "A4",
+        "A#4 Bb4",
+        "Cb4 B4",
+        "C5 B#5",
+      ]
+    )
   })
 
   test('rebase', () => {
