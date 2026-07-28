@@ -1,7 +1,7 @@
 import { CSSProperties, PointerEventHandler } from "react"
 
 const MAX_DIST = 350
-const MIN_DIST = 8
+const MIN_DIST = 30
 
 export type SwipeDirection = "N" | "S" | "E" | "W"
 
