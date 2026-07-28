@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
+import { shifts, sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
 
 describe('Combinatorics', () => {
   test('sumsTo base: negative target', () => {
@@ -84,6 +84,30 @@ describe('Combinatorics', () => {
     // first `groupCount` entries are one representative from each distinct group
     const firstRound = fair.slice(0, groupCount).map(key)
     expect(new Set(firstRound).size).toBe(groupCount)
+  })
+
+  test('sumsToFair: manip transforms each variant, default is identity', () => {
+    // identity default equals passing identity explicitly
+    expect(sumsToFair(4, [-1, -3])).toEqual(sumsToFair(4, [-1, -3], x => x))
+    // manip is applied to every emitted variant
+    const reversed = sumsToFair(4, [-1, -3], v => [...v].reverse())
+    expect(reversed).toEqual([
+      [1, 1, 1, 1],
+      [3, 1],
+      [1, 1, 1, 1],
+      [1, 3],
+    ])
+  })
+
+  test('shifts: same multisets and count as sumsToFair, orders shuffled', () => {
+    const key = (w: number[]) => [...w].sort((a, b) => a - b).join(',')
+    const base = sumsToFair(7, [-1, -2, -3])
+    const shifted = shifts()
+    // shuffle only reorders within a variant, so length and multisets are preserved
+    expect(shifted.length).toBe(base.length)
+    expect(shifted.map(key).sort()).toEqual(base.map(key).sort())
+    // every shifted variant is a permutation of the corresponding base variant
+    shifted.forEach((s, i) => expect(key(s)).toBe(key(base[i])))
   })
 
   test('sumsToG: key is the sorted multiset and every variant is kept', () => {
