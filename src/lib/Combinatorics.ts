@@ -1,4 +1,5 @@
-import { sortBy, uniqBy } from 'lodash'
+import { groupBy, sortBy, uniqBy } from 'lodash'
+import { zipLongest } from './Array.ts'
 
 type Stock = { value: number, count: number }
 
@@ -24,6 +25,22 @@ export function sumsTo(target: number, inv: number[]): number[][] {
 
 export function sumsToU(target: number, inv: number[]): number[][] {
   return uniqueSortedBySize(go(target, stockFromInventory(inv)))
+}
+
+/** Every distinct variant, grouped by its multiset: [[sortedKey, [orderings]]]. */
+export function sumsToG(target: number, inv: number[]): [number[], number[][]][] {
+  return groupByMultiset(go(target, stockFromInventory(inv)))
+}
+
+function groupByMultiset(ways: number[][]): [number[], number[][]][] {
+  const groups = groupBy(ways, way => sortBy(way).join(','))
+  return Object.values(groups).map(group => [sortBy(group[0]), group])
+}
+
+// Distinct variants interleaved (zipLongest) across multiset groups for fairness.
+export function sumsToFair(target: number, inv: number[]): number[][] {
+  const groupings = sumsToG(target, inv).map(([, variants]) => variants)
+  return zipLongest(...groupings).flat()
 }
 
 function go(remaining: number, stock: Stock[]): number[][] {

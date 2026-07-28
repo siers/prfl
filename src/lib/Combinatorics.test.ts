@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { sumsFromTo, sumsFromToU, uniqueShifts, uniqueShiftsDF, uniqueShiftsF } from './Combinatorics.ts'
+import { sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
 
 describe('Combinatorics', () => {
   test('sumsTo base: negative target', () => {
@@ -53,6 +53,49 @@ describe('Combinatorics', () => {
     const ways = sumsTo(4, [3, -1])
     expect(ways[0]).toEqual([3, 1])
     expect(ways).toEqual([[3, 1], [1, 3], [1, 1, 1, 1]])
+  })
+
+  test('sumsToG: groups distinct variants by multiset', () => {
+    // target 4 with unlimited 1s and 3s: {1,1,1,1} has one ordering, {1,3} has two.
+    // groups appear in first-seen (DFS) order, so the all-1s way comes first.
+    expect(sumsToG(4, [-1, -3])).toEqual([
+      [[1, 1, 1, 1], [[1, 1, 1, 1]]],
+      [[1, 3], [[1, 3], [3, 1]]],
+    ])
+  })
+
+  test('sumsToFair: interleaves groups round-robin, recycling smaller ones', () => {
+    // groups: [{1,1,1,1}: [[1,1,1,1]]], [{1,3}: [[1,3],[3,1]]]
+    // zipLongest recycles the size-1 group to length 2, then flattens.
+    expect(sumsToFair(4, [-1, -3])).toEqual([
+      [1, 1, 1, 1],
+      [1, 3],
+      [1, 1, 1, 1],
+      [3, 1],
+    ])
+  })
+
+  test('sumsToFair: consecutive entries come from different multisets', () => {
+    // fairness: with >1 group, adjacent picks should alternate group membership
+    const key = (w: number[]) => [...w].sort((a, b) => a - b).join(',')
+    const fair = sumsToFair(9, [-2, -3, -4])
+    const groupCount = sumsToG(9, [-2, -3, -4]).length
+    expect(groupCount).toBeGreaterThan(1)
+    // first `groupCount` entries are one representative from each distinct group
+    const firstRound = fair.slice(0, groupCount).map(key)
+    expect(new Set(firstRound).size).toBe(groupCount)
+  })
+
+  test('sumsToG: key is the sorted multiset and every variant is kept', () => {
+    const groups = sumsToG(7, [-1, -2, -3])
+    for (const [key, variants] of groups) {
+      expect(key).toEqual([...key].sort((a, b) => a - b))
+      for (const v of variants)
+        expect([...v].sort((a, b) => a - b)).toEqual(key)
+    }
+    // no variant is lost: group sizes sum to the flat count
+    const total = groups.reduce((n, [, variants]) => n + variants.length, 0)
+    expect(total).toBe(sumsTo(7, [-1, -2, -3]).length)
   })
 
   test('uniqueShifts 1,7', () => {
