@@ -314,9 +314,40 @@ describe('ToneLib', () => {
       'Cb': 'Cb  C   Db  D   Eb  Fb  F   Gb  G   Ab  A   Bb  Cb',
     }
 
+    // the same scales rotated so the first note is always the one sharing C's semitone
+    const zipMinRotatedExpected: Record<string, string> = {
+      'C ': 'C   C#  D   D#  E   F   F#  G   Ab  A   Bb  B   C',
+      'G ': 'C   C#  D   Eb  E   F   F#  G   G#  A   A#  B   C',
+      'F ': 'C   Db  D   Eb  E   F   F#  G   G#  A   Bb  B   C',
+      'D ': 'C   C#  D   D#  E   F   F#  G   G#  A   Bb  B   C',
+      'Bb': 'C   C#  D   Eb  E   F   Gb  G   Ab  A   Bb  B   C',
+      'A ': 'C   C#  D   D#  E   F   F#  G   G#  A   A#  B   C',
+      'Eb': 'C   Db  D   Eb  E   F   F#  G   Ab  A   Bb  B   C',
+      'E ': 'C   C#  D   D#  E   F   F#  G   G#  A   A#  B   C',
+      'Ab': 'C   Db  D   Eb  E   F   Gb  G   Ab  A   Bb  B   C',
+      'B ': 'C   C#  D   D#  E   F   F#  G   G#  A   A#  B   C',
+      'Db': 'C   Db  D   Eb  E   F   Gb  G   Ab  A   Bb  B   C',
+      'F#': 'C   C#  D   D#  E   E#  F#  G   G#  A   A#  B   C',
+      'Gb': 'C   Db  D   Eb  E   F   Gb  G   Ab  A   Bb  Cb  C',
+      'C#': 'B#  C#  D   D#  E   E#  F#  G   G#  A   A#  B   B#',
+      'Cb': 'C   Db  D   Eb  Fb  F   Gb  G   Ab  A   Bb  Cb  C',
+    }
+
+    const cPc = ((semi(parseNote('C')!) % 12) + 12) % 12
+    const rotateToC = (scale: Note[]) => {
+      const uniq = scale.slice(0, -1) // drop the duplicated closing octave note
+      const i = uniq.findIndex(n => ((semi(n) % 12) + 12) % 12 === cPc)
+      const rot = [...uniq.slice(i), ...uniq.slice(0, i)]
+      return [...rot, rot[0]] // re-close the octave
+    }
+
     Object.entries(zipMinExpected).forEach(([tonic, want]) => {
       const scale = chromaticScaleZipMin(findMajor(parseNote(tonic.trim())!)!)
       expect(scale.map(n => renderN(n)).join(' ')).toBe(cells(want))
+
+      const rotated = rotateToC(scale)
+      expect(rotated.map(n => renderN(n)).join(' ')).toBe(cells(zipMinRotatedExpected[tonic]))
+      expect(((semi(rotated[0]) % 12) + 12) % 12).toBe(cPc)
 
       scale.forEach((n, i) => {
         expect(Math.abs(n.alter)).toBeLessThanOrEqual(1)
@@ -325,6 +356,7 @@ describe('ToneLib', () => {
     })
 
     expect(Object.keys(zipMinExpected)).toHaveLength(keysMajor().length)
+    expect(Object.keys(zipMinRotatedExpected)).toHaveLength(keysMajor().length)
   })
 
   // "black keys": the complement of the chromatic scale against the major scale for that key —
