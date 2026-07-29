@@ -364,3 +364,5 @@ export function chromaticScaleZipMin(key: Key): Notes {
 export function notesMissing(k: Key, l: Key): Set<string> {
   return allNotesRendered().subtract(normalizedNotesRendered(k).union(normalizedNotesRendered(l)))
 }
+
+// TODO: quiz: interval + finger + shift (-321 / +123) = finger

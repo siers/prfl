@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
 import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes } from './ToneLib.ts'
-import { directRange } from './Array.ts'
+import { directRange, zipT } from './Array.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -325,5 +325,42 @@ describe('ToneLib', () => {
     })
 
     expect(Object.keys(zipMinExpected)).toHaveLength(keysMajor().length)
+  })
+
+  // "black keys": the complement of the chromatic scale against the major scale for that key —
+  // flat preference: sharp only when strictly fewer accidentals, else flat
+  test('black keys acceptance', () => {
+    const blackKeysExpected: Record<string, string> = {
+      'C ': 'Db Eb Gb Ab Bb',
+      'G ': 'Ab Bb Db Eb F',
+      'F ': 'Gb Ab B Db Eb',
+      'D ': 'Eb F Ab Bb C',
+      'Bb': 'B Db E Gb Ab',
+      'A ': 'Bb C Eb F G',
+      'Eb': 'E Gb A B Db',
+      'E ': 'F G Bb C D',
+      'Ab': 'A B D E Gb',
+      'B ': 'C D F G A',
+      'Db': 'D E G A B',
+      'F#': 'G A C D E',
+      'Gb': 'G A C D E',
+      'C#': 'D E G A B',
+      'Cb': 'C D F G A',
+    }
+
+    Object.entries(blackKeysExpected).forEach(([tonic, want]) => {
+      const key = findMajor(parseNote(tonic.trim())!)!
+
+      const { up, down } = chromaticScale(key)
+      const black = zipT(up, [...down].reverse())
+        .map(([sharp, flat]) => Math.abs(sharp.alter) < Math.abs(flat.alter) ? sharp : flat)
+        .filter(n => !key.some(m => semi(normalize(m)) == semi(normalize(n))))
+
+      expect(black.map(n => renderN(n)).join(' ')).toBe(want)
+      expect(black).toHaveLength(5)
+      black.forEach(n => expect(key.some(m => semi(normalize(m)) == semi(normalize(n)))).toBe(false))
+    })
+
+    expect(Object.keys(blackKeysExpected)).toHaveLength(keysMajor().length)
   })
 })
