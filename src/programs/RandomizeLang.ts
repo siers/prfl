@@ -87,15 +87,16 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [str
 }
 
 function extractEvals(l: string): [string, Evals] {
-  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([a-zA-Z]+)?/g, defaultMarker)
+  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([^\] ]+)?/gi, defaultMarker)
 
   const evals: Evals = matches.map(([marker, m], idx) => {
     if (m[0] == '[') {
-      const tag = m.match(/[a-zA-Z]+$/i)
-      return interpolate(m.match(/^\[(.*)\][a-zA-Z]*$/)![1].replace(/\\([\[\]])/g, '$1'), marker, tag ? tag[0] : `tag${idx + 1}`)
+      const tag = m.match(/[^\] ]+$/i)
+      const tags = tag && tag[0].split(':')
+      return interpolate(m.match(/^\[(.*)\][^\] ]*$/)![1].replace(/\\([\[\]])/g, '$1'), marker, tags ? tags[0] : `tag${idx + 1}`, tags && tags.length > 1 ? tags.slice(1) : null)
     }
     if (m[0] == '{') return explode(m.slice(1, m.length - 1).replace(/\\([\{\}])/g, '$1'), marker)
-    return interpolate('unlikely', '', null)
+    return interpolate('unlikely', '', null, null)
   })
 
   return [template, evals]
@@ -174,7 +175,7 @@ function substituteExplode(line: RenderLine, marker: string, subst: any): Render
 
   if (subst === undefined) return []
 
-  else return [errorLine(`explode requires string[], got ${typeof subst}`)]
+  else return [errorLine(`explode requires string[], got ${JSON.stringify(subst)}`)]
 }
 
 function executeCommand(command: string, context: Context): any {
@@ -199,7 +200,7 @@ function evalInterpolate(
   const subst: InterpolateSubstT = toInterpolateSubst(substOut)
 
   if (l.source) return [l, ss]
-  return [substituteInterpolate(l, i.marker, subst), ss.concat([substitution(subst, i.marker, i.tag)])]
+  return [substituteInterpolate(l, i.marker, subst), ss.concat([substitution(subst, i.marker, i.tag, i.tags)])]
 }
 
 function evalInterpolates(
@@ -369,9 +370,22 @@ export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
   return { ...resubst, source: { ...l.source, interpols: [], substitutions: newSubst } }
 }
 
+export function extractTagFunctions(tags: string[] | null): Map<string, string[]> {
+  return new Map((tags || []).flatMap(t => {
+    const [fn, ...args] = t.split('-')
+    return fn ? [[fn, args] satisfies [string, string[]]] : []
+  }))
+}
+
 export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<String, Substitution>] {
   const byMarker: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.marker || '', s]))
-  const byTag: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.tag || '', s]))
+  const byTag: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => {
+    const args = extractTagFunctions(s.tags)
+    return [s.tag || '', {
+      ...s,
+      contents: s.contents.slice(0, args.get('show') ? parseInt((args.get('show') || [])[0]) : 9999),
+    }]
+  }))
 
   const allTagsRegex = new RegExp(`${l.source?.substitutions?.map(s => s.marker || "").join('|')}`, 'g')
 

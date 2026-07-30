@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine, renderLineContentWithTags } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -252,12 +252,14 @@ describe('evaling items inside a block', () => {
               "kind": "interpolate",
               "marker": "!!!1",
               "tag": "tag1",
+              "tags": null,
             },
             {
               "command": "s('34')",
               "kind": "interpolate",
               "marker": "!!!2",
               "tag": "tagX",
+              "tags": null,
             },
           ],
           "kind": "interpolable-line",
@@ -270,6 +272,7 @@ describe('evaling items inside a block', () => {
               "kind": "substitution",
               "marker": "!!!1",
               "tag": "tag1",
+              "tags": null,
             },
             {
               "contents": [
@@ -279,6 +282,7 @@ describe('evaling items inside a block', () => {
               "kind": "substitution",
               "marker": "!!!2",
               "tag": "tagX",
+              "tags": null,
             },
           ],
         },
@@ -308,12 +312,14 @@ describe('rotateInterpolableLine', () => {
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
+            "tags": null,
           },
           {
             "command": "s('12')",
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
+            "tags": null,
           },
         ],
         "kind": "interpolable-line",
@@ -326,6 +332,7 @@ describe('rotateInterpolableLine', () => {
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
+            "tags": null,
           },
           {
             "contents": [
@@ -335,6 +342,7 @@ describe('rotateInterpolableLine', () => {
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
+            "tags": null,
           },
         ],
       },
@@ -353,12 +361,14 @@ describe('rotateInterpolableLine', () => {
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
+            "tags": null,
           },
           {
             "command": "s('12')",
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
+            "tags": null,
           },
         ],
         "kind": "interpolable-line",
@@ -371,6 +381,7 @@ describe('rotateInterpolableLine', () => {
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
+            "tags": null,
           },
           {
             "contents": [
@@ -380,6 +391,7 @@ describe('rotateInterpolableLine', () => {
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
+            "tags": null,
           },
         ],
       },
@@ -398,12 +410,14 @@ describe('rotateInterpolableLine', () => {
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
+            "tags": null,
           },
           {
             "command": "s('12')",
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
+            "tags": null,
           },
         ],
         "kind": "interpolable-line",
@@ -416,6 +430,7 @@ describe('rotateInterpolableLine', () => {
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
+            "tags": null,
           },
           {
             "contents": [
@@ -425,6 +440,7 @@ describe('rotateInterpolableLine', () => {
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
+            "tags": null,
           },
         ],
       },
@@ -462,6 +478,36 @@ describe('keys', () => {
   })
 })
 
+describe('extractTagFunctions', () => {
+  test('extracts a function and its args', () => {
+    expect(extractTagFunctions(['function-arg1-arg2']))
+      .toStrictEqual(new Map([['function', ['arg1', 'arg2']]]))
+  })
+
+  test('no tags => empty map', () => {
+    expect(extractTagFunctions(null)).toStrictEqual(new Map())
+    expect(extractTagFunctions([])).toStrictEqual(new Map())
+  })
+
+  test('a bare tag has no args', () => {
+    expect(extractTagFunctions(['show'])).toStrictEqual(new Map([['show', []]]))
+  })
+
+  test('each tag becomes its own entry, last one wins per function', () => {
+    expect(extractTagFunctions(['show-5', 'crop-2-4']))
+      .toStrictEqual(new Map([['show', ['5']], ['crop', ['2', '4']]]))
+    expect(extractTagFunctions(['show-1', 'show-9']))
+      .toStrictEqual(new Map([['show', ['9']]]))
+  })
+
+  test('reads the tags a real interpolation parses out', () => {
+    const item = evalContents("Thing: do it [s('12')]tag:show-5:crop-2-4")[0]
+
+    expect(extractTagFunctions(item.source.substitutions[0].tags))
+      .toStrictEqual(new Map([['show', ['5']], ['crop', ['2', '4']]]))
+  })
+})
+
 describe('renderLineContentWithTags', () => {
   test('renderLineContentWithTags 0', () => {
     const text = `
@@ -475,7 +521,7 @@ describe('renderLineContentWithTags', () => {
 
   test('renderLineContentWithTags', () => {
     const text = `
-      Thing: do it [s('12')]tag
+      Thing: do it [s('123456')]tag:show-5
     `.replaceAll(/^ */mg, '')
 
     const item = evalContents(text)[0]
@@ -497,10 +543,14 @@ describe('renderLineContentWithTags', () => {
             "contents": [
               "1",
               "2",
+              "3",
+              "4",
+              "5",
             ],
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tag",
+            "tags": ["show-5"],
           }],
         ]),
       ]
