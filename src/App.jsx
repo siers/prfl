@@ -72,9 +72,9 @@ function App() {
   return (
     <div className="app">
       <div className="flex flex-col h-dvh">
-        <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
+        { /* <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
           {sidebarOpen ? '\u2715' : '\u2630'}
-        </button>
+        </button> */ }
         <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
           {Object.keys(programs).map(p => (
             <div
