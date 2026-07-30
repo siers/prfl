@@ -217,7 +217,6 @@ function Randomize(controls: any): JSX.Element {
             : timerLength(item.timer || null, Date.now()) >= 180 ? 'orange'
               : '#bbb'
     return {
-      ...(index == currentIndex && { fontSize: '2rem' }),
       ...(color && { color })
     }
   }
@@ -226,11 +225,13 @@ function Randomize(controls: any): JSX.Element {
     const [contentTags, lookupTag] = renderLineContentWithTags(item)
     return <>
       {
-        contentTags.map((ct: ContentOrTag, idx: number) =>
-          <span key={idx} onClick={_ => ct[0] == 'tag' && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })}>
-            {ct[0] == 'string' ? ct[1] : interpolateSubtToString((lookupTag.get(ct[1]) as Substitution).contents)}
-          </span>
-        )
+        contentTags.map((ct: ContentOrTag, idx: number) => {
+          const tag = ct[0] == 'tag'
+          const string = ct[0] == 'string'
+          return <div key={idx} onClick={_ => tag && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })} style={{ fontSize: string ? '2rem' : '1.7rem' }}>
+            {string ? ct[1] : interpolateSubtToString((lookupTag.get(ct[1]) as Substitution).contents)}
+          </div>
+        })
       }
     </>
   }
@@ -262,7 +263,7 @@ function Randomize(controls: any): JSX.Element {
         })
         wipeHandlers.style = { ...wipeHandlers.style, ...itemStyle(item, index) }
 
-        return <div key={index} className="w-full text-center text-wrap" onClick={_ => recalc({ advance: ['set', index] })} {...wipeHandlers}>
+        return <div key={index} className={`w-full text-center text-wrap rendered-item ${isCurrent ? 'current-item' : ''}`} onClick={_ => recalc({ advance: ['set', index] })} {...wipeHandlers}>
           {
             showCheckmark ? <>✅</> : <>
               {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}

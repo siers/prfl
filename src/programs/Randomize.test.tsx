@@ -34,16 +34,16 @@ function Host() {
   return <Randomize state={state} setState={setState} advanceRef={advanceRef} />
 }
 
-// The enlarged current item is the one Randomize styles at font-size 2rem
-// (itemStyle: `index == currentIndex`). That's our cursor probe.
+// Randomize tags the item under the cursor with `.current-item`
+// (itemRender: `isCurrent`). That's our cursor probe.
 function currentItemText(container: HTMLElement): string | null {
-  const el = container.querySelector('div[style*="font-size: 2rem"]')
+  const el = container.querySelector('div.current-item')
   return el ? el.textContent : null
 }
 
 // The items currently on screen, in rendered order (prev / current / next…).
 function renderedItems(container: HTMLElement): string[] {
-  return [...container.querySelectorAll('.text-wrap')].map(d => d.textContent || '')
+  return [...container.querySelectorAll('.rendered-item')].map(d => d.textContent || '')
 }
 
 // "-=-" header => not shuffled, so rendered order == this order.
