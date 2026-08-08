@@ -1,32 +1,28 @@
 # Violin
 # V, Warmup
-{stops=`thirds fourths sixths octaves tenths`;}
+{stops=`thirds fourths sixths octaves tenths harm unisons`;}
 {shapes=`dim sixths ysaye tonic squares`;}
 {modes=`1 2 3 4 5 6 7`;}
 -=- scales
-Scales3Oct: [key] [ss(`ion dor phry lyd mix aeo loc whole dim`)] [ss(`2, 3, 4, 6, 8`)] [ss(`8, 12, 16, 24`)] [`wT wD`]
-ScalesMarkov: [key] [zipLongest(ss(`1234567`), ss(`GD GA GE DA DE AE`))]
+ScalesPos: [key] [scalePositions()]
 ScalesClimb: [key], climb on: [zipLongest(ss(`GDAE`), ':', ss('dia, dia, dia, dia, dia, dim, whole, oct, chrom').slice(0, 4), ':', shuffle(ss(`pos 1-4s`).concat(ss(`12 21 123 231 312`).slice(0, 2))))] 
-{after('2026-04-05', '')}ScalesPos: [key] [scalePositions()]
 ScalesDiatonic: [key] [ss('s:6 s:7 s:65 s:34 s:5')] [ss('123456')]
 -=- scale-stops
-ScaleStopsRun: [key] [ss(stops)] [ss(`1234`)]
-ScaleStopsPart: [key] [ss(stops)] [scalePositionsDbl()]
 ScaleStopsString: [key] [ss(stops)] [zipLongest(ss(`DAE`), ':', ss(`0+H-W+H, 0+W-H`), ss(`1234`))]
 -=- bowing
-Bowing-{ss(shapes)}: [key] run arpegios [ss(`123456`)]
-ArtificialHarmonics: vibrate [ss(`GDAE`)] [ss(`up down`)]
+# Bowing-{ss(shapes)}: [key] run arpegios [ss(`123456`)]
+# ArtificialHarmonics: vibrate [ss(`GDAE`)] [ss(`up down`)]
 # BowingBackIntoWall: shoulder blades together [ss(`snake, scale, ysaye`)]
 BowingRainbow: [zipLongest(s('33% 50% 66%'), `:`, ss('G Dd Du Ad Au E'), `:`, ss('up down'))]
 # bowing jumping sequences?
 -=- shifting
 #{after('2026-03-16', '')}ShiftingFourth: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [ss(`G D A E`)]
 0x ShiftingSlides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
-ShiftingSlides: quartertone [key] [(ss(`GDAE`).map(s=>chromaticSlide(keyPlain, s))).join(', ')]
+ShiftingSlides: quartertone [key] [ss(`GDAE`).map(s=>chromaticSlide(keyPlain, s))]
 {after('2026-04-05', '')}ShiftingSevcik: [key] Sevcik, no gliss [ss(`G D A E`)]
 ShiftingSnake: [key] position: [ss(`2 3 4 5 6 7`)], [ss(`G D A E`)]
 SemitoneFrame: [ss(`GDEA`)] +[ss(`1 2 3 4 5 6 7`)]sem [zip(ss(`lyd, maj, min, phyr, `),shuffle(perm('1234')).map(x=>x.join('')))]
-ShiftingAgainstWall: [ss(`snake, scale, ysaye`)]
+# ShiftingAgainstWall: [ss(`snake, scale, ysaye`)]
 UnisonShifts: [ss(`GDAE`)] +[ss(`3 4 5 6 7`)]sem
 # V, Technique
 --- extensions
@@ -46,17 +42,24 @@ Entr2: entrances in tips [ss(`GDAE`)]
 Entr3: entrances down, with stability and power
 # V, Pieces
 --- violin1
-Kreutzer7: [ss(`1,2,3,4,5,6,7,8,9,10`)] [ss(`33% 50% 66%`)]
+# Kreutz25: [zipLongest(zip(ss(`1 2 3 4 5 6 7 8 9 10 11`), shuffleX(`.0 .5 .0 .5 `, 10)), ':', ss(`dblΠ dblV sepΠ sepV`))]
 --- violin-focus
-Kreutz25: [zipLongest(zip(ss(`1 2 3 4 5 6 7 8 9 10 11`), shuffleX(`.0 .5 .0 .5 `, 10)), ':', ss(`dblΠ dblV sepΠ sepV`))]
-Kreutzer30: [ss(`1.0 1.5 2.0 2.5 3.0 3.5`)]
-RachRom
-ClaraSchuRomance: [zip(ss(`1 2 3 4 5 6 7 8`), shuffleX(`.0 .5 .0 .5 `, 10))]
+# Kreutzer7: [ss(`1,2,3,4,5,6,7,8,9,10`)] [ss(`33% 50% 66%`)]
+# Kreutzer30: [ss(`1.0 1.5 2.0 2.5 3.0 3.5`)]
+# ClaraSchuRomance: [zip(ss(`1 2 3 4 5 6 7 8`), shuffleX(`.0 .5 .0 .5 `, 10))]
 MatteisFantasia: [zip(ss(`1 2 3 4 5 6 7 8 9`), shuffleX(`.0 .5 .0 .5 `, 10))]
+Czardasz: [ss(`largo allegro-vivo1 molto-meno meno-lento allegro-vivace allegretto molto-vivo2`)]
+TEmpac: [ss(`1 2 3 4 5 6 7 8 9 10 11 12 13 14`)]
+# TEvaristo: [ss(`1 2 3 4 5 6 7 8 9 10 11 12 13 14`)]
+TEnsuenos: [ss(`1 2 3 4 5 6 7 8 9 10 11 12 13`)]
+Impromptu: [ss(`12345`)]
+SchindlersList: [ss(`1234567`)]
+FivePieces: play
 --- violin-next
-Czardasz
 ClaraSchuRomance2: do it
 # V, Orchestra
+K621: [ss(`0 A B C D E F`)]
+Bhvn1: [ss(`Adag Alleg A B C D E `)]
 # Piano
 # P, Exercises
 --- jazz-chops
@@ -78,120 +81,60 @@ ExerciseMaj251: [zipLongest(pickKeys().flat(), s(`:`), ss(`32 7b5`), s(`:`), ss(
 ExerciseFlipflops: 35/34 [zipLongest(keys(), s(`:`), ss(`57 34`))]
 ExerciseStepwiseDia: [zipLongest(keys(), s(`:`), ss(`5 6 7 56 34 24 2x6ths 7b13`))] 
 --- piano-zero
-BarryHarrisInnerVoice: [keys()]
-TriadPairs: 1 & 2 (write parametrization)
-ChromaticBassline: try accompanying
-HVL-III: play from study notes
+# BarryHarrisInnerVoice: [keys()]
+# TriadPairs: 1 & 2 (write parametrization)
+# ChromaticBassline: try accompanying
+# HVL-III: play from study notes
 # Comping: {ss(`shell 3, shell 7, 37, 73, rootless 2, rootless 5, call letters`)}
 # P, Main
 --- piano1
-BluesForAlice: simple solo [ss(`F Em7-A7 Dm-G7 Cm-F7 B7 Bm7-Eb7 Am7-D7 Abm7-Db7 G7 C7 Am-Dm Gm-C7`)]
+# BluesForAlice: simple solo [ss(`F Em7-A7 Dm-G7 Cm-F7 B7 Bm7-Eb7 Am7-D7 Abm7-Db7 G7 C7 Am-Dm Gm-C7`)]
 --- piano-focus
-TriSubs: play [zipLongestShuf(keys(), `:`, ss(`2th 5th`))]
-AutumnLeaves: pick and play the voicings (once)
-WhenFallLove: [ss(`123456`)]
-GerschwinPrelude
-GluckAccomp
-Boogies: [glob(`Boogie`)]image
+TriSubs: play [keys()] [ss(`2th 5th`)]
+# OSJ: 1642 [keys()]
+Chrom25s: [zipLongestShuf(keys(), ss(`↑↓`))]
+Gerschwin: [ss(`A, B, Largamente, Tempo I, Finale`)]
+Maple: [ss(`1 2 Trio Finale`)]
+Intermezzo: [ss(`A1 A2 B1 B2 C11 C12 C3 D1 D2 D3 ATempo`)]
+# WhenFallLove: [ss(`123456`)]
+
 --- piano-second
+# AutumnLeaves: pick and play the voicings (once)
+# GerschwinPrelude
+--- piano-accomp
+# low prio
+# GluckAccomp
+# Boogie: [glob('BooDivM')]imageA [glob(`BooDivB`)]imageB 
 # P, Composition
 --- composition
-Song2: write a polka with movements
-HVL: use a single chapter
-# Physio
---- physio0
-BendAndPickUpFoot
-Pistols: touch the foot
-HandsBehindBackBend: intertwine fingers
-SinkArmsInTable: do it
-KneelingHipThrusts: do it (eh)
-SquatBentSquat: do it
-SquattingCalfRaises: do it
-SquattingButterfly: pushes
-SidePushups: against a table
-BellyLyingHipExternalRotation: do it
-SquatGroundKneeTouches: do it
-HipFlexorStretchLunge: do it
-InnerThighLift: leg over other, lift self or leg (eh)
-BackLyingHipExternalRotations: combine with clamshells
-RH45Throw: throw ball (+ skull crushers)
-ProneScorpion: do it
-KneeBlockSqueezeBendTouch: do it
-WallYogaBlockHipExercise: bend, rotate, back
-HipsMotorTangoTwists
-DuckWalkSquatJumps
-StepStanceYBends
-GoodMorningsSideLeg
-L-Sit: do it
---- physio1
-RussianCore: v-sit claps, hip against arms, straddle leg lifts, reverse plank leg lifts 
-WIYT: do it
-RotatorCuffOscilations: do it
-SidePlankHipup: against a piano chair (very similar to cop twists?)
-# Clamshells: side-sit into side-plank
-LungeExtension: lunge on knee, then extend
-SquatBehindReach: do it
-# SquatTouchSameKnee: do it (eh)
-LungeTwists: ok (and side-lunges)
-Bridges: touch, extend, touch | tabletop
-BackBridge: do it
-BehindHammers: do it
-LyingLegRaises: separate or continuous
-ArmMotorCrossShoulderTouch: switch upper hand
-HipCARs: do it
-BandedRotatingHipExtension: do it
-TibRaises: with toilet paper roll between
-DeepSquatBreath: do it (one-arm Y lifts)
-ShoulderWallRotations: do them
-DeadBugs: do it
-BirdDog: do it
-BandedSideWalks
---- physio2
-SidePlank: switch from plank, copenhagen crunches
-Butterfly: pull in legs
-StandingPancake: press ankle, pull other, sidelunges
-SquatingThrorasicReach: do it
-NinetyNineties: crossing while on the ground
-RecliningHero: do it
-LateralRaises: with back-mirror & weighted
-LegRaises: in front of a table, leg angle: directly back & 45°
-ArmCirclesWeighted: on back, weighted, with leg extensions
-TableOppositeCorners: touch opposite table corner, + lift leg
-HipStretch: on back, cross leg over, pull other leg into
-TurnAnklesLiftLegs: do it
---- physio3
-TurnHeadWithoutImpingment
---- physio9
-# Hamstring: stretches on each leg (similar to standing pancake), lift opposite
-SotsPress: do it, no crouch
-ReverseCurls: reverse biceps curls
-RotatedKnucklesBehind: rokas aiz muguras, rotēt abos virzienos līdz galam
-BroomBehindBack: shoulder form, lift hands (pull arms around the broom), side goodmorns
-Deadlift: feel the connection in the back, one side is weaker
-FakePlanche: do it
-BicepsPoses: standing: above head (proper posture + extend), at hips (check symmetry)
-Triceps: [arrayRotate(s(`behind the head`), daysModulo(7, 2))]
-# Main
+# Song2: write a polka with movements
+# HVL: use a single chapter
+
+# Main2
 --- keys
 Key-{pickKeys().flat()}
 -=-
-{keys=scheduleBlocks('keys-1').map(k=>k.key);}
+{keyz=scheduleBlocks('keys-1').map(k=>k.key);}
 -=- warmup-key
-{scheduleBlocks('scales-2 scale-stops-1 bowing-1 shifting-1').flat().flat()}
-ScalesDS: [ss(`123456`)]position [s('markov, ')]scale [keyPlain]key [ss(`–, v, h, r`)]random [ss(`12`)]
-PiaScale: [keyPlain] [shuffle(s(`regular, russian, thirds, sixths, octaves`).concat(zipLongestShuf(s('chrom,'), ':', pickKeys({shuffle:true}).flat(), ':', ss(`1,2,3,4,5,6,7,8,9,10,11`)).slice(0, 3).map(x=>x.join('')).flat()))]
-PiaArp: [keyPlain] [ss(`I, Im, VIb, VIm, IV, IVm, I7, VIb7, IV7, II7, Idim7`)]
-Dim: [keyPlain] [zipLongest(ss(`1234567`), ss(`↑↓`))]pos
---- warmup
-{keys.flatMap(k => { key = k; keyPlain = key.replace(/^Key-/,''); return scheduleBlocks('warmup-key') \})}
-GuessPosition: [shuffle('AEBF BFCG CGDA DAEB EBFC FCGD GDAE'.split(' ').flatMap(x=>perm(x)))]
+Scales3Oct: [key] [ss(`ion dor phry lyd mix aeo loc wT wD black pent`)] [shuffle(shifts(7, \[1, -2, -3, 4\])).map(fs => zip(s(fs), shuffle(s(`0112223333011222333301122233330112223333`)).slice(0, fs.length).sort().map(st => s(`GDAE`)\[+st\])).join('-'))]:show-2
+Scales3Arp: [key] [ss(`ion dor phry lyd mix aeo loc`)] [ss(`dia dia dia dia dia wT wD black pent tri`)] [shuffle(shifts(7, \[1, -2, -3, 4\])).map(fs => zip(s(fs), shuffle(s(`0112223333011222333301122233330112223333`)).slice(0, fs.length).sort().map(st => s(`GDAE`)\[+st\])).join('-'))]:show-2
+ScaleChrom: [ss(`ion dor phry lyd mix aeo loc`)] [shifts(22, \[1, 2, 3, 3, -4\]).slice(0, 20).map(fs=>ij(``, zipLongest(s(fs), shuffle(s(`0112223333011222333301122233330112223333`)).slice(0,fs.length).sort().map(st => s(`GDAE`)\[+st\]))).join(`-`))]:show-2
+ScaleStops: [key] [ss(stops)] [scalePositions()]
+{scheduleBlocks('scales-0 scale-stops-0 bowing-1 shifting-0').flat().flat()}
+# ScalesDS: [ss(`123456`)]position [s('markov, ')]scale [keyPlain]key [ss(`–, v, h, r`)]random [ss(`12`)]
+# PiaScale: [keyPlain] [shuffle(s(`regular, russian, thirds, sixths, octaves`).concat(zipLongestShuf(s('chrom,'), ':', pickKeys({shuffle:true}).flat(), ':', ss(`1,2,3,4,5,6,7,8,9,10,11`)).slice(0, 3).map(x=>x.join('')).flat()))]
+# PiaArp: [keyPlain] [ss(`I, Im, VIb, VIm, IV, IVm, I7, VIb7, IV7, II7, Idim7`)]
+# Dim: [keyPlain] [zipLongest(ss(`1234567`), ss(`↑↓`))]pos
+-=- warmup
+{zipT(...keyz.map(k => { key = k; keyPlain = key.replace(/^Key-/,''); return blockLines('warmup-key') \})).flat()}
+# TriadPair: I-153-II-351
+# Frets: [frets()] [ss(`1234`)] [ss(`=, +, -`)]
+# GuessPosition: [shuffle('AEBF BFCG CGDA DAEB EBFC FCGD GDAE'.split(' ').flatMap(x=>perm(x)))]
 --- violin-technique
 {scheduleBlocks('extensions-0 bowings-4 stops-3 entrances-3')}
--=- physio
-{zipScheduleBlocks('physio0-4 physio1-7 physio2-4 physio3 physio9-3')}
 
 -=- deck-prio-1
-piano-focus-4
+piano-focus
 violin-focus
 composition-2
 -=- deck-prio-2
@@ -200,7 +143,7 @@ jazz-chops-1
 piano-chops-1
 violin-technique-1
 
--=- deck-piano
+-=- decks-piano
 piano-focus-4
 jazz-chops-3
 piano-chops-3
@@ -210,24 +153,31 @@ piano-chops-3
 {zipScheduleBlocks(shuffle(block(`deck-prio-1`)).join(` `))}
 -=- prio-2
 {scheduleBlocks(block(`deck-prio-2`).join(` `))}
--=- deck-piano-out
-{zipScheduleBlocks(shuffle(block(`deck-prio-1`)).join(` `))}
+-=- deck-piano
+{zipScheduleBlocks(shuffle(block(`decks-piano`)).join(` `))}
 
+# Main
 -=- main
-{keys}
-{scheduleBlocks(`warmup`)}
+{keyz}
+{blockLines(`warmup`)}
 {blockLines(`violin1`)}
 {blockLines(`piano1`)}
-{blockLines(`prio-1`)}
-{blockLines(`prio-2`)}
+# {blockLines(`prio-1`)}
+{scheduleBlocks(`violin-focus piano-focus`)}
+# {blockLines(`prio-2`)}
 # {aba(blockLines(`prio-1`), blockLines(`prio-2`))}
 -=- violin
-{keys}
-{scheduleBlocks(`warmup violin1`)}
-{zipScheduleBlocks(`violin-focus`)}
+{keyz}
+{scheduleBlocks(`warmup violin1 violin-focus`)}
 -=-
-# {zipScheduleBlocks(`warmup`)}
-# {blockLines(`main`)}
-{blockLines(`deck-piano-out`)}
-# {blockLines(`violin`)}
-
+# {blockLines(`deck-piano`)}
+{blockLines(`main`)}
+# TODO
+# 3-octave scales are generalizable to 1/2 octave scales with a different starting finger too
+# modes are not scales, so 3oc is slightly ill defined
+# oct works with shifts, if 7b or 1# is skipped
+# Scales/arps: generalize octave and starting/ending finger	
+# Tritones: tritone arps + inbetween interval
+# Melodic minor https://www.instagram.com/reel/DbYcH6qSnnf/
+# Triad Pair I-153-II-351: https://www.instagram.com/reels/DXLHEXXjLaT/
+# Evaluate: second decks
