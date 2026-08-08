@@ -93,7 +93,8 @@ function extractEvals(l: string): [string, Evals] {
     if (m[0] == '[') {
       const tag = m.match(/[^\] ]+$/i)
       const tags = tag && tag[0].split(':')
-      return interpolate(m.match(/^\[(.*)\][^\] ]*$/)![1].replace(/\\([\[\]])/g, '$1'), marker, tags ? tags[0] : `tag${idx + 1}`, tags && tags.length > 1 ? tags.slice(1) : null)
+      const tagName: string | undefined = tags && tags[0] && tags[0].length > 0 && tags[0] || undefined
+      return interpolate(m.match(/^\[(.*)\][^\] ]*$/)![1].replace(/\\([\[\]])/g, '$1'), marker, tagName || `tag${idx + 1}`, tags && tags.length > 1 ? tags.slice(1) : null)
     }
     if (m[0] == '{') return explode(m.slice(1, m.length - 1).replace(/\\([\{\}])/g, '$1'), marker)
     return interpolate('unlikely', '', null, null)
