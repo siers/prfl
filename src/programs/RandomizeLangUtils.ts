@@ -356,7 +356,7 @@ function keys(): string[] {
 // violin
 
 function scalePositions(): string[] {
-  return zip(ss('1234567'), shuffle(ij('', perm(s('GDAE'), 2))), shuffleX('∏V', 2))
+  return zip(ss('1234567'), shuffle(ij('', perm(s('GDAE'), 2))), shuffleX('∏V', 4)).flat()
 }
 
 type PickKeysInt = {
