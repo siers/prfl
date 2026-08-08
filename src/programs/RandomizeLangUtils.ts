@@ -7,7 +7,7 @@ import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipL
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
 import { chromaticSlide, frets } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
-import { shiftFormat, shifts, uniqueShiftsF } from '../lib/Combinatorics'
+import { shiftFormat, shifts, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
@@ -406,6 +406,7 @@ export type Interface = {
   comb<A>(a: A[], n: number): A[][],
   uniqueShifts(target?: number, inv?: number[]): string[],
   shifts(target?: number, inv?: number[]): string[],
+  shiftStrings(distrib: string, shifts: number): string[],
   perm<A>(a: A[], size?: number): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
@@ -598,6 +599,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     comb,
     uniqueShifts: uniqueShiftsF,
     shifts: (target?: number, inv?: number[]) => shiftFormat(shifts(target, inv)),
+    shiftStrings,
     perm,
     power,
     powerBuckets,

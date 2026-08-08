@@ -1,5 +1,5 @@
 import { groupBy, identity, shuffle, sortBy, uniqBy } from 'lodash'
-import { zipLongest } from './Array'
+import { times, zipLongest } from './Array'
 
 type Stock = { value: number, count: number }
 
@@ -32,7 +32,7 @@ export function sumsToG(target: number, inv: number[]): [number[], number[][]][]
   return groupByMultiset(go(target, stockFromInventory(inv)))
 }
 
-function groupByMultiset(ways: number[][]): [number[], number[][]][] {
+function groupByMultiset<A>(ways: A[][]): [A[], A[][]][] {
   const groups = groupBy(ways, way => sortBy(way).join(','))
   return Object.values(groups).map(group => [sortBy(group[0]), group])
 }
@@ -88,4 +88,11 @@ export function uniqueShiftsF(target: number = 7, inv: number[] = [-1, -2, -3]):
 
 export function shiftFormat(s: number[][]): string[] {
   return s.map((r) => r.join(''))
+}
+
+//
+
+export function shiftStrings(distrib: string, shifts: number): string[] {
+  const strings = times(10).flatMap(_ => distrib.split(''))
+  return shuffle(strings).slice(0, shifts).sort().map(st => `GDAE`.split('')[+st])
 }

@@ -116,9 +116,9 @@ Key-{pickKeys().flat()}
 -=-
 {keyz=scheduleBlocks('keys-1').map(k=>k.key);}
 -=- warmup-key
-Scales3Oct: [key] [ss(`ion dor phry lyd mix aeo loc wT wD black pent`)] [shuffle(shifts(7, \[1, -2, -3, 4\])).map(fs => zip(s(fs), shuffle(s(`0112223333011222333301122233330112223333`)).slice(0, fs.length).sort().map(st => s(`GDAE`)\[+st\])).join('-'))]:show-2
-Scales3Arp: [key] [ss(`ion dor phry lyd mix aeo loc`)] [ss(`dia dia dia dia dia wT wD black pent tri`)] [shuffle(shifts(7, \[1, -2, -3, 4\])).map(fs => zip(s(fs), shuffle(s(`0112223333011222333301122233330112223333`)).slice(0, fs.length).sort().map(st => s(`GDAE`)\[+st\])).join('-'))]:show-2
-ScaleChrom: [ss(`ion dor phry lyd mix aeo loc`)] [shifts(22, \[1, 2, 3, 3, -4\]).slice(0, 20).map(fs=>ij(``, zipLongest(s(fs), shuffle(s(`0112223333011222333301122233330112223333`)).slice(0,fs.length).sort().map(st => s(`GDAE`)\[+st\]))).join(`-`))]:show-2
+Scales3Oct: [key] [ss(`ion dor phry lyd mix aeo loc wT wD black pent`)] [shuffle(shifts(7, \[1, -2, -3, 4\])).map(fs => zip(s(fs), shiftStrings(`0112223333`, fs.length)).join('-'))]:show-2
+Scales3Arp: [key] [ss(`ion dor phry lyd mix aeo loc`)] [ss(`dia dia dia dia dia wT wD black pent tri`)] [shuffle(shifts(7, \[1, -2, -3, 4\])).map(fs => zip(s(fs), shiftStrings(`0112223333`, fs.length)).join('-'))]:show-2
+ScaleChrom: [ss(`ion dor phry lyd mix aeo loc`)] [shifts(22, \[1, 2, 3, 3, -4\]).slice(0, 20).map(fs=>ij(``, zipLongest(s(fs), shiftStrings(`0112223333`, fs.length))).join(`-`))]:show-2
 ScaleStops: [key] [ss(stops)] [scalePositions()]
 {scheduleBlocks('scales-0 scale-stops-0 bowing-1 shifting-0').flat().flat()}
 # ScalesDS: [ss(`123456`)]position [s('markov, ')]scale [keyPlain]key [ss(`–, v, h, r`)]random [ss(`12`)]
