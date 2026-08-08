@@ -1,3 +1,6 @@
+import _ from "lodash";
+import { shuffleArray } from "./Random";
+
 export function chunk<A>(arr: A[], len: number) {
   var chunks = [], i = 0, n = arr.length;
   while (i < n) chunks.push(arr.slice(i, i += len))
@@ -93,4 +96,19 @@ export function arrayMove<A>(arr1: A[], fromIndex: number, toIndex: number) {
 
 export function transpose<A>(matrix: A[][]): A[][] {
   return matrix[0].map((_, index) => matrix.map(row => row[index]))
+}
+
+function shuffleConstraintFirst<A>(shouldntBe: A[], b: A[]): A[] {
+  const [shouldnts, rests] = _.partition(b, x => shouldntBe.indexOf(x) !== -1)
+  if (rests.length == 0) {
+    return []
+  } else {
+    const restRests = rests.slice(0, -1)
+    const last = rests.at(-1)!
+    return [last, ...shuffleArray(restRests.concat(shouldnts))]
+  }
+}
+
+export function shuffleX<A>(list: A[], number: number): A[] {
+  return times(number).map(_ => list).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)), [])
 }
