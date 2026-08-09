@@ -495,8 +495,7 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: execution: show params in a stack when only single item shown!!!
-// TODO: parametrization: multiple tag syntax (a:b:c), ability to remove from parametrization (not counted into the key), show only "n" entries
+// TODO: scales: shifting patterns depending on the specific scale (which mode, which finger starts on, shift length can be 6, 7 or 8)
 // TODO: parametrization: some params should not be taken into account when generating subdecks
 
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
@@ -518,7 +517,6 @@ export default Randomize
 // TODO: parametrization: enable syntax to create items into subdecks directly
 
 // TODO: content: scales: bowings/delete notes replace with pauses
-// TODO: tonelib: acceptance test for all roots of the minor scales
 
 // TODO: metro: subdecks should use the bpm from the top card, if it's not defined yet
 // TODO: metro: subdecks should be able to start fresh metro times
