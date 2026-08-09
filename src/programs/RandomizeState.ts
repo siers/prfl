@@ -106,6 +106,14 @@ export function setItemBpmMemory(key: string | null, m: string | undefined, bpm:
   })
 }
 
+export function itemMetroBpm(item?: UserItem): number | null {
+  const subst = (item?.source?.substitutions || []).find(s => s.tag === 'metro')
+  if (!subst) return null
+
+  const parsed = parseFloat(String(subst.contents[0] ?? '').trim())
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export function recalcMetro(old: Metro, diff: Metro): Metro {
   const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value != null && value != undefined))
   const fresh = { opened: false, power: false, bpm: defaultBpm, ...old, ...diffFilt }
@@ -335,7 +343,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const newItem = deckGet(resolvedDecks, nextCursor)
   const newKey = newItem && newItem.key
   const newCard: CardData | null = newKey && findCard(memoryMap, newItem.key || '') || null
-  const newBpm: number = (newCard && newCard.bpm ? newCard.bpm : undefined) || defaultBpm
+  const newBpm: number = itemMetroBpm(newItem) ?? newCard?.bpm ?? s?.metro?.bpm ?? defaultBpm
   const metro: Metro = newKey ? recalcMetro(s?.metro || {}, { bpm: newBpm }) : (s?.metro || {})
 
   const newState = {
@@ -346,7 +354,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
     items: resolvedDecks,
     outLineCount: items.length,
-    memory: newKey ? setItemBpmMemory(newKey, memory, newBpm) : memory,
+    memory: newKey ? setItemBpmMemory(newKey, memory, metro.bpm || newBpm) : memory,
 
     execute: execute,
     current: nextCursor,

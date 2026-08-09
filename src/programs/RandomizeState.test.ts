@@ -6,7 +6,7 @@ import { SpawnMode } from './RandomizeDecks.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
-  defaultBpm, defaultState, Scheduler,
+  defaultBpm, defaultState, Scheduler, itemMetroBpm,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -244,6 +244,78 @@ describe('reduceSetBpm / reduceMetro', () => {
     expect(out.metro?.bpm).toBe(500)
     const cards = Object.fromEntries(JSON.parse(out.memory!)).cards
     expect(cards['a'].bpm).toBe(500)
+  })
+})
+
+describe('metro tag — an item authors its own tempo', () => {
+  const tagged = (src: string): UserItem => toUserItem(evalContents(src)[0])
+
+  function deckWith(items: UserItem[], over: Partial<RState> = {}): RState {
+    return { version: 5, items: { [DEFAULT_DECK]: items }, current: [DEFAULT_DECK, 0], ...over }
+  }
+
+  test('reads the bpm off a metro tag when landing on the item', () => {
+    const s = deckWith([item('first'), tagged('Song: play [90]metro')])
+    const out = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(out.metro?.bpm).toBe(90)
+  })
+
+  test('a multi-value metro tag uses the value rotated to the front', () => {
+    const s = deckWith([item('first'), tagged("Song: [s('80,100')]metro")])
+    const out = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(out.metro?.bpm).toBe(80)
+  })
+
+  test('tolerates surrounding text in the tag value', () => {
+    const s = deckWith([item('first'), tagged("Song: [' 132 bpm ']metro")])
+    const out = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(out.metro?.bpm).toBe(132)
+  })
+
+  test('the tag beats the bpm remembered for that card', () => {
+    let s = deckWith([tagged('Song: play [90]metro'), item('other')])
+    s = reduceSetBpm(s, 104)
+    s = reduceRecalc(s, { advance: ['set', 1] }, deps())
+    const out = reduceRecalc(s, { advance: ['set', 0] }, deps())
+    expect(out.metro?.bpm).toBe(90)
+  })
+
+  test('an untagged item still restores its remembered bpm', () => {
+    let s = deckWith([item('a'), item('b')])
+    s = reduceSetBpm(s, 104)
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    const out = reduceRecalc(s, { advance: ['seek', -1] }, deps())
+    expect(out.metro?.bpm).toBe(104)
+  })
+
+  test('an untagged, never-tuned item keeps the current tempo instead of resetting', () => {
+    let s = deckWith([tagged('Song: play [90]metro'), item('plain')])
+    s = reduceRecalc(s, { advance: ['set', 0] }, deps())
+    expect(s.metro?.bpm).toBe(90)
+    const out = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(out.metro?.bpm).toBe(90)
+  })
+
+  test('a non-numeric metro tag leaves the tempo alone', () => {
+    let s = deckWith([item('first'), tagged("Song: [s('fast')]metro")])
+    s = reduceMetro(s, { bpm: 104 })
+    const out = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(out.metro?.bpm).toBe(104)
+  })
+
+  test('the tag bpm is clamped and stamped into the card’s memory', () => {
+    const s = deckWith([item('first'), tagged('Song: play [9999]metro')])
+    const out = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(out.metro?.bpm).toBe(500)
+    const cards = Object.fromEntries(JSON.parse(out.memory!)).cards
+    expect(cards['Song'].bpm).toBe(500)
+  })
+
+  test('itemMetroBpm reads the tag directly, and is null without one', () => {
+    expect(itemMetroBpm(tagged('Song: play [90]metro'))).toBe(90)
+    expect(itemMetroBpm(tagged('Song: play [90]tempo'))).toBeNull()
+    expect(itemMetroBpm(item('plain'))).toBeNull()
+    expect(itemMetroBpm(undefined)).toBeNull()
   })
 })
 
