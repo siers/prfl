@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { UserItem, toUserItem } from './RandomizeTypes.ts'
 import { evalContents } from './RandomizeLang.js'
-import { Decks, DEFAULT_DECK } from './Decks.ts'
+import { Decks, DEFAULT_DECK, deckGet } from './Decks.ts'
+import { SpawnMode } from './RandomizeDecks.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
@@ -385,6 +386,31 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   test('entering a non-existent deck is a no-op', () => {
     const s = stateOf(['a', 'b'], 1)
     expect(reduceEnterDeck(s, 'nope', NOW)).toBe(s)
+  })
+
+  // spawn, pop out, finish the first `doneCount` children, then descend again
+  type Descend = (s: RState, mode: SpawnMode) => RState
+  function reentered(mode: SpawnMode, doneCount: number, descend: Descend): RState {
+    const deck = `Scale/${mode}`
+    let s = reducePopOne(reduceSpawn(stateWithSpawnable(), mode, NOW, keepOrder), NOW)
+    s = { ...s, items: { ...s.items, [deck]: s.items![deck].map((i, n) => n < doneCount ? { ...i, done: true } : i) } }
+    return descend(s, mode)
+  }
+
+  const byEnter: Descend = (s, mode) => reduceEnterDeck(s, `Scale/${mode}`, NOW)
+  const bySpawn: Descend = (s, mode) => reduceSpawn(s, mode, NOW, keepOrder)
+
+  test.each([
+    ['entering', byEnter, 2, 2],
+    ['re-spawning into', bySpawn, 3, 3],
+  ] satisfies [string, Descend, number, number][])('%s a partly-done deck lands on the first live item', (_name, descend, doneCount, want) => {
+    const s = reentered('cartesian', doneCount, descend) // 4 children
+    expect(s.current).toStrictEqual(['Scale/cartesian', want])
+    expect(deckGet(s.items!, s.current!)?.done).toBeFalsy()
+  })
+
+  test('entering an all-done deck stays at the top rather than running off the end', () => {
+    expect(reentered('zip', 2, byEnter).current).toStrictEqual(['Scale/zip', 0])
   })
 
   test('spawning into an all-done subdeck regenerates it instead of reusing', () => {

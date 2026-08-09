@@ -385,7 +385,7 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   const scheduled = reusable ? existing : schedule(children, s.memory)
 
   const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: scheduled }
-  const newCursor: DeckCursor = [deckName, 0]
+  const newCursor: DeckCursor = descendCursor(s, items, deckName)
 
   const newState: RState = {
     ...s,
@@ -397,6 +397,10 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
 
   // Start the descended item's timer like a normal advance does.
   return reduceTimer(newState, 'local-as-global', null, now)
+}
+
+function descendCursor(s: RState, decks: Decks<UserItem>, deckName: string): DeckCursor {
+  return deckSetCurrent(decks, [deckName, 0], 0, excludeFor(s.hideDone !== false))[1]
 }
 
 function subdeckPrefix(item: UserItem): string {
@@ -416,7 +420,7 @@ export function reduceEnterDeck(s: RState | undefined, deckName: string, now: nu
 
   const newState: RState = {
     ...s,
-    current: [deckName, 0],
+    current: descendCursor(s, s.items || {}, deckName),
     cursorStack: [...(s.cursorStack || []), s.current || [DEFAULT_DECK, 0]],
   }
   return reduceTimer(newState, 'local-as-global', null, now)
