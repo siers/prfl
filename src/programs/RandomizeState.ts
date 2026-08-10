@@ -3,7 +3,7 @@
 import { evalContentsMem, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
 import { makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
-import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract } from './Timers.ts'
+import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
 import { clamp } from 'lodash'
@@ -137,7 +137,7 @@ function itemsAndTimer(
 
   let memory: Map<any, any> = memoryFromString(m)
   const [lines, _] = evalContentsMem(contents, memory, { images })
-  return [decksOf(lines.map(rl => toUserItem(rl))), undefined, []]
+  return [decksOf(lines.map(rl => toUserItem(rl))), zeroedStoppedTimer(), []]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck

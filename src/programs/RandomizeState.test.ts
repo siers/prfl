@@ -220,6 +220,13 @@ describe('reduceTimer', () => {
     expect(s.items!['Scale/zip'][0].timer?.running).toBe(true) // leaf restarted
   })
 
+  test('a refresh leaves totalTimer stopped at zero, not silently running', () => {
+    let s = stateOf(['a', 'b'], 0, { totalTimer: { kind: 'started', start: NOW - 5000, running: true } })
+    s = reduceRecalc(s, { eval: true, contents: 'alpha\nbravo' }, deps())
+    expect(s.totalTimer).toStrictEqual({ kind: 'stopped', length: 0, running: false })
+    expect(deckGet(s.items!, s.current!)?.timer?.running).toBe(false) // leaf agrees
+  })
+
   test('subtract-and-restart two levels deep resyncs every ancestor to totalTimer', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     s = { ...s, cursorStack: [...s.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], items: { ...s.items, leaf: [item('x')] } }

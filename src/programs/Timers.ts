@@ -40,6 +40,8 @@ export function hm_ms(a: number): string {
 
 export const freshTimer: (start: number) => Timer = (start: number) => ({ kind: 'started', start, running: true })
 
+export const zeroedStoppedTimer: () => Timer = () => ({ kind: 'stopped', length: 0, running: false })
+
 export const freshTimerOrRestart: (start: number, t: Timer | null) => Timer =
   (start: number, t: Timer | null) => {
     if (t?.running != false) return ({ kind: 'started', start, running: true })
