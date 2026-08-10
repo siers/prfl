@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes } from './ToneLib.ts'
+import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
 
 describe('ToneLib', () => {
@@ -333,10 +333,10 @@ describe('ToneLib', () => {
       'Cb': 'C   Db  D   Eb  Fb  F   Gb  G   Ab  A   Bb  Cb  C',
     }
 
-    const cPc = ((semi(parseNote('C')!) % 12) + 12) % 12
+    const cPc = pitchClass(parseNote('C')!)
     const rotateToC = (scale: Note[]) => {
       const uniq = scale.slice(0, -1) // drop the duplicated closing octave note
-      const i = uniq.findIndex(n => ((semi(n) % 12) + 12) % 12 === cPc)
+      const i = uniq.findIndex(n => pitchClass(n) === cPc)
       const rot = [...uniq.slice(i), ...uniq.slice(0, i)]
       return [...rot, rot[0]] // re-close the octave
     }
@@ -347,7 +347,7 @@ describe('ToneLib', () => {
 
       const rotated = rotateToC(scale)
       expect(rotated.map(n => renderN(n)).join(' ')).toBe(cells(zipMinRotatedExpected[tonic]))
-      expect(((semi(rotated[0]) % 12) + 12) % 12).toBe(cPc)
+      expect(pitchClass(rotated[0])).toBe(cPc)
 
       scale.forEach((n, i) => {
         expect(Math.abs(n.alter)).toBeLessThanOrEqual(1)
@@ -394,5 +394,12 @@ describe('ToneLib', () => {
     })
 
     expect(Object.keys(blackKeysExpected)).toHaveLength(keysMajor().length)
+  })
+
+  test('keyHasSemi — search by pitch-class offset', () => {
+    const b = parseNote('b')!
+    const f = parseNote('f')!
+
+    expect(keysMajor().filter(k => [b, f].every(n => keyHasSemi(k, n))).map(keyCenter).map(renderN)).toStrictEqual('C F# Gb'.split(' '))
   })
 })

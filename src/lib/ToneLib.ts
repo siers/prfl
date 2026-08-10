@@ -87,6 +87,11 @@ export function semi(n: Note): number {
   return 4 + (n.octave - 1) * 12 + namesSemiMap[n.name] + n.alter
 }
 
+// semi reduced into [0,11] — the octave-free pitch class, so enharmonic spellings collapse
+export function pitchClass(n: Note): number {
+  return ((semi(n) % 12) + 12) % 12
+}
+
 export function render(n: Note, octave: Boolean = true): string {
   const alt = alters[n.alter] ?? '?'
   return n.name.toUpperCase() + alt + (octave ? n.octave : '')
@@ -263,6 +268,14 @@ export function keySemis(mode: number = 0): number[] {
 export function keysBySemi(n: number): Note[] {
   const centers = keyCenters()
   return enharmonics(n).flatMap(e => centers.filter(c => equalNote(c, e)))
+}
+
+export function keyCenter(k: Key): Note {
+  return k[0]!
+}
+
+export function keyHasSemi(key: Key, n: Note): boolean {
+  return key.some(kn => pitchClass(kn) === pitchClass(n))
 }
 
 function keysDominant() {
