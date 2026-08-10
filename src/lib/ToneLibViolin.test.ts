@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { findTriadOnString, frets, positionsQuiz, strings, stringsAboveOpen, stringsForTonality } from './ToneLibViolin.ts'
-import { findMajor, Key, parseNote, render } from './ToneLib.ts'
+import { fingerPosition, findTriadOnString, frets, modeShifts, positionsQuiz, shifts, StringName, strings, strings3, stringsAboveOpen, stringsForTonality } from './ToneLibViolin.ts'
+import { findMajor, Key, parseNote, render, renderN } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
 
@@ -47,6 +47,124 @@ describe('ToneLibViolin', () => {
     const sao = transpose(strings.map(s => s.positions))[0].map(n => render(n)).join(' ')
 
     expect(sao).toBe('A3 E4 B4 F#5')
+  })
+
+  describe('fingerPosition', () => {
+    const table: [StringName, string, number | undefined, number, number][] = [
+      ['G', 'G3', undefined, 1, 0],
+      ['G', 'A3', undefined, 1, 1],
+      ['G', 'B3', undefined, 1, 2],
+      ['G', 'C4', undefined, 2, 2],
+      ['G', 'F#4', undefined, 5, 2],
+      ['G', 'G#3', undefined, 0, 1],
+      ['E', 'G6', 4, 6, 4],
+      ['E', 'F#7', 4, 12, 4],
+      ['E', 'E5', 4, -3, 4],
+    ]
+
+    table.forEach(([string, note, finger, position, expectedFinger]) => {
+      test(`${string} string ${note}${finger ? ` finger ${finger}` : ''}`, () => {
+        const fp = fingerPosition(string, parseNote(note)!, finger)!
+
+        expect(fp.string).toBe(string)
+        expect(render(fp.note)).toBe(note)
+        expect(fp.finger).toBe(expectedFinger)
+        expect(fp.position).toBe(position)
+      })
+    })
+
+    test('returns null off the gamut', () => {
+      expect(fingerPosition('G', parseNote('c1')!)).toBeNull()
+      expect(fingerPosition('E', parseNote('c9')!)).toBeNull()
+    })
+
+    type ShiftRow = [StringName, string, number, number, StringName, string, number, number, number]
+
+    const shiftTable: ShiftRow[] = [
+      ['G', 'A3', 1, 1, 'E', 'A5', 2, 2, 1],
+      ['G', 'G3', 0, 1, 'E', 'G6', 4, 6, 5],
+      ['G', 'B3', 2, 1, 'E', 'B6', 4, 8, 7],
+      ['G', 'A3', 1, 1, 'G', 'A3', 1, 1, 0],
+      ['E', 'A5', 2, 2, 'G', 'A3', 1, 1, -1],
+    ]
+
+    shiftTable.forEach(([sStr, sNote, sFing, sPos, eStr, eNote, eFing, ePos, count]) => {
+      test(`${sNote}:${sStr}:${sFing} to ${eNote}:${eStr}:${eFing} is ${count}`, () => {
+        const start = fingerPosition(sStr, parseNote(sNote)!, sFing)!
+        const end = fingerPosition(eStr, parseNote(eNote)!, eFing)!
+
+        expect(start.position).toBe(sPos)
+        expect(end.position).toBe(ePos)
+        expect(shifts(start, end)).toBe(count)
+      })
+    })
+
+    test('A1 is unplayable on the G string', () => {
+      expect(fingerPosition('G', parseNote('a1')!, 1)).toBeNull()
+    })
+  })
+
+  describe('modeShifts', () => {
+    type ModeShiftRow = [string, number, number, string, number, number]
+
+    const table: [string, ModeShiftRow[]][] = [
+      ['G', [
+        ['G3', 0, 1, 'G6', 6, 5],
+        ['A3', 1, 1, 'A6', 7, 6],
+        ['B3', 2, 1, 'B6', 8, 7],
+        ['C4', 2, 2, 'C7', 9, 7],
+        ['D4', 2, 3, 'D7', 10, 7],
+        ['E4', 2, 4, 'E7', 11, 7],
+        ['F#4', 2, 5, 'F#7', 12, 7],
+      ]],
+      ['D', [
+        ['D4', 2, 3, 'D7', 10, 7],
+        ['E4', 2, 4, 'E7', 11, 7],
+        ['F#4', 2, 5, 'F#7', 12, 7],
+        ['G3', 0, 1, 'G6', 6, 5],
+        ['A3', 1, 1, 'A6', 7, 6],
+        ['B3', 2, 1, 'B6', 8, 7],
+        ['C#4', 2, 2, 'C#7', 9, 7],
+      ]],
+    ]
+
+    table.forEach(([root, rows]) => {
+      test(`${root} major`, () => {
+        const shifts = modeShifts(parseNote(root)!)
+
+        expect(shifts.map(m => m.shifts)).toStrictEqual(rows.map(r => r[5]))
+
+        rows.forEach(([startNote, startFinger, startPosition, endNote, endPosition, count], mode) => {
+          const m = shifts[mode]
+
+          expect(m.mode).toBe(mode)
+          expect(renderN(m.root)).toBe(root)
+
+          expect(m.start.string).toBe('G')
+          expect(render(m.start.note)).toBe(startNote)
+          expect(m.start.finger).toBe(startFinger)
+          expect(m.start.position).toBe(startPosition)
+
+          expect(m.end.string).toBe('E')
+          expect(render(m.end.note)).toBe(endNote)
+          expect(m.end.finger).toBe(4)
+          expect(m.end.position).toBe(endPosition)
+
+          expect(m.shifts).toBe(count)
+        })
+      })
+    })
+
+    test('reaches above the 24-semitone gamut', () => {
+      expect(render(modeShifts('G')[6].end.note)).toBe('F#7')
+      expect(strings[3].positions.length).toBe(15)
+      expect(strings3[3].positions.length).toBeGreaterThan(15)
+    })
+
+    test('rejects junk', () => {
+      expect(modeShifts('h')).toStrictEqual([])
+      expect(modeShifts('')).toStrictEqual([])
+    })
   })
 
   test('frets', () => {

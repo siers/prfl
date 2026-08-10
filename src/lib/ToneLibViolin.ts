@@ -10,15 +10,23 @@ type String = {
   positions: Note[], // C major, open string + all positions up until second octave
 }
 
-export const strings: String[] = ([parseNote('G3'), parseNote('D4'), parseNote('A4'), parseNote('E5')] as Note[]).map(string => {
-  const frets = directRange(semi(string), semi(string) + 24)
-  const notes = frets.flatMap(fret => enharmonics(fret).filter(n => n.alter == 0))
+const bases = ([parseNote('G3'), parseNote('D4'), parseNote('A4'), parseNote('E5')] as Note[])
 
-  return {
-    base: string,
-    positions: notes,
-  }
-})
+export function stringsSpanning(span: number = 24): String[] {
+  return bases.map(string => {
+    const frets = directRange(semi(string), semi(string) + span)
+    const notes = frets.flatMap(fret => enharmonics(fret).filter(n => n.alter == 0))
+
+    return {
+      base: string,
+      positions: notes,
+    }
+  })
+}
+
+export const strings: String[] = stringsSpanning()
+
+export const strings3: String[] = stringsSpanning(36)
 
 function stringIndex(string: 'G' | 'D' | 'A' | 'E'): number {
   return 'GDAE'.indexOf(string)
@@ -101,6 +109,77 @@ export function positionsQuiz(): string[] {
     return string.positions.slice(1).map((fret, index) =>
       `${base}${index + 1} = ${renderN(fret)}`
     )
+  })
+}
+
+export type StringName = 'G' | 'D' | 'A' | 'E'
+
+export type FingerPosition = {
+  string: StringName,
+  position: number,
+  finger: number,
+  note: Note,
+}
+
+export type ModeShift = {
+  mode: number,
+  root: Note,
+  start: FingerPosition,
+  end: FingerPosition,
+  shifts: number,
+}
+
+function columnOfLetter(positions: Note[], n: Note): number {
+  return positions.findIndex(p => p.name == n.name && p.octave == n.octave)
+}
+
+function positionOf(column: number, finger: number): number {
+  return finger == 0 ? column + 1 : column - (finger - 1)
+}
+
+export function fingerAboveOpen(note: Note, base: Note): number {
+  const distance = semi(note) - semi(base)
+  return distance == 0 ? 0 : distance <= 2 ? 1 : 2
+}
+
+export function fingerPosition(string: StringName, note: Note, finger?: number): FingerPosition | null {
+  const s = strings3[stringIndex(string)]
+  const column = columnOfLetter(s.positions, note)
+  if (column < 0) return null
+
+  const f = finger ?? fingerAboveOpen(note, s.base)
+
+  return { string, position: positionOf(column, f), finger: f, note }
+}
+
+export function shifts(start: FingerPosition, end: FingerPosition): number {
+  return end.position - start.position
+}
+
+export function modeShifts(
+  root: Note | string,
+  octaves: number = 3,
+  endFinger: number = 4,
+  startString: StringName = 'G',
+  endString: StringName = 'E',
+): ModeShift[] {
+  const note = typeof root === 'string' ? parseNote(root) : root
+  if (!note) return []
+
+  const key = majorKey(note)
+  if (!key) return []
+
+  const g = strings3[stringIndex(startString)]
+
+  return key.flatMap((keyNote, mode) => {
+    const column = g.positions.findIndex(p => p.name == keyNote.name)
+    const tonic: Note = { ...keyNote, octave: g.positions[column].octave }
+
+    const start = fingerPosition(startString, tonic)
+    const end = fingerPosition(endString, { ...tonic, octave: tonic.octave + octaves }, endFinger)
+    if (!start || !end) return []
+
+    return [{ mode, root: note, start, end, shifts: shifts(start, end) } satisfies ModeShift]
   })
 }
 
