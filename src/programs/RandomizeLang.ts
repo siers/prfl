@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag } from './RandomizeLangTypes'
+import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -296,15 +296,10 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
   return ic
 }
 
-// The card a `-=- name::` block leaves in the root deck: its key is the deck's
-// name, which is what makes the deck reachable — the "enter subdeck" button
-// looks for a deck named after the current card's key (see liveSubdeckName).
-export function subdeckCard(name: string): RenderLine {
-  return renderLine(name, name, null)
-}
-
 // The deck a `-=- name::` block fills. The trailing separator mirrors the
-// `Key/zip` shape spawned decks use, so both are found by the same key prefix.
+// `Key/zip` shape spawned decks use, so an item whose key is the block name
+// reaches it through the same prefix match the spawned decks use
+// (see liveSubdeckName) — but writing that item is up to the deck's author.
 export function declaredDeckName(name: string): string {
   return `${name}/`
 }
@@ -322,16 +317,9 @@ export function evalContentsDecks(text: string, oldMemory: Memory = new Map(), a
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
     else if (isSubdeckHeader(b.header)) {
+      // Blocks sharing a subdeck name concatenate into that one deck. Nothing
+      // is emitted into the root deck — a subdeck contributes only its own items.
       const deck = declaredDeckName(name)
-      // Blocks sharing a subdeck name concatenate into that one deck, and only
-      // the first one contributes the root card that leads into it. The card
-      // joins the running main block rather than starting its own, so it doesn't
-      // introduce a separator around itself.
-      if (!subdecks[deck]) {
-        const last = mainBlocks[mainBlocks.length - 1]
-        if (last) last.push(subdeckCard(name))
-        else mainBlocks.push([subdeckCard(name)])
-      }
       subdecks[deck] = (subdecks[deck] || []).concat(evalBlock(b, context))
     }
     else {

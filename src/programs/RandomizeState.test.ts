@@ -157,27 +157,40 @@ describe('reduceRecalc — eval & deck wiring', () => {
 })
 
 describe('declared subdecks — `-=- name::`', () => {
-  const text = '-=-\nalpha\n-=- scales::\nMAJ\nMIN'
+  // The `scales` item is authored, not generated: a subdeck emits nothing into
+  // the root deck. Keying an item after the block is what makes the deck
+  // reachable from it.
+  const text = '-=-\nalpha\nscales: warm up first\n-=- scales::\nMAJ\nMIN'
 
-  test('eval builds the declared deck alongside the root, with a card leading into it', () => {
+  test('eval builds the declared deck alongside the root, adding nothing to it', () => {
     const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
 
-    expect(labels(s)).toStrictEqual(['alpha', 'scales'])
+    expect(labels(s)).toStrictEqual(['alpha', 'scales: warm up first'])
     expect(s.items!['scales/'].map(i => i.contents)).toStrictEqual(['MAJ', 'MIN'])
     expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
   })
 
-  test('the root card is keyed with the deck name, so the enter button finds the deck', () => {
-    const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    const card = s.items![DEFAULT_DECK][1]
+  test('a subdeck-only text yields an empty root deck', () => {
+    const s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=- scales::\nMAJ' }, deps())
 
-    expect(card.key).toBe('scales')
-    expect(liveSubdeckName(s, card)).toBe('scales/')
+    expect(labels(s)).toStrictEqual([])
+    expect(s.items!['scales/'].map(i => i.contents)).toStrictEqual(['MAJ'])
+  })
+
+  test('an item keyed after the block finds the deck, so the enter button appears', () => {
+    const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    const entry = s.items![DEFAULT_DECK][1]
+
+    expect(entry.key).toBe('scales')
+    expect(liveSubdeckName(s, entry)).toBe('scales/')
+
+    // an unrelated item points at nothing
+    expect(liveSubdeckName(s, s.items![DEFAULT_DECK][0])).toBeNull()
   })
 
   test('entering the declared deck descends into it and the breadcrumb can climb back', () => {
     let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    s = reduceRecalc(s, { advance: ['set', 1] }, deps()) // onto the `scales` card
+    s = reduceRecalc(s, { advance: ['set', 1] }, deps()) // onto the `scales` item
 
     s = reduceEnterDeck(s, 'scales/', NOW)
     expect(s.current).toStrictEqual(['scales/', 0])
@@ -194,7 +207,7 @@ describe('declared subdecks — `-=- name::`', () => {
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
     expect(s.current).toStrictEqual(['scales/', 1])
     expect(deckGet(s.items!, s.current!)!.contents).toBe('MIN')
-    expect(labels(s)).toStrictEqual(['alpha', 'scales']) // root untouched
+    expect(labels(s)).toStrictEqual(['alpha', 'scales: warm up first']) // root untouched
   })
 
   test('re-eval rebuilds declared decks and clears the stack, like every other deck', () => {
@@ -208,13 +221,13 @@ describe('declared subdecks — `-=- name::`', () => {
     expect(s.cursorStack).toStrictEqual([])
   })
 
-  test('cleaning the card drops its declared deck, same as a spawned one', () => {
+  test('cleaning from the keyed item drops its declared deck, same as a spawned one', () => {
     let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    const card = s.items![DEFAULT_DECK][1]
+    const entry = s.items![DEFAULT_DECK][1]
 
-    s = reduceCleanSubdeck(s, card)
+    s = reduceCleanSubdeck(s, entry)
     expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
-    expect(liveSubdeckName(s, card)).toBeNull()
+    expect(liveSubdeckName(s, entry)).toBeNull()
   })
 })
 

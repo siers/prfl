@@ -207,7 +207,7 @@ describe('subdeck blocks', () => {
     return Object.fromEntries(Object.entries(subdecks).map(([k, v]) => [k, v.map(rl => rl.contents)]))
   }
 
-  test('items go to the named subdeck, and the root gets a card leading into it', () => {
+  test('items go to the named subdeck, and nothing is added to the root deck', () => {
     const text = `
       a
       -=- sub::
@@ -215,18 +215,16 @@ describe('subdeck blocks', () => {
       c
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContentsS(text)).toStrictEqual(['a', 'sub'])
+    expect(evalContentsS(text)).toStrictEqual(['a'])
     expect(decksS(text)).toStrictEqual({ 'sub/': ['b', 'c'] })
   })
 
-  test('the root card is keyed with the deck name, which is what makes it enterable', () => {
+  test('a subdeck-only text leaves the root deck empty', () => {
     const [lines] = evalContentsDecks("-=- sub::\nb")
-    expect(lines).toStrictEqual([
-      { kind: 'renderline', contents: 'sub', key: 'sub', separator: null, source: null },
-    ])
+    expect(lines).toStrictEqual([])
   })
 
-  test('several subdecks coexist, and the root keeps its own blocks', () => {
+  test('several subdecks coexist, and the root keeps only its own blocks', () => {
     const text = `
       a
       -=- one::
@@ -237,11 +235,11 @@ describe('subdeck blocks', () => {
       d
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContentsS(text)).toStrictEqual(['a', 'one', 'two', '---', 'd'])
+    expect(evalContentsS(text)).toStrictEqual(['a', '---', 'd'])
     expect(decksS(text)).toStrictEqual({ 'one/': ['b'], 'two/': ['c'] })
   })
 
-  test('blocks sharing a name concatenate into one deck, behind a single card', () => {
+  test('blocks sharing a name concatenate into one deck', () => {
     const text = `
       -=- sub::
       b
@@ -249,7 +247,7 @@ describe('subdeck blocks', () => {
       c
     `.replaceAll(/^ */mg, '')
 
-    expect(evalContentsS(text)).toStrictEqual(['sub'])
+    expect(evalContentsS(text)).toStrictEqual([])
     expect(decksS(text)).toStrictEqual({ 'sub/': ['b', 'c'] })
   })
 
@@ -262,7 +260,19 @@ describe('subdeck blocks', () => {
     `.replaceAll(/^ */mg, '')
 
     expect(decksS(text)).toStrictEqual({ 'sub/': ['b'] })
-    expect(evalContentsS(text)).toStrictEqual(['sub', '---', "[error: block('sub') == undefined]"])
+    expect(evalContentsS(text)).toStrictEqual(["[error: block('sub') == undefined]"])
+  })
+
+  test('an item keyed like the deck reaches it — but the author writes that item', () => {
+    const text = `
+      scales: warm up first
+      -=- scales::
+      MAJ
+    `.replaceAll(/^ */mg, '')
+
+    const [lines] = evalContentsDecks(text)
+    expect(lines.map(l => [l.contents, l.key])).toStrictEqual([['scales: warm up first', 'scales']])
+    expect(decksS(text)).toStrictEqual({ 'scales/': ['MAJ'] })
   })
 
   test('subdeck items are ordinary items: interpolations, keys and tags survive', () => {
