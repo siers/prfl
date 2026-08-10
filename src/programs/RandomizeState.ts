@@ -1,6 +1,6 @@
 // Pure state reducers for Randomize.
 
-import { evalContentsMem, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
+import { evalContentsDecks, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
 import { makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
@@ -136,8 +136,16 @@ function itemsAndTimer(
   if (!eval_) return [decks, total, stack]
 
   let memory: Map<any, any> = memoryFromString(m)
-  const [lines, _] = evalContentsMem(contents, memory, { images })
-  return [decksOf(lines.map(rl => toUserItem(rl))), zeroedStoppedTimer(), []]
+  const [lines, subdecks, _] = evalContentsDecks(contents, memory, { images })
+
+  // `-=- name::` blocks land as decks of their own alongside the root deck, and
+  // the root card the lang emitted for each (keyed with the deck name) is what
+  // the "enter subdeck" button hangs off — same path spawned decks use.
+  const declared: Decks<UserItem> = Object.fromEntries(
+    Object.entries(subdecks).map(([name, items]) => [name, items.map(rl => toUserItem(rl))]),
+  )
+
+  return [{ ...decksOf(lines.map(rl => toUserItem(rl))), ...declared }, zeroedStoppedTimer(), []]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck

@@ -514,7 +514,6 @@ export default Randomize
 // TODO: evaluational: some blocks are dynamic, always rerendered
 
 // TODO: parametrization: subdecks should survive refresh (what was the usecase, again?)
-// TODO: parametrization: enable syntax to create items into subdecks directly
 
 // TODO: content: scales: bowings/delete notes replace with pauses
 

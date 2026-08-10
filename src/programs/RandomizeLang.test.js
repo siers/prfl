@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContents, evalContentsMem, evalContentsDecks, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -198,6 +198,100 @@ describe('integration', () => {
     `.replaceAll(/^ */mg, '')
 
     expect(evalContentsS(text)).toStrictEqual(['1', '3', '4', '2'])
+  })
+})
+
+describe('subdeck blocks', () => {
+  const decksS = text => {
+    const [_lines, subdecks] = evalContentsDecks(text)
+    return Object.fromEntries(Object.entries(subdecks).map(([k, v]) => [k, v.map(rl => rl.contents)]))
+  }
+
+  test('items go to the named subdeck, and the root gets a card leading into it', () => {
+    const text = `
+      a
+      -=- sub::
+      b
+      c
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContentsS(text)).toStrictEqual(['a', 'sub'])
+    expect(decksS(text)).toStrictEqual({ 'sub/': ['b', 'c'] })
+  })
+
+  test('the root card is keyed with the deck name, which is what makes it enterable', () => {
+    const [lines] = evalContentsDecks("-=- sub::\nb")
+    expect(lines).toStrictEqual([
+      { kind: 'renderline', contents: 'sub', key: 'sub', separator: null, source: null },
+    ])
+  })
+
+  test('several subdecks coexist, and the root keeps its own blocks', () => {
+    const text = `
+      a
+      -=- one::
+      b
+      -=- two::
+      c
+      -=-
+      d
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContentsS(text)).toStrictEqual(['a', 'one', 'two', '---', 'd'])
+    expect(decksS(text)).toStrictEqual({ 'one/': ['b'], 'two/': ['c'] })
+  })
+
+  test('blocks sharing a name concatenate into one deck, behind a single card', () => {
+    const text = `
+      -=- sub::
+      b
+      -=- sub::
+      c
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContentsS(text)).toStrictEqual(['sub'])
+    expect(decksS(text)).toStrictEqual({ 'sub/': ['b', 'c'] })
+  })
+
+  test('a subdeck block is not callable, unlike a plain named block', () => {
+    const text = `
+      -=- sub::
+      b
+      -=-
+      [block('sub')]
+    `.replaceAll(/^ */mg, '')
+
+    expect(decksS(text)).toStrictEqual({ 'sub/': ['b'] })
+    expect(evalContentsS(text)).toStrictEqual(['sub', '---', "[error: block('sub') == undefined]"])
+  })
+
+  test('subdeck items are ordinary items: interpolations, keys and tags survive', () => {
+    const [_lines, subdecks] = evalContentsDecks("-=- sub::\nKEY: [s('x y')]t\n")
+    const [item] = subdecks['sub/']
+
+    expect(item.contents).toStrictEqual('KEY: [x y]')
+    expect(item.key).toStrictEqual('KEY')
+    expect(item.source.substitutions).toStrictEqual([
+      { kind: 'substitution', contents: ['x', 'y'], marker: '!!!1', tag: 't', tags: null, freeze: false },
+    ])
+  })
+
+  test('`---` subdecks shuffle their items, `-=-` keep order', () => {
+    const ordered = decksS("-=- sub::\n" + 'abcdefgh'.split('').join('\n'))
+    expect(ordered['sub/']).toStrictEqual('abcdefgh'.split(''))
+
+    const shuffled = decksS("--- sub::\n" + 'abcdefgh'.split('').join('\n'))
+    expect(shuffled['sub/'].slice().sort()).toStrictEqual('abcdefgh'.split(''))
+  })
+
+  test('an anonymous `::` header is just a main block', () => {
+    expect(evalContentsS("-=- ::\na")).toStrictEqual(['a'])
+    expect(decksS("-=- ::\na")).toStrictEqual({})
+  })
+
+  test('`::` inside a line is not a header', () => {
+    expect(evalContentsS('a:: b')).toStrictEqual(['a:: b'])
+    expect(decksS('a:: b')).toStrictEqual({})
   })
 })
 

@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag } from './RandomizeLangTypes'
+import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -109,7 +109,11 @@ function parseLine(lineRaw: string): Item[] {
   if (lineRaw.match(/^#/)) {
     return []
   } else if (headerMatch) {
-    return [header(headerMatch[1] == '-', headerMatch[2] && headerMatch[2] != '' ? headerMatch[2] : null)]
+    // `-=- name::` marks a subdeck block; the `::` is not part of the name.
+    const nameRaw = (headerMatch[2] || '').trim()
+    const subdeck = nameRaw.endsWith('::')
+    const name = (subdeck ? nameRaw.slice(0, -2).trim() : nameRaw) || null
+    return [header(headerMatch[1] == '-', name, subdeck && name !== null)]
   } else {
     const timesMatch = lineRaw.match(/^(\d+)x /)
     const times = timesMatch ? parseInt(timesMatch[0], 10) : 1
@@ -292,23 +296,62 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
   return ic
 }
 
-export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory] {
+// The card a `-=- name::` block leaves in the root deck: its key is the deck's
+// name, which is what makes the deck reachable — the "enter subdeck" button
+// looks for a deck named after the current card's key (see liveSubdeckName).
+export function subdeckCard(name: string): RenderLine {
+  return renderLine(name, name, null)
+}
+
+// The deck a `-=- name::` block fills. The trailing separator mirrors the
+// `Key/zip` shape spawned decks use, so both are found by the same key prefix.
+export function declaredDeckName(name: string): string {
+  return `${name}/`
+}
+
+// The full evaluation: the root deck's lines, the subdecks declared with
+// `-=- name::`, and the resulting memory.
+export function evalContentsDecks(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Subdecks, Memory] {
   const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext)]
-  const [mainBlocks, context]: EvaluationContext = blocks.reduce(([mainBlocks, context], b) => {
+  const evaluationInit: EvaluationContext = [[], {}, initContext(memory, additionalContext)]
+  const [mainBlocks, subdecks, context]: EvaluationContext = blocks.reduce(([mainBlocks, subdecks, context], b) => {
+    const name = b.header.name || 'impossiblè'
+
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
+    else if (isSubdeckHeader(b.header)) {
+      const deck = declaredDeckName(name)
+      // Blocks sharing a subdeck name concatenate into that one deck, and only
+      // the first one contributes the root card that leads into it. The card
+      // joins the running main block rather than starting its own, so it doesn't
+      // introduce a separator around itself.
+      if (!subdecks[deck]) {
+        const last = mainBlocks[mainBlocks.length - 1]
+        if (last) last.push(subdeckCard(name))
+        else mainBlocks.push([subdeckCard(name)])
+      }
+      subdecks[deck] = (subdecks[deck] || []).concat(evalBlock(b, context))
+    }
     else {
-      context.set(b.header.name || 'impossiblè', () => evalBlock(b, context))
-      context.set(`items-${b.header.name || 'impossiblè'}`, () => b.items)
+      context.set(name, () => evalBlock(b, context))
+      context.set(`items-${name}`, () => b.items)
     }
 
-    return [mainBlocks, context] satisfies EvaluationContext
+    return [mainBlocks, subdecks, context] satisfies EvaluationContext
   }, evaluationInit)
 
-  return [intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(), context.get('memory') as Memory]
+  return [
+    intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(),
+    subdecks,
+    context.get('memory') as Memory,
+  ]
+}
+
+export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory] {
+  const [lines, _subdecks, memory] = evalContentsDecks(text, oldMemory, additionalContext)
+  return [lines, memory]
 }
 
 export function evalContents(text: string, additionalContext: AdditionalContext = {}): RenderLine[] {

@@ -156,6 +156,68 @@ describe('reduceRecalc — eval & deck wiring', () => {
   })
 })
 
+describe('declared subdecks — `-=- name::`', () => {
+  const text = '-=-\nalpha\n-=- scales::\nMAJ\nMIN'
+
+  test('eval builds the declared deck alongside the root, with a card leading into it', () => {
+    const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+
+    expect(labels(s)).toStrictEqual(['alpha', 'scales'])
+    expect(s.items!['scales/'].map(i => i.contents)).toStrictEqual(['MAJ', 'MIN'])
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+  })
+
+  test('the root card is keyed with the deck name, so the enter button finds the deck', () => {
+    const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    const card = s.items![DEFAULT_DECK][1]
+
+    expect(card.key).toBe('scales')
+    expect(liveSubdeckName(s, card)).toBe('scales/')
+  })
+
+  test('entering the declared deck descends into it and the breadcrumb can climb back', () => {
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    s = reduceRecalc(s, { advance: ['set', 1] }, deps()) // onto the `scales` card
+
+    s = reduceEnterDeck(s, 'scales/', NOW)
+    expect(s.current).toStrictEqual(['scales/', 0])
+    expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'scales/'])
+
+    s = reducePopOne(s, NOW)
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 1])
+  })
+
+  test('items inside the declared deck advance deck-locally, leaving the root cursor alone', () => {
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    s = reduceEnterDeck(s, 'scales/', NOW)
+
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
+    expect(s.current).toStrictEqual(['scales/', 1])
+    expect(deckGet(s.items!, s.current!)!.contents).toBe('MIN')
+    expect(labels(s)).toStrictEqual(['alpha', 'scales']) // root untouched
+  })
+
+  test('re-eval rebuilds declared decks and clears the stack, like every other deck', () => {
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    s = reduceEnterDeck(s, 'scales/', NOW)
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+
+    s = reduceRecalc(s, { eval: true, contents: '-=-\nbeta\n-=- modes::\nDOR' }, deps())
+    expect(Object.keys(s.items!).sort()).toStrictEqual([DEFAULT_DECK, 'modes/'])
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.cursorStack).toStrictEqual([])
+  })
+
+  test('cleaning the card drops its declared deck, same as a spawned one', () => {
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    const card = s.items![DEFAULT_DECK][1]
+
+    s = reduceCleanSubdeck(s, card)
+    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
+    expect(liveSubdeckName(s, card)).toBeNull()
+  })
+})
+
 describe('reduceTimer', () => {
   test('start sets the current item local timer running and leaves siblings stopped', () => {
     let s = stateOf(['a', 'b', 'c'], 1)
