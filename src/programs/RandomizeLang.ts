@@ -194,11 +194,22 @@ function evalInterpolate(
   lss: [RenderLine, Substitution[]],
   i: Interpolate,
   context: Context,
+  frozen: Substitution[],
 ): [RenderLine, Substitution[]] {
   const [l, ss] = lss
-  const substOut: any = executeCommand(i.command, context)
-  if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: $subst?.contents}`), ss]
-  const subst: InterpolateSubstT = toInterpolateSubst(substOut)
+
+  // A frozen interpolation is not re-evaluated: reuse its prior substitution
+  // (matched by marker) instead of executing the command again.
+  const priorFrozen = i.freeze ? frozen.find(s => s.marker === i.marker) : undefined
+
+  let subst: InterpolateSubstT
+  if (priorFrozen) {
+    subst = priorFrozen.contents
+  } else {
+    const substOut: any = executeCommand(i.command, context)
+    if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: $subst?.contents}`), ss]
+    subst = toInterpolateSubst(substOut)
+  }
 
   if (l.source) return [l, ss]
   return [substituteInterpolate(l, i.marker, subst), ss.concat([substitution(subst, i.marker, i.tag, i.tags)])]
@@ -208,9 +219,10 @@ function evalInterpolates(
   line: RenderLine,
   is: Interpolate[],
   context: Context,
+  frozen: Substitution[] = [],
 ): RenderLine {
   const [interpolated, substitutions] =
-    is.reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context), [line, []])
+    is.reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context, frozen), [line, []])
 
   return {
     ...interpolated,
@@ -308,7 +320,7 @@ export function evalRenderLine(l: RenderLine, mem: Memory = new Map(), additiona
 
   return {
     ...l,
-    ...evalInterpolates({ ...l, contents: l?.source?.contents, source: null }, l?.source.interpols, initContext(mem, additionalContext))
+    ...evalInterpolates({ ...l, contents: l?.source?.contents, source: null }, l?.source.interpols, initContext(mem, additionalContext), l.source.substitutions || [])
   }
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
+import { initSequences, evalContentsS, evalContents, evalContentsMem, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -249,6 +249,7 @@ describe('evaling items inside a block', () => {
           "interpols": [
             {
               "command": "s('12')",
+              "freeze": false,
               "kind": "interpolate",
               "marker": "!!!1",
               "tag": "tag1",
@@ -256,6 +257,7 @@ describe('evaling items inside a block', () => {
             },
             {
               "command": "s('34')",
+              "freeze": false,
               "kind": "interpolate",
               "marker": "!!!2",
               "tag": "tagX",
@@ -269,6 +271,7 @@ describe('evaling items inside a block', () => {
                 "1",
                 "2",
               ],
+              "freeze": false,
               "kind": "substitution",
               "marker": "!!!1",
               "tag": "tag1",
@@ -279,6 +282,7 @@ describe('evaling items inside a block', () => {
                 "3",
                 "4",
               ],
+              "freeze": false,
               "kind": "substitution",
               "marker": "!!!2",
               "tag": "tagX",
@@ -309,6 +313,7 @@ describe('rotateInterpolableLine', () => {
         "interpols": [
           {
             "command": "s('12')",
+            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
@@ -316,6 +321,7 @@ describe('rotateInterpolableLine', () => {
           },
           {
             "command": "s('12')",
+            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
@@ -329,6 +335,7 @@ describe('rotateInterpolableLine', () => {
               "1",
               "2",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
@@ -339,6 +346,7 @@ describe('rotateInterpolableLine', () => {
               "1",
               "2",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -358,6 +366,7 @@ describe('rotateInterpolableLine', () => {
         "interpols": [
           {
             "command": "s('12')",
+            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
@@ -365,6 +374,7 @@ describe('rotateInterpolableLine', () => {
           },
           {
             "command": "s('12')",
+            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
@@ -378,6 +388,7 @@ describe('rotateInterpolableLine', () => {
               "2",
               "1",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
@@ -388,6 +399,7 @@ describe('rotateInterpolableLine', () => {
               "2",
               "1",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -407,6 +419,7 @@ describe('rotateInterpolableLine', () => {
         "interpols": [
           {
             "command": "s('12')",
+            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
@@ -414,6 +427,7 @@ describe('rotateInterpolableLine', () => {
           },
           {
             "command": "s('12')",
+            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
@@ -427,6 +441,7 @@ describe('rotateInterpolableLine', () => {
               "1",
               "2",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
@@ -437,6 +452,7 @@ describe('rotateInterpolableLine', () => {
               "2",
               "1",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -547,6 +563,7 @@ describe('renderLineContentWithTags', () => {
               "4",
               "5",
             ],
+            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tag",
@@ -555,5 +572,64 @@ describe('renderLineContentWithTags', () => {
         ]),
       ]
     )
+  })
+})
+
+describe('freeze', () => {
+  test('a `freeze` tag marks the interpolate and its substitution as frozen', () => {
+    const item = evalContents("Thing: do it [s('12')]tag:freeze")[0]
+
+    expect(item.source.interpols[0].freeze).toBe(true)
+    expect(item.source.substitutions[0].freeze).toBe(true)
+  })
+
+  test('without `freeze`, the interpolate and substitution are not frozen', () => {
+    const item = evalContents("Thing: do it [s('12')]tag")[0]
+
+    expect(item.source.interpols[0].freeze).toBe(false)
+    expect(item.source.substitutions[0].freeze).toBe(false)
+  })
+
+  test('rotateInterpolableLine still rotates a frozen substitution (freeze only blocks re-eval)', () => {
+    const frozen = evalContents("Thing: do it [s('12')]tag:freeze")[0]
+    // sanity: initial value is the first rotation
+    expect(frozen.contents).toBe("Thing: do it [1 2]")
+    // rotating a frozen substitution works like any other
+    expect(rotateInterpolableLine(frozen).contents).toBe("Thing: do it [2 1]")
+  })
+
+  test('evalRenderLine reuses a frozen substitution instead of re-evaluating it', () => {
+    const item = evalContents("Thing: do it [s('12')]tag:freeze")[0]
+
+    // stamp a custom prior value onto the frozen substitution; a real re-eval of
+    // `s('12')` would overwrite it, but freeze must keep it.
+    const stamped = {
+      ...item,
+      source: {
+        ...item.source,
+        substitutions: item.source.substitutions.map(s => ({ ...s, contents: ['9', '9'] })),
+      },
+    }
+
+    const reevaluated = evalRenderLine(stamped)
+    expect(reevaluated.source.substitutions[0].contents).toStrictEqual(['9', '9'])
+    expect(reevaluated.contents).toBe("Thing: do it [9 9]")
+  })
+
+  test('evalRenderLine re-evaluates a non-frozen substitution', () => {
+    const item = evalContents("Thing: do it [s('12')]tag")[0]
+
+    const stamped = {
+      ...item,
+      source: {
+        ...item.source,
+        substitutions: item.source.substitutions.map(s => ({ ...s, contents: ['9', '9'] })),
+      },
+    }
+
+    const reevaluated = evalRenderLine(stamped)
+    // re-eval runs the command again, discarding the stamped value
+    expect(reevaluated.source.substitutions[0].contents).toStrictEqual(['1', '2'])
+    expect(reevaluated.contents).toBe("Thing: do it [1 2]")
   })
 })
