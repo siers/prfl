@@ -179,15 +179,24 @@ function substituteExplode(line: RenderLine, marker: string, subst: any): Render
   else return [errorLine(`explode requires string[], got ${JSON.stringify(subst)}`)]
 }
 
-function executeCommand(command: string, context: Context): any {
+function executeCommand(command: string, context: Context, extra: Record<string, any> = {}): any {
   const memory = context.get('memory') as Memory
   const additionalContext = {
     memory,
     evalItem: context.get('evalItem'),
   }
-  const fullContext = { ...randomizeLangUtils(context, memory), ...additionalContext }
+  const fullContext = { ...randomizeLangUtils(context, memory), ...additionalContext, ...extra }
 
   return executeInContext(fullContext, command)
+}
+
+// The frozen substitutions resolved so far, exposed to a command under `frozen`
+// as tag -> chosen values, so a non-frozen interpolation can read the values
+// its frozen siblings settled on (e.g. `frozen.root` -> ['C']).
+function frozenContext(substitutions: Substitution[]): Record<string, InterpolateSubstT> {
+  return Object.fromEntries(
+    substitutions.filter(s => s.freeze && s.tag).map(s => [s.tag as string, s.contents]),
+  )
 }
 
 function evalInterpolate(
@@ -206,7 +215,10 @@ function evalInterpolate(
   if (priorFrozen) {
     subst = priorFrozen.contents
   } else {
-    const substOut: any = executeCommand(i.command, context)
+    // Non-frozen interpolations can read the frozen siblings' chosen values:
+    // the prior frozen ones (re-eval) plus any resolved so far this pass.
+    const extra = { frozen: frozenContext([...frozen, ...ss]) }
+    const substOut: any = executeCommand(i.command, context, extra)
     if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: $subst?.contents}`), ss]
     subst = toInterpolateSubst(substOut)
   }

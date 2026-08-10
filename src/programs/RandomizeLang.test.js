@@ -598,38 +598,40 @@ describe('freeze', () => {
     expect(rotateInterpolableLine(frozen).contents).toBe("Thing: do it [2 1]")
   })
 
+  // freeze == reuse: a frozen tag keeps its value across re-eval. Proven with
+  // memory as the changing DSL input: the command reads memory.get('k'), then
+  // re-eval runs against a different memory. A frozen tag ignores the change; a
+  // non-frozen one picks it up.
   test('evalRenderLine reuses a frozen substitution instead of re-evaluating it', () => {
-    const item = evalContents("Thing: do it [s('12')]tag:freeze")[0]
+    const [[item]] = evalContentsMem("Line: [memory.get('k')]tag:freeze", new Map([['k', 'A']]))
+    expect(item.contents).toBe("Line: [A]")
 
-    // stamp a custom prior value onto the frozen substitution; a real re-eval of
-    // `s('12')` would overwrite it, but freeze must keep it.
-    const stamped = {
-      ...item,
-      source: {
-        ...item.source,
-        substitutions: item.source.substitutions.map(s => ({ ...s, contents: ['9', '9'] })),
-      },
-    }
-
-    const reevaluated = evalRenderLine(stamped)
-    expect(reevaluated.source.substitutions[0].contents).toStrictEqual(['9', '9'])
-    expect(reevaluated.contents).toBe("Thing: do it [9 9]")
+    const reevaluated = evalRenderLine(item, new Map([['k', 'B']]))
+    expect(reevaluated.contents).toBe("Line: [A]") // frozen: memory change ignored
   })
 
   test('evalRenderLine re-evaluates a non-frozen substitution', () => {
-    const item = evalContents("Thing: do it [s('12')]tag")[0]
+    const [[item]] = evalContentsMem("Line: [memory.get('k')]tag", new Map([['k', 'A']]))
+    expect(item.contents).toBe("Line: [A]")
 
-    const stamped = {
-      ...item,
-      source: {
-        ...item.source,
-        substitutions: item.source.substitutions.map(s => ({ ...s, contents: ['9', '9'] })),
-      },
-    }
+    const reevaluated = evalRenderLine(item, new Map([['k', 'B']]))
+    expect(reevaluated.contents).toBe("Line: [B]") // not frozen: picks up the change
+  })
 
-    const reevaluated = evalRenderLine(stamped)
-    // re-eval runs the command again, discarding the stamped value
-    expect(reevaluated.source.substitutions[0].contents).toStrictEqual(['1', '2'])
-    expect(reevaluated.contents).toBe("Thing: do it [1 2]")
+  test('a non-frozen interpolation can read a frozen sibling via `frozen`', () => {
+    // root is frozen; echo reads root's chosen value out of `frozen.root`
+    const item = evalContents("Line: [s('C')]root:freeze [j(frozen.root)]echo")[0]
+
+    expect(item.contents).toBe("Line: [C] [C]")
+  })
+
+  test('on re-eval, a non-frozen interpolation reads the frozen value that was kept', () => {
+    // root frozen to memory 'A'; echo mirrors it. Re-eval against memory 'B'
+    // keeps root at 'A', so echo re-derives 'A' from the kept frozen value.
+    const [[item]] = evalContentsMem("Line: [memory.get('k')]root:freeze [j(frozen.root)]echo", new Map([['k', 'A']]))
+    expect(item.contents).toBe("Line: [A] [A]")
+
+    const reevaluated = evalRenderLine(item, new Map([['k', 'B']]))
+    expect(reevaluated.contents).toBe("Line: [A] [A]")
   })
 })
