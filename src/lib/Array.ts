@@ -69,6 +69,29 @@ export function cartesian<A>(...ass: A[][]): A[][] {
   return ass.reduce<A[][]>((acc, list) => acc.flatMap(combo => list.map(x => [...combo, x])), [[]])
 }
 
+// Zip tagged slots against per-key pools: each key keeps its own cursor, so the
+// n-th occurrence of a key takes the n-th item of that key's list.
+// [[x,1],[y,1],[z,2],[w,1]] + {1: [A,B,C,D], 2: [E,F,G]}
+//   -> [[x,A],[y,B],[z,E],[w,C]]
+// When a pool runs out it recycles from its start (house zip rule, cf.
+// `zipLongest`); pass `recycle: false` to drop those slots instead.
+// Slots whose key has no pool (or an empty one) are always dropped.
+export function zipAssoc<A, K extends keyof any, B>(
+  slots: [A, K][],
+  pools: Record<K, B[]>,
+  { recycle = true }: { recycle?: boolean } = {},
+): [A, B][] {
+  const cursors = {} as Record<K, number>
+  return slots.flatMap(([a, key]) => {
+    const pool = pools[key]
+    if (!pool?.length) return []
+    const i = cursors[key] ?? 0
+    cursors[key] = i + 1
+    if (i >= pool.length && !recycle) return []
+    return [[a, pool[i % pool.length]] satisfies [A, B]]
+  })
+}
+
 export function interleavingEvery<A>(into: A[], what: A[], every: number): A[] {
   const chunks = chunk(into, every)
   return zipT(chunks, times(chunks.length).map(_ => what)).flatMap(([as, bs]) => {

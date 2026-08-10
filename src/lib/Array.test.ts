@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { interleavingEvery, intersperse, interspersing, zipT, zipLongest, timesUntil, cartesian, arrayMove, transpose } from './Array'
+import { interleavingEvery, intersperse, interspersing, zipT, zipLongest, zipAssoc, timesUntil, cartesian, arrayMove, transpose } from './Array'
 
 test('intersperse', () => {
   expect(intersperse([1, 2, 3], 0)).toStrictEqual([1, 0, 2, 0, 3])
@@ -34,6 +34,26 @@ test('zipLongest recycles shorter lists up to the longest', () => {
   expect(zipLongest([1], [10, 20, 30])).toStrictEqual([[1, 10], [1, 20], [1, 30]])
   expect(zipLongest([1, 2], [10, 20])).toStrictEqual([[1, 10], [2, 20]]) // equal length = plain zip
   expect(zipLongest([1])).toStrictEqual([[1]])
+})
+
+test('zipAssoc gives each key its own cursor into its pool', () => {
+  const slots: [string, number][] = [['x', 1], ['y', 1], ['z', 2], ['w', 1]]
+  const pools = { 1: ['A', 'B', 'C', 'D'], 2: ['E', 'F', 'G'] }
+
+  expect(zipAssoc(slots, pools)).toStrictEqual([['x', 'A'], ['y', 'B'], ['z', 'E'], ['w', 'C']])
+
+  // pool recycles once exhausted (house zip rule)
+  expect(zipAssoc([['x', 1], ['y', 1], ['z', 1]], { 1: ['A', 'B'] }))
+    .toStrictEqual([['x', 'A'], ['y', 'B'], ['z', 'A']])
+
+  // ...unless told to drop instead
+  expect(zipAssoc([['x', 1], ['y', 1], ['z', 1]], { 1: ['A', 'B'] }, { recycle: false }))
+    .toStrictEqual([['x', 'A'], ['y', 'B']])
+
+  // missing / empty pools drop their slots either way
+  expect(zipAssoc<string, string, string>([['x', 'a'], ['y', 'b']], { a: [], b: ['B'] }))
+    .toStrictEqual([['y', 'B']])
+  expect(zipAssoc([], { 1: ['A'] })).toStrictEqual([])
 })
 
 test('cartesian is the full product, last list varies fastest', () => {
