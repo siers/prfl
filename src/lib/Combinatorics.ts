@@ -1,5 +1,10 @@
-import { groupBy, identity, shuffle, sortBy, uniqBy } from 'lodash'
+// lodash is CJS-only; the default import keeps Node's ESM interop happy (named
+// imports fail to resolve under the tsx/Node loader). Aliased to `_l` because
+// `_` is used as a throwaway lambda parameter below.
+import _l from 'lodash'
 import { times, zipLongest } from './Array'
+
+const { groupBy, identity, shuffle, sortBy, uniqBy } = _l
 
 type Stock = { value: number, count: number }
 
