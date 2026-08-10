@@ -5,7 +5,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
-import { chromaticSlide, frets } from '../lib/ToneLibViolin'
+import { chromaticSlide, frets, modeShifts, ModeShift, StringName } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import { shiftFormat, shifts, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
@@ -359,6 +359,25 @@ function scalePositions(): string[] {
   return zip(ss('1234567'), shuffle(ij('', perm(s('GDAE'), 2))), shuffleX('∏V', 4)).flat()
 }
 
+// The seven diatonic mode names, index 0 = ionian, matching modeShifts' mode
+// field (0..6).
+const MODE_NAMES = 'ion dor phry lyd mix aeo loc'.split(' ')
+
+function modeName(mode: number): string {
+  return MODE_NAMES[mode] ?? `mode${mode}`
+}
+
+// The fingering for one mode of a 3-octave scale on `root`, drawn from the same
+// distribution the old Scales3Oct used (a `shifts` composition zipped with
+// `shiftStrings` over `0112223333`), but with the shift *count* taken from
+// modeShifts(root) so it matches that mode's actual climb across the strings.
+function modeFingering(root: Note | string, mode: number): string {
+  const ms = modeShifts(root).at(mode)
+  if (!ms) return '-'
+  const composition = shiftFormat(shifts(ms.shifts, [1, -2, -3, 4])).at(0) ?? ''
+  return zip(s(composition), shiftStrings('0112223333', ms.shifts)).join('-')
+}
+
 type PickKeysInt = {
   count?: number,
   mode?: number,
@@ -457,6 +476,9 @@ export type Interface = {
   scalePositions: () => string[],
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
   frets: () => string[],
+  modeShifts: (root: Note | string, octaves?: number, endFinger?: number, startString?: StringName, endString?: StringName) => ModeShift[],
+  modeName: (mode: number) => string,
+  modeFingering: (root: Note | string, mode: number) => string,
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -643,5 +665,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     scalePositions,
     chromaticSlide,
     frets: () => frets().flat(),
+    modeShifts,
+    modeName,
+    modeFingering,
   }
 }

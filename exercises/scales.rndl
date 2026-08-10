@@ -1,0 +1,17 @@
+# Violin
+# Scales — 3-octave modes with fingerings from modeShifts
+Roots: [roots=keys()]
+
+# The per-mode card mirrors the original Scales3Oct contents: `[key] [mode]
+# [fingering]`, with mode and fingering in separate tags. modeFingering draws
+# from the same distribution as before (shifts + shiftStrings over
+# `0112223333`), but the shift count now comes from modeShifts(root) so it
+# matches each mode's actual 3-octave climb.
+-=- scale-mode
+Scales3Oct: [key] [modeName(mode)]mode [modeFingering(key, mode)]fingering
+
+# One subdeck, `scales`. The {} spawns one card per mode of each root: each
+# iteration fixes `mode`, re-evaluates the scale-mode block, and the resulting
+# lines land in the subdeck as new cards.
+-=- scales::
+{roots.flatMap(k => { key = k; return modeShifts(key).flatMap((_, m) => { mode = m; return blockLines('scale-mode') \}) \})}
