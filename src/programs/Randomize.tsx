@@ -228,9 +228,12 @@ function Randomize(controls: any): JSX.Element {
         contentTags.map((ct: ContentOrTag, idx: number) => {
           const tag = ct[0] == 'tag'
           const string = ct[0] == 'string'
-          return <div key={idx} onClick={_ => tag && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })} style={{ fontSize: string ? '2rem' : '1.7rem' }}>
-            {string ? ct[1] : interpolateSubtToString((lookupTag.get(ct[1]) as Substitution).contents)}
-          </div>
+          const subst = tag ? (lookupTag.get(ct[1]) as Substitution) : undefined
+          const inline = string || subst?.tags?.includes('inline')
+          const TagName = inline ? 'span' : 'div'
+          return <TagName key={idx} onClick={_ => tag && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })} style={{ fontSize: string ? '2rem' : '1.7rem' }}>
+            {string ? ct[1] : interpolateSubtToString(subst!.contents)}
+          </TagName>
         })
       }
     </>
