@@ -7,7 +7,7 @@ import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipL
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
 import { chromaticSlide, frets, modeShifts, ModeShift, StringName } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
-import { shiftFormat, shifts, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
+import { shiftFormat, shifts, shiftsDistributed, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
@@ -367,17 +367,6 @@ function modeName(mode: number): string {
   return MODE_NAMES[mode] ?? `mode${mode}`
 }
 
-// The fingering for one mode of a 3-octave scale on `root`, drawn from the same
-// distribution the old Scales3Oct used (a `shifts` composition zipped with
-// `shiftStrings` over `0112223333`), but with the shift *count* taken from
-// modeShifts(root) so it matches that mode's actual climb across the strings.
-function modeFingering(root: Note | string, mode: number): string {
-  const ms = modeShifts(root).at(mode)
-  if (!ms) return '-'
-  const composition = shiftFormat(shifts(ms.shifts, [1, -2, -3, 4])).at(0) ?? ''
-  return zip(s(composition), shiftStrings('0112223333', ms.shifts)).join('-')
-}
-
 type PickKeysInt = {
   count?: number,
   mode?: number,
@@ -426,6 +415,7 @@ export type Interface = {
   uniqueShifts(target?: number, inv?: number[]): string[],
   shifts(target?: number, inv?: number[]): string[],
   shiftStrings(distrib: string, shifts: number): string[],
+  shiftsDistributed(target: number, inv: number[], distrib: string): string[],
   perm<A>(a: A[], size?: number): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
@@ -478,7 +468,6 @@ export type Interface = {
   frets: () => string[],
   modeShifts: (root: Note | string, octaves?: number, endFinger?: number, startString?: StringName, endString?: StringName) => ModeShift[],
   modeName: (mode: number) => string,
-  modeFingering: (root: Note | string, mode: number) => string,
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -621,6 +610,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     comb,
     uniqueShifts: uniqueShiftsF,
     shifts: (target?: number, inv?: number[]) => shiftFormat(shifts(target, inv)),
+    shiftsDistributed,
     shiftStrings,
     perm,
     power,
@@ -667,6 +657,5 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     frets: () => frets().flat(),
     modeShifts,
     modeName,
-    modeFingering,
   }
 }

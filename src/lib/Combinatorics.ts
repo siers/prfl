@@ -2,7 +2,7 @@
 // imports fail to resolve under the tsx/Node loader). Aliased to `_l` because
 // `_` is used as a throwaway lambda parameter below.
 import _l from 'lodash'
-import { times, zipLongest } from './Array'
+import { times, zipLongest, zipT } from './Array'
 
 const { groupBy, identity, shuffle, sortBy, uniqBy } = _l
 
@@ -92,12 +92,17 @@ export function uniqueShiftsF(target: number = 7, inv: number[] = [-1, -2, -3]):
 }
 
 export function shiftFormat(s: number[][]): string[] {
-  return s.map((r) => r.join(''))
+  return s.map(r => r.join(''))
 }
-
-//
 
 export function shiftStrings(distrib: string, shifts: number): string[] {
   const strings = times(10).flatMap(_ => distrib.split(''))
   return shuffle(strings).slice(0, shifts).sort().map(st => `GDAE`.split('')[+st])
+}
+
+export function shiftsDistributed(target: number = 7, inv: number[] = [-1, -2, -3], distrib: string): string[] {
+  return shifts(target, inv).map(fs => {
+    const shiftLetters = zipT(fs.map(f => `${f}`), shiftStrings(distrib, fs.length))
+    return shiftLetters.map(sl => sl.join('')).join('-')
+  })
 }
