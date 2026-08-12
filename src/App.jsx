@@ -26,7 +26,6 @@ function useLocalStorage(key, initialValue) {
 
 function App() {
   const [running, setRunning] = useLocalStorage('running', false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [speed, setSpeed] = useLocalStorage('speed', 1500)
   const content = useRef()
@@ -72,21 +71,6 @@ function App() {
   return (
     <div className="app">
       <div className="flex flex-col h-dvh">
-        { /* <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
-          {sidebarOpen ? '\u2715' : '\u2630'}
-        </button> */ }
-        <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-          {Object.keys(programs).map(p => (
-            <div
-              key={p}
-              className={`sidebar-item ${p === programName ? 'sidebar-item-active' : ''}`}
-              onClick={() => { setProgram(p); setSidebarOpen(false) }}
-            >
-              {p}
-            </div>
-          ))}
-        </div>
-
         <div className="wrap flex-1 flex flex-row items-center" data-mode={program}>
           {
             (program == "flash")

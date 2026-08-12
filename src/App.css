@@ -12,8 +12,9 @@ a { color: #4796e6; }
 .knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
 
 .sidebar-toggle {
-  position: fixed; top: 0.5em; right: 0.5em; z-index: 11;
-  font-size: 1.5em; background: none; border: none; cursor: pointer; padding: 0.2em 0.4em;
+  position: fixed; top: 0; right: 0; z-index: 11;
+  color: black;
+  font-size: 1.4em; background: none; border: none; cursor: pointer; padding: 0.2em 0.6em;
 }
 .sidebar {
   position: fixed; right: 0; top: 0; height: 100dvh; width: 200px;

@@ -1,5 +1,5 @@
 import { renderToString } from 'react-dom/server'
-import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef } from 'react'
+import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
 import { ContentOrTag, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
@@ -18,7 +18,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, liveSubdeckName, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceTimer,
+  deckPath, liveSubdeckName, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { burstEmojiNotif } from './Burst.tsx'
@@ -33,8 +33,17 @@ function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
   return findCard(memoryFromString(memory), item?.key || '')
 }
 
+// The two one-off insert commands: each evaluates a single DSL line and drops
+// the resulting item in right after the cursor. The `Foo: [...]` label is plain
+// text; `[...]` interpolates the command's result — the same syntax the editor
+// uses.
+const INSERT_LETTERS = 'Letters: [letterKeys()]'
+const INSERT_KEYS = 'Keys: [pickKeysShuf().flat()]'
+
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
+
+  const [switcherOpen, setSwitcherOpen] = useState(false)
 
   const state: RState = controls.state || defaultState // this is no longer possibly any, so there are a lot of question marks still scattered around
   const stateVersion = state && state.version || 0
@@ -135,6 +144,10 @@ function Randomize(controls: any): JSX.Element {
     setState((s: RState | undefined) => reduceEnterDeck(s, deckName, Date.now()))
   }
 
+  function insertItem(dsl: string) {
+    setState((s: RState | undefined) => reduceInsertItem(s, dsl, Date.now()))
+  }
+
 
   function popToLevel(level: number) {
     setState((s: RState | undefined) => reducePopTo(s, level, Date.now()))
@@ -176,6 +189,19 @@ function Randomize(controls: any): JSX.Element {
       <a className="pr-3" onClick={event => advanceRef.current('prev', event)}>⬅️</a>
       <a className="pr-3" onClick={event => advanceRef.current('next', event)}>➡️</a>
       {nested && <a className="pr-3 select-none" title="leave deck, go back" onClick={_ => popOut()}>🔙</a>}
+    </>
+  }
+
+  // Program switcher, ported from the old App sidebar. Its toggle and panel are
+  // position:fixed, so it renders at the top of the element. The panel hosts the
+  // one-off insert commands.
+  function programSwitcher(): JSX.Element {
+    return <>
+      <a className="sidebar-toggle select-none" title="switch program" onClick={_ => setSwitcherOpen(o => !o)}>{switcherOpen ? '✕' : '☰'}</a>
+      <div className={`sidebar ${switcherOpen ? 'sidebar-open' : ''}`}>
+        <div className="sidebar-item select-none" title="insert letters item after cursor" onClick={_ => { insertItem(INSERT_LETTERS); setSwitcherOpen(false) }}>🔤 letters</div>
+        <div className="sidebar-item select-none" title="insert keys item after cursor" onClick={_ => { insertItem(INSERT_KEYS); setSwitcherOpen(false) }}>🎹 keys</div>
+      </div>
     </>
   }
 
@@ -459,6 +485,8 @@ function Randomize(controls: any): JSX.Element {
 
   return (
     <div className="w-full">
+      {inExecution && programSwitcher()}
+
       <div className="pl-[10px]">
         <a className="pr-3 select-none" onClick={() => { recalc({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}

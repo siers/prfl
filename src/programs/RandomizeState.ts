@@ -1,6 +1,6 @@
 // Pure state reducers for Randomize.
 
-import { evalContentsDecks, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
+import { evalContents, evalContentsDecks, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
 import { makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
@@ -431,7 +431,7 @@ export function liveSubdeckName(s: RState | undefined, item: UserItem): string |
 
 // Descend into an existing deck by name. Pushes the current cursor on the stack.
 export function reduceEnterDeck(s: RState | undefined, deckName: string, now: number): RState {
-  if (!s) return defaultState satisfies RState
+  if (!s) return defaultState
   if (!(s.items || {})[deckName]) return s
 
   const newState: RState = {
@@ -442,8 +442,28 @@ export function reduceEnterDeck(s: RState | undefined, deckName: string, now: nu
   return reduceTimer(newState, 'local-as-global', null, now)
 }
 
+export function reduceInsertItem(s: RState | undefined, dsl: string, now: number): RState {
+  if (!s) return defaultState
+
+  const inserted = evalContents(dsl, { images: s.images }).map(rl => toUserItem(rl))
+  if (inserted.length === 0) return s
+
+  const [deck, index] = s.current || [DEFAULT_DECK, 0]
+  const deckList = deckItems(s.items || {}, deck)
+  const at = index + 1
+  const newDeckList = [...deckList.slice(0, at), ...inserted, ...deckList.slice(at)]
+
+  const newState: RState = {
+    ...s,
+    items: { ...(s.items || {}), [deck]: newDeckList },
+    outLineCount: newDeckList.length,
+    current: [deck, at],
+  }
+  return reduceTimer(newState, 'local-as-global', null, now)
+}
+
 export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RState {
-  if (!s) return defaultState satisfies RState
+  if (!s) return defaultState
 
   const prefix = subdeckPrefix(item)
   const items = Object.fromEntries(Object.entries(s.items || {}).filter(([deck]) => !deck.startsWith(prefix)))
