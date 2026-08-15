@@ -526,19 +526,19 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: scales: shifting patterns depending on the specific scale (which mode, which finger starts on, shift length can be 6, 7 or 8)
-// TODO: parametrization: some params should not be taken into account when generating subdecks
-
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
+// TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
+
+// ======================
+
+// TODO: scales: shifting patterns depending on the specific scale (which mode, which finger starts on, shift length can be 6, 7 or 8)
+// TODO: parametrization: some params should not be taken into account when generating subdecks (through tags or UI clicks or subsets)
 
 // TODO: bug: timers: subtract should subtract up the chain, clanker half-assed it
-
-// TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 
 // TODO: execution: hide nonreviewed (timeout?), make them scrollable
 // TODO: execution: missing items after latest seek changes
 // TODO: execution: swipe actions on the item to hide the stack
-// TODO: execution: deck is not regenerated unless it is empty
 // TODO: execution: param rotations take stuff out (what to do in case there are multiple params, then it's slightly weird)
 
 // TODO: evaluational: all cards are always present
@@ -558,13 +558,12 @@ export default Randomize
 // TODO: execution: track reviews/freshness, leverage for scheduling
 // TODO: review: hierarchical dropping (droping respects items with an equal or -1 drop count)
 
-// TODO: pmz: use the scheduler in interpolations mode (fw button = review)
-// TODO: pmz: spawning params: column subsets, subset per column
-// TODO: pmz: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
+// TODO: paramtrz: use the scheduler in interpolations mode (fw button = review)
+// TODO: paramtrz: spawning params: column subsets, subset per column
+// TODO: paramtrz: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 
 // TODO: subprogram: drones
-// TODO: pmz: don't regenerate sublists when exiting them
-// TODO: pmz: either hierarchical or multiple keys
+// TODO: paramtrz: either hierarchical or multiple keys
 
 // ---
 
