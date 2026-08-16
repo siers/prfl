@@ -381,6 +381,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 export type Scheduler = (items: UserItem[], memory: string | undefined) => UserItem[]
 
 export const scheduleByMemory: Scheduler = (items, memory) => scheduleItems(items, memoryFromString(memory))
+export const scheduleIdentity: Scheduler = (items, _memory) => items
 
 // Spawn a deck from the current item's parameters, descend into it, and push the
 // current cursor onto the return stack so exhausting the spawned deck pops back.
@@ -389,8 +390,11 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   if (!s) return defaultState satisfies RState
 
   const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
-  const parent = deckGet(s.items || {}, cursor)
+  const parent: UserItem | undefined = deckGet(s.items || {}, cursor)
   if (!parent) return s
+
+  const hasOrderedTag = parent.source?.substitutions?.some(s => s.tags?.some(t => t == "ordered"))
+  const scheduler = hasOrderedTag ? scheduleIdentity : schedule
 
   const children = spawnChildren(parent, mode)
   if (children.length === 0) return s // nothing to expand
@@ -398,7 +402,7 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   const deckName = spawnDeckName(parent, mode)
   const existing = s.items?.[deckName]
   const reusable = existing && existing.some(i => !itemSkipped(i))
-  const scheduled = reusable ? existing : schedule(children, s.memory)
+  const scheduled = reusable ? existing : scheduler(children, s.memory)
 
   const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: scheduled }
   const newCursor: DeckCursor = descendCursor(s, items, deckName)
