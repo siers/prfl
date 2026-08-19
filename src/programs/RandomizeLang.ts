@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag } from './RandomizeLangTypes'
+import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -194,13 +194,24 @@ function executeCommand(command: string, context: Context, extra: Record<string,
   return executeInContext(fullContext, command)
 }
 
-// The frozen substitutions resolved so far, exposed to a command under `frozen`
-// as tag -> chosen values, so a non-frozen interpolation can read the values
-// its frozen siblings settled on (e.g. `frozen.root` -> ['C']).
-function frozenContext(substitutions: Substitution[]): Record<string, InterpolateSubstT> {
+// The substitutions resolved so far, exposed to a command under `fields` as
+// tag -> chosen values, so an interpolation can read the values its siblings
+// settled on (e.g. `fields.root` -> ['C']). Covers every substitution with a
+// tag — frozen, default, and any `computed` fields resolved in an earlier pass.
+// `frozen` is kept as a back-compat alias for the same map.
+function fieldsContext(substitutions: Substitution[]): Record<string, InterpolateSubstT> {
   return Object.fromEntries(
-    substitutions.filter(s => s.freeze && s.tag).map(s => [s.tag as string, s.contents]),
+    substitutions.filter(s => s.tag).map(s => [s.tag as string, s.contents]),
   )
+}
+
+// Interpolations resolve in tiers so that later ones can read earlier ones via
+// `fields`: `freeze` first (pass -Inf, reused across re-eval), then default
+// (pass 0, textual order), then `computed` last (pass 1, reads everything). The
+// order is stable within each tier, so it stays textual where it always was.
+function orderInterpolates(is: Interpolate[]): Interpolate[] {
+  const tier = (i: Interpolate) => isFrozen(i) ? 0 : isComputed(i) ? 2 : 1
+  return _.sortBy(is, tier)
 }
 
 function evalInterpolate(
@@ -213,15 +224,17 @@ function evalInterpolate(
 
   // A frozen interpolation is not re-evaluated: reuse its prior substitution
   // (matched by marker) instead of executing the command again.
-  const priorFrozen = i.freeze ? frozen.find(s => s.marker === i.marker) : undefined
+  const priorFrozen = isFrozen(i) ? frozen.find(s => s.marker === i.marker) : undefined
 
   let subst: InterpolateSubstT
   if (priorFrozen) {
     subst = priorFrozen.contents
   } else {
-    // Non-frozen interpolations can read the frozen siblings' chosen values:
-    // the prior frozen ones (re-eval) plus any resolved so far this pass.
-    const extra = { frozen: frozenContext([...frozen, ...ss]) }
+    // Any interpolation can read the fields resolved so far: the prior frozen
+    // ones (kept across re-eval) plus everything resolved earlier this pass.
+    // `computed` fields, evaluated last, thus see every default/frozen field.
+    const fields = fieldsContext([...frozen, ...ss])
+    const extra = { fields, frozen: fields }
     const substOut: any = executeCommand(i.command, context, extra)
     if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: $subst?.contents}`), ss]
     subst = toInterpolateSubst(substOut)
@@ -238,10 +251,13 @@ function evalInterpolates(
   frozen: Substitution[] = [],
 ): RenderLine {
   const [interpolated, substitutions] =
-    is.reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context, frozen), [line, []])
+    orderInterpolates(is).reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context, frozen), [line, []])
 
   return {
     ...interpolated,
+    // The stored substitutions follow the resolution order, not textual order;
+    // rendering already targets markers so the visible line is unaffected, and
+    // this lets rotation re-derive `computed` fields after their sources.
     source: is.length > 0 ? interpolableLine(line.contents, is, substitutions) : null
   }
 }
@@ -367,15 +383,31 @@ export function evalRenderLine(l: RenderLine, mem: Memory = new Map(), additiona
   }
 }
 
-export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null): RenderLine {
+export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null, mem: Memory = new Map()): RenderLine {
   const l = structuredClone(l_)
 
   if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
-    const newSubst = (l.source.substitutions || []).map(s =>
-      !tag || tag == s.tag
+    // A `computed` field never rotates its own list: it always reflects its
+    // sources, so it is re-derived below from the rotated non-computed fields.
+    const rotated = (l.source.substitutions || []).map(s =>
+      !isComputed(s) && (!tag || tag == s.tag)
         ? { ...s, contents: rotateInterpolateSubst(s.contents) }
         : s
     )
+
+    // Re-derive each `computed` field against the post-rotation values, reusing
+    // the command kept on its matching interpol (matched by marker).
+    const context = initContext(mem)
+    const byMarker = new Map((l.source.interpols || []).map(i => [i.marker, i]))
+    const newSubst = rotated.map(s => {
+      if (!isComputed(s)) return s
+      const command = byMarker.get(s.marker)?.command
+      if (!command) return s
+      const fields = fieldsContext(rotated.filter(o => !isComputed(o)))
+      const substOut: any = executeCommand(command, context, { fields, frozen: fields })
+      if (substOut?.kind === 'error') return s
+      return { ...s, contents: toInterpolateSubst(substOut) }
+    })
 
     const resubst = newSubst.reduce<RenderLine>((l, s) =>
       substituteInterpolate(l, s.marker, s.contents), { ...l, contents: l.source.contents }
@@ -436,10 +468,9 @@ export function extractTagFunctions(tags: string[] | null): Map<string, string[]
 export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<String, Substitution>] {
   const byMarker: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => [s.marker || '', s]))
   const byTag: Map<string, Substitution> = new Map((l.source?.substitutions || []).map(s => {
-    const args = extractTagFunctions(s.tags)
     return [s.tag || '', {
       ...s,
-      contents: s.contents.slice(0, args.get('show') ? parseInt((args.get('show') || [])[0]) : 9999),
+      contents: s.contents.slice(0, showCount(s)),
     }]
   }))
 

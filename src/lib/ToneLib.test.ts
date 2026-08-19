@@ -57,8 +57,7 @@ describe('ToneLib', () => {
 
   // rebaseSemiByLetter and rebaseSemiByPitch share a contract (keep name+alter, shift only octave)
   // but choose the octave differently: ByLetter by letter-order spelling, ByPitch by actual pitch.
-  // They agree for well-spelled notes and diverge for enharmonic misspellings like B# (spelled as
-  // letter B, but sounds like C — a semitone up, in the next octave).
+  // They agree for well-spelled notes and diverge for enharmonics like B#.
   test('rebaseSemiByLetter vs rebaseSemiByPitch diverge on B#', () => {
     const bSharp = parseNote('b#3')!    // sounds at semitone 40, same pitch as C4
     expect(semi(bSharp)).toBe(40)
@@ -74,6 +73,24 @@ describe('ToneLib', () => {
     // ByPitch places B# so it truly sounds at 40 -> B#3
     expect(render(byPitch)).toBe('B#3')
     expect(semi(byPitch)).toBe(40)
+
+    const mistakes: any[] = []
+
+    directRange(40, 60).forEach(base =>
+      directRange(40, 60).forEach(rebase =>
+        enharmonics(base).forEach(b =>
+          enharmonics(rebase).forEach(rb => {
+            const x = b
+            const y = rebaseSemiByPitch(rb, b)
+
+            if (semi(x) > semi(y))
+              mistakes.push([renderN(b), renderN(rb), renderN(rebaseSemiByPitch(rb, b)), semi(x), semi(y)])
+          })
+        )
+      )
+    )
+
+    expect(mistakes).toStrictEqual([])
   })
 
   test('addInterval', () => {

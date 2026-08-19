@@ -51,7 +51,9 @@ const c1: Note = parseNote('c1')!
 
 // === § Notes
 
-export function parseNote(note: string): Note | null {
+export function parseNote(note: Note | string): Note | null {
+  if (typeof note !== 'string') return note
+
   const match = note.toLowerCase().match(/^(?<note>[abcdefg])(?<accds>[b#]{0,2})?(?<octave>[0-9])?$/)
 
   if (!match) return null
@@ -66,6 +68,10 @@ export function parseNote(note: string): Note | null {
 
 export function equalNote(a: Note, b: Note): boolean {
   return a.name == b.name && a.alter == b.alter
+}
+
+export function equalLetterOctave(a: Note, b: Note): boolean {
+  return a.name == b.name && a.octave == b.octave
 }
 
 function signedHash(value: number, positivePrime: number, negativePrime: number): number {
@@ -129,15 +135,16 @@ export function normalize(n: Note): Note {
   return rebase(n, c4)
 }
 
-// rebase into the octave of semiBase, deciding by letter order (spelling) — note that rebase
+// rebase into (meaning above) the octave of semiBase, deciding by letter order (spelling) — note that rebase
 // does not embed into [0,11]: accidentals ride along, so the result may sound an octave off pitch
 export function rebaseSemiByLetter(note: Note, semiBase: number): Note {
   return rebase(note, enharmonics(semiBase)[0])
 }
 
-// rebase so the note *sounds at* semiBase, deciding by pitch — keeps name+alter, shifts only octave
-export function rebaseSemiByPitch(note: Note, semiBase: number): Note {
-  return { ...note, octave: note.octave + Math.round((semiBase - semi(note)) / 12) }
+// rebase the note by pitch into (meanign above) octave of semiBase, deciding by pitch — keeps name+alter
+export function rebaseSemiByPitch(note: Note, base: number | Note): Note {
+  const semiBase = typeof base === 'number' ? base : semi(base)
+  return { ...note, octave: note.octave + Math.ceil((semiBase - semi(note)) / 12) }
 }
 
 function stepUp(n: Note): Note {
@@ -378,4 +385,6 @@ export function notesMissing(k: Key, l: Key): Set<string> {
   return allNotesRendered().subtract(normalizedNotesRendered(k).union(normalizedNotesRendered(l)))
 }
 
-// TODO: quiz: interval + finger + shift (-321 / +123) = finger
+// TODO: interval arithmetic missing
+// for example octave shifts in ToneLibViolin
+// for example chromatic intervals in ToneLib.test

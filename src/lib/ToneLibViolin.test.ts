@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { fingerPosition, findTriadOnString, frets, modeShifts, positionsQuiz, shifts, StringName, strings, strings3, stringsAboveOpen, stringsForTonality } from './ToneLibViolin.ts'
-import { findMajor, Key, parseNote, render, renderN } from './ToneLib.ts'
+import { embedNote, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, modeShifts, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
+import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
+import _ from 'lodash'
 
 describe('ToneLibViolin', () => {
   test('basic', () => {
@@ -104,66 +105,64 @@ describe('ToneLibViolin', () => {
     })
   })
 
-  describe('modeShifts', () => {
-    type ModeShiftRow = [string, number, number, string, number, number]
+  describe('embedNote', () => {
+    const embedRender = (note: string, restrict?: StringName[]) =>
+      embedNote(parseNote(note)!, restrict).map(sen => `${sen.string.name}${sen.position}`).join(' ')
 
-    const table: [string, ModeShiftRow[]][] = [
-      ['G', [
-        ['G3', 0, 1, 'G6', 6, 5],
-        ['A3', 1, 1, 'A6', 7, 6],
-        ['B3', 2, 1, 'B6', 8, 7],
-        ['C4', 2, 2, 'C7', 9, 7],
-        ['D4', 2, 3, 'D7', 10, 7],
-        ['E4', 2, 4, 'E7', 11, 7],
-        ['F#4', 2, 5, 'F#7', 12, 7],
-      ]],
-      ['D', [
-        ['D4', 2, 3, 'D7', 10, 7],
-        ['E4', 2, 4, 'E7', 11, 7],
-        ['F#4', 2, 5, 'F#7', 12, 7],
-        ['G3', 0, 1, 'G6', 6, 5],
-        ['A3', 1, 1, 'A6', 7, 6],
-        ['B3', 2, 1, 'B6', 8, 7],
-        ['C#4', 2, 2, 'C#7', 9, 7],
-      ]],
-    ]
-
-    table.forEach(([root, rows]) => {
-      test(`${root} major`, () => {
-        const shifts = modeShifts(parseNote(root)!)
-
-        expect(shifts.map(m => m.shifts)).toStrictEqual(rows.map(r => r[5]))
-
-        rows.forEach(([startNote, startFinger, startPosition, endNote, endPosition, count], mode) => {
-          const m = shifts[mode]
-
-          expect(m.mode).toBe(mode)
-          expect(renderN(m.root)).toBe(root)
-
-          expect(m.start.string).toBe('G')
-          expect(render(m.start.note)).toBe(startNote)
-          expect(m.start.finger).toBe(startFinger)
-          expect(m.start.position).toBe(startPosition)
-
-          expect(m.end.string).toBe('E')
-          expect(render(m.end.note)).toBe(endNote)
-          expect(m.end.finger).toBe(4)
-          expect(m.end.position).toBe(endPosition)
-
-          expect(m.shifts).toBe(count)
-        })
-      })
+    test('embeds a note onto every string', () => {
+      expect(embedRender('C4')).toBe('G3')
+      expect(embedRender('E4')).toBe('G5 D1')
+      expect(embedRender('G4')).toBe('G7 D3')
+      expect(embedRender('Bb4')).toBe('G9 D5 A1')
     })
 
-    test('reaches above the 24-semitone gamut', () => {
-      expect(render(modeShifts('G')[6].end.note)).toBe('F#7')
-      expect(strings[3].positions.length).toBe(15)
-      expect(strings3[3].positions.length).toBeGreaterThan(15)
+    // test('restricts to the given strings', () => {
+    //   expect(embedRender('A', ['G'])).toBe('G1')
+    //   expect(embedRender('A', ['A'])).toBe('A4')
+    //   expect(embedRender('A', ['G', 'E'])).toBe('G1 E1')
+    //   expect(embedNote(parseNote('A')!, [])).toStrictEqual([])
+    // })
+
+    test('position is chosen by letter, so enharmonics collapse', () => {
+      expect(embedRender('Bb')).toBe(embedRender('B'))
+      expect(embedRender('B#')).toBe(embedRender('B'))
+      expect(embedRender('F#')).toBe(embedRender('F'))
+      expect(embedRender('Fb')).toBe(embedRender('F'))
+    })
+  })
+
+  // test('modesAndShifts', () => {
+  //   expect(modesAndShifts(findMajor(parseNote('d')!)!)).toStrictEqual()
+  // })
+
+  describe('ModeShift serialization', () => {
+    const ms: Omit<ModeShift, 'root'> = {
+      modeNr: 2, // phr is modes[2]
+      mode: 'phr',
+      start: 2,
+      end: 4,
+      shifts: 5,
+      chromShifts: 7,
+    }
+    const serialized = 'phr:b2-e4:s5:c7'
+
+    test('serializes', () => {
+      expect(serializeModeShift(ms)).toBe(serialized)
     })
 
-    test('rejects junk', () => {
-      expect(modeShifts('h')).toStrictEqual([])
-      expect(modeShifts('')).toStrictEqual([])
+    test('deserializes', () => {
+      expect(deserializeModeShift(serialized)).toStrictEqual(ms)
+    })
+
+    test('round-trips', () => {
+      expect(deserializeModeShift(serializeModeShift(ms))).toStrictEqual(ms)
+      expect(serializeModeShift(deserializeModeShift(serialized))).toBe(serialized)
+    })
+
+    test('round-trips every modesAndShifts return', () => {
+      modeShifts(findMajor(parseNote('d')!)!).forEach(str =>
+        expect(serializeModeShift(deserializeModeShift(str))).toBe(str)
+      )
     })
   })
 

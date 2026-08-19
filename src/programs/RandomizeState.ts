@@ -178,7 +178,7 @@ export function modifyItemState(
       return evalRenderLine(item, memoryFromString(m), { images }) satisfies UserItem
     } else if (controls.regenerate === 'next') {
       if (!item.source) return item
-      return rotateInterpolableLine(item, controls.regenerateKey)
+      return rotateInterpolableLine(item, controls.regenerateKey, memoryFromString(m))
     } else {
       const dropped = typeof item.dropped == 'number' ? item.dropped : 0
       return {

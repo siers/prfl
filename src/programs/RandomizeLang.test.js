@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { initSequences, evalContentsS, evalContents, evalContentsMem, evalContentsDecks, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
+import { isFrozen, isComputed, showCount } from './RandomizeLangTypes.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -282,7 +283,7 @@ describe('subdeck blocks', () => {
     expect(item.contents).toStrictEqual('KEY: [x y]')
     expect(item.key).toStrictEqual('KEY')
     expect(item.source.substitutions).toStrictEqual([
-      { kind: 'substitution', contents: ['x', 'y'], marker: '!!!1', tag: 't', tags: null, freeze: false },
+      { kind: 'substitution', contents: ['x', 'y'], marker: '!!!1', tag: 't', tags: null },
     ])
   })
 
@@ -353,7 +354,6 @@ describe('evaling items inside a block', () => {
           "interpols": [
             {
               "command": "s('12')",
-              "freeze": false,
               "kind": "interpolate",
               "marker": "!!!1",
               "tag": "tag1",
@@ -361,7 +361,6 @@ describe('evaling items inside a block', () => {
             },
             {
               "command": "s('34')",
-              "freeze": false,
               "kind": "interpolate",
               "marker": "!!!2",
               "tag": "tagX",
@@ -375,7 +374,6 @@ describe('evaling items inside a block', () => {
                 "1",
                 "2",
               ],
-              "freeze": false,
               "kind": "substitution",
               "marker": "!!!1",
               "tag": "tag1",
@@ -386,7 +384,6 @@ describe('evaling items inside a block', () => {
                 "3",
                 "4",
               ],
-              "freeze": false,
               "kind": "substitution",
               "marker": "!!!2",
               "tag": "tagX",
@@ -417,7 +414,6 @@ describe('rotateInterpolableLine', () => {
         "interpols": [
           {
             "command": "s('12')",
-            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
@@ -425,7 +421,6 @@ describe('rotateInterpolableLine', () => {
           },
           {
             "command": "s('12')",
-            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
@@ -439,7 +434,6 @@ describe('rotateInterpolableLine', () => {
               "1",
               "2",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
@@ -450,7 +444,6 @@ describe('rotateInterpolableLine', () => {
               "1",
               "2",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -470,7 +463,6 @@ describe('rotateInterpolableLine', () => {
         "interpols": [
           {
             "command": "s('12')",
-            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
@@ -478,7 +470,6 @@ describe('rotateInterpolableLine', () => {
           },
           {
             "command": "s('12')",
-            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
@@ -492,7 +483,6 @@ describe('rotateInterpolableLine', () => {
               "2",
               "1",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
@@ -503,7 +493,6 @@ describe('rotateInterpolableLine', () => {
               "2",
               "1",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -523,7 +512,6 @@ describe('rotateInterpolableLine', () => {
         "interpols": [
           {
             "command": "s('12')",
-            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!1",
             "tag": "tagS",
@@ -531,7 +519,6 @@ describe('rotateInterpolableLine', () => {
           },
           {
             "command": "s('12')",
-            "freeze": false,
             "kind": "interpolate",
             "marker": "!!!2",
             "tag": "tagK",
@@ -545,7 +532,6 @@ describe('rotateInterpolableLine', () => {
               "1",
               "2",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tagS",
@@ -556,7 +542,6 @@ describe('rotateInterpolableLine', () => {
               "2",
               "1",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!2",
             "tag": "tagK",
@@ -667,7 +652,6 @@ describe('renderLineContentWithTags', () => {
               "4",
               "5",
             ],
-            "freeze": false,
             "kind": "substitution",
             "marker": "!!!1",
             "tag": "tag",
@@ -683,15 +667,15 @@ describe('freeze', () => {
   test('a `freeze` tag marks the interpolate and its substitution as frozen', () => {
     const item = evalContents("Thing: do it [s('12')]tag:freeze")[0]
 
-    expect(item.source.interpols[0].freeze).toBe(true)
-    expect(item.source.substitutions[0].freeze).toBe(true)
+    expect(isFrozen(item.source.interpols[0])).toBe(true)
+    expect(isFrozen(item.source.substitutions[0])).toBe(true)
   })
 
   test('without `freeze`, the interpolate and substitution are not frozen', () => {
     const item = evalContents("Thing: do it [s('12')]tag")[0]
 
-    expect(item.source.interpols[0].freeze).toBe(false)
-    expect(item.source.substitutions[0].freeze).toBe(false)
+    expect(isFrozen(item.source.interpols[0])).toBe(false)
+    expect(isFrozen(item.source.substitutions[0])).toBe(false)
   })
 
   test('rotateInterpolableLine still rotates a frozen substitution (freeze only blocks re-eval)', () => {
@@ -737,5 +721,50 @@ describe('freeze', () => {
 
     const reevaluated = evalRenderLine(item, new Map([['k', 'B']]))
     expect(reevaluated.contents).toBe("Line: [A] [A]")
+  })
+})
+
+describe('fields (cross-substitution access)', () => {
+  test('an interpolation reads any sibling via `fields`, not only frozen ones', () => {
+    // `a` is a plain (non-frozen) field; `b` reads it out of `fields.a`.
+    const item = evalContents("Line: [s('C')]a [j(fields.a)]b")[0]
+
+    expect(item.contents).toBe("Line: [C] [C]")
+  })
+
+  test('`frozen` remains an alias for `fields`', () => {
+    const item = evalContents("Line: [s('C')]a [j(frozen.a)]b")[0]
+
+    expect(item.contents).toBe("Line: [C] [C]")
+  })
+
+  test('a `computed` field resolves last, so it can read a field written after it', () => {
+    // `sum` appears before `b` textually, but `computed` defers it to the last
+    // pass, by which point both `a` and `b` are in `fields`. `fields.X` is the
+    // field's full value list, so it concatenates them.
+    const item = evalContents("Line: [fields.a + fields.b]sum:computed [s('A')]a [s('B')]b")[0]
+
+    expect(item.contents).toBe("Line: [AB] [A] [B]")
+  })
+})
+
+describe('computed rotation', () => {
+  test('rotating a source re-derives the computed field from its new value', () => {
+    // `a` cycles A B -> B A; `mirror` re-derives from `fields.a` each rotation.
+    const item = evalContents("Line: [s('A B')]a [j(fields.a)]mirror:computed")[0]
+    expect(item.contents).toBe("Line: [A B] [A B]")
+
+    const rotated = rotateInterpolableLine(item)
+    expect(rotated.contents).toBe("Line: [B A] [B A]")
+  })
+
+  test('a computed field does not rotate its own list — it always reflects its source', () => {
+    // Rotating only the computed field's tag leaves it re-derived from the
+    // (unchanged) source rather than cycling a stored list of its own.
+    const item = evalContents("Line: [s('A B')]a [j(fields.a)]mirror:computed")[0]
+    expect(item.contents).toBe("Line: [A B] [A B]")
+
+    const rotated = rotateInterpolableLine(item, 'mirror')
+    expect(rotated.contents).toBe("Line: [A B] [A B]")
   })
 })

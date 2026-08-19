@@ -4,8 +4,8 @@ import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
-import { chromaticSlide, frets, modeShifts, ModeShift, StringName } from '../lib/ToneLibViolin'
+import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
+import { chromaticSlide, frets, modeShifts, deserializeModeShift, ModeShift } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import { shiftFormat, shifts, shiftsDistributed, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
@@ -467,8 +467,9 @@ export type Interface = {
   scalePositions: () => string[],
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
   frets: () => string[],
-  modeShifts: (root: Note | string, octaves?: number, endFinger?: number, startString?: StringName, endString?: StringName) => ModeShift[],
+  modeShifts: (keyIn: string, startFinger?: number, endFinger?: number) => string[],
   modeName: (mode: number) => string,
+  desMS(s: string): Omit<ModeShift, 'root'>,
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -657,7 +658,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     scalePositions,
     chromaticSlide,
     frets: () => frets().flat(),
-    modeShifts,
+    modeShifts: (keyIn: Note | string) => modeShifts(parseNote(keyIn)!),
     modeName,
+    desMS: deserializeModeShift,
   }
 }

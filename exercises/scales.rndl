@@ -1,5 +1,5 @@
-Scales: [keys=keys().slice(0, 1)]
--=- scale-mode
-Scales3: [key]:freeze [modeName(mode)]:freeze [ss(`dia chrom arp hm mm +1 -1 +6 lyddom`)] [shiftsDistributed(mode.shifts, \[1, -2, -3, 4\], '0112223333')]:freeze:show-2 [shiftsDistributed(22, \[1, 2, 3, 3, -4\], '0112223333')]:freeze:show-1
--=- Scales::
-{shuffle(keys.flatMap(k => { key = k; return modeShifts(key).flatMap((_, m) => { mode = m; return blockLines('scale-mode') \}) \}))}
+-=-
+Scales: [keyz=keys().slice(0, 1)]
+{key=keyz.at(0);}
+Scales3: [key]key:freeze [modeShifts(fields.key.at(0))]mode:freeze [shiftsDistributed(desMS(fields.mode.at(0)).shifts, \[1, -2, -3, 4\], '0112223333')]:computed:show-2
+# [ss(`dia chrom arp hm mm +1 -1 +6 lyddom`)]
