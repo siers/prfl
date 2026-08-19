@@ -1,5 +1,5 @@
-import { directRange, transpose, zipWithIndex } from './Array'
-import { maybeReverse, pick, randInt } from './Random'
+import { directRange, transpose, zipLongest, zipWithIndex } from './Array'
+import { maybeReverse, pick, randInt, shuffleArray } from './Random'
 import { enharmonics, equalLetterOctave, findMajor, Key, majorKey, Note, parseNote, rebaseSemiByPitch, rename, render, renderN, semi } from './ToneLib'
 import _ from 'lodash'
 
@@ -181,27 +181,42 @@ export function embedNote(note: Note, restrict: StringName[] = stringNames, stat
   })
 }
 
+// serializable variant, with less info: no root, and only the shift count shown for the scale.
 export type ModeShift = {
   modeNr: number,
   mode: string,
-  root: Note,
+  scale: string,
   start: number,
   end: number,
   shifts: number,
+}
+
+// fully computed variant: carries the root and both shift types.
+export type ModeShiftGen = ModeShift & {
+  root: Note,
+  diatonicShifts: number,
   chromShifts: number,
 }
 
 const modes = 'ion dor phr lyd mix aeo loc'.split(' ')
 
-// bugs: chromatic is off by variable number (1-4) of shifts for computed starting fingers 0/1
-// TODO: mix with scale, if chromatic, use chromatic shift number
+// TODO: bug: chromatic is off by variable number (1-4) of shifts for computed starting fingers 0/1
 // TODO: randomize start/end fingers
-// TODO: hide the shift number from the user (can be ad-hoc based on a different serialization char)
-// TODO: make functions that operate on tags, don't store compute
-export function modeShifts(keyIn: Note | Key, startFinger: number = 2, endFinger: number = 4): string[] {
+// TODO: handle -1/+1/+6, because it will have minor fingering differences
+export function modeShiftsGen(
+  keyIn: Note | Key,
+  scales?: string,
+  startFinger: number = 2,
+  endFinger: number = 4
+): ModeShiftGen[] {
   const key = Array.isArray(keyIn) ? keyIn : findMajor(keyIn)!
 
-  return key.map((knote, idx) => {
+  const ksc = zipLongest<Note | string>(key, shuffleArray((scales || 'maj').split(' ')))
+
+  return ksc.map(([knoteIn, scaleIn], idx) => {
+    const [knote, scale] = [knoteIn, scaleIn] as [Note, string]
+    const modeIdx = idx % modes.length
+
     const note = rebaseSemiByPitch(knote, parseNote('G3')!)
     const endNote = { ...note, octave: note.octave + 3 }
 
@@ -210,40 +225,52 @@ export function modeShifts(keyIn: Note | Key, startFinger: number = 2, endFinger
 
     const startCompensation = Math.max(0, startFinger - beginPos.position)
     const endCompensation = endFinger - startFinger
-    const shifts = endPos.position - beginPos.position - startCompensation - endCompensation
+    const diatonicShifts = endPos.position - beginPos.position - startCompensation - endCompensation
 
     const chromStringCompensation = -startCompensation - 1 + 2 * 3 // off-by-one(?) + start finger + string crossings
     const chromShifts = endPos.chromPosition - beginPos.chromPosition + chromStringCompensation + endCompensation
 
     const computedStartingFinger = startFinger - startCompensation
 
-    return serializeModeShift({
-      modeNr: idx,
-      mode: modes[idx],
+    return {
+      modeNr: modeIdx,
+      mode: modes[modeIdx],
+      scale,
+      root: note,
       start: computedStartingFinger,
       end: endFinger,
-      shifts,
+      diatonicShifts,
       chromShifts,
-    })
+      shifts: scale == 'chrom' || scale == 'chr' ? chromShifts : diatonicShifts,
+    }
   })
 }
 
-// modeNr and root are not encoded (modeNr is recovered from the mode; root is not).
-export function serializeModeShift(ms: Omit<ModeShift, 'root'>): string {
-  return `${ms.mode}:${ms.start}${ms.end};s${ms.shifts}:c${ms.chromShifts}`
+export function modeShifts(
+  keyIn: Note | Key,
+  scales: string = 'maj',
+  startFinger: number = 2,
+  endFinger: number = 4
+): string[] {
+  return modeShiftsGen(keyIn, scales, startFinger, endFinger).map(serializeModeShift)
 }
 
-export function deserializeModeShift(s: string): Omit<ModeShift, 'root'> {
-  const match = s.match(/^(?<mode>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):c(?<chromShifts>-?\d+)$/)
+// modeNr is recovered from the mode; root and the raw shift counts are not encoded.
+export function serializeModeShift(ms: ModeShift): string {
+  return `${ms.mode}.${ms.scale}:${ms.start}${ms.end};s${ms.shifts}`
+}
+
+export function deserializeModeShift(s: string): ModeShift {
+  const match = s.match(/^(?<mode>[^.:]+)\.(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+)$/)
   if (!match) throw new Error(`invalid ModeShift: ${s}`)
-  const { mode, start, end, shifts, chromShifts } = match.groups!
+  const { mode, scale, start, end, shifts } = match.groups!
   return {
     modeNr: modes.indexOf(mode),
     mode,
+    scale,
     start: Number(start),
     end: Number(end),
     shifts: Number(shifts),
-    chromShifts: Number(chromShifts),
   }
 }
 

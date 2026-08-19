@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { embedNote, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, modeShifts, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
+import { embedNote, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
 import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
@@ -136,15 +136,15 @@ describe('ToneLibViolin', () => {
   // })
 
   describe('ModeShift serialization', () => {
-    const ms: Omit<ModeShift, 'root'> = {
+    const ms: ModeShift = {
       modeNr: 2, // phr is modes[2]
       mode: 'phr',
+      scale: 'maj',
       start: 2,
       end: 4,
       shifts: 5,
-      chromShifts: 7,
     }
-    const serialized = 'phr:24;s5:c7'
+    const serialized = 'phr.maj:24;s5'
 
     test('serializes', () => {
       expect(serializeModeShift(ms)).toBe(serialized)
@@ -160,8 +160,14 @@ describe('ToneLibViolin', () => {
     })
 
     test('round-trips every modesAndShifts return', () => {
-      modeShifts(findMajor(parseNote('d')!)!).forEach(str =>
+      modeShifts(findMajor(parseNote('d')!)!, 'maj').forEach(str =>
         expect(serializeModeShift(deserializeModeShift(str))).toBe(str)
+      )
+    })
+
+    test('chrom scale shows chromShifts', () => {
+      modeShiftsGen(findMajor(parseNote('d')!)!, 'chrom').forEach(ms =>
+        expect(ms.shifts).toBe(ms.chromShifts)
       )
     })
   })

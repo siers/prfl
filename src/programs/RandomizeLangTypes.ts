@@ -151,6 +151,12 @@ export const showCount = (x: Tagged): number => {
   const n = parseInt(show.split('-')[1])
   return Number.isNaN(n) ? Infinity : n
 }
+export const maxLen = (x: Tagged, fallback: number): number => {
+  const tag = (x.tags || []).find(t => t.startsWith('maxlen-'))
+  if (tag === undefined) return fallback
+  const n = parseInt(tag.split('-')[1])
+  return Number.isNaN(n) ? fallback : n
+}
 
 export const header = (shuffle: Boolean, name: string | null, subdeck: boolean = false) => ({ kind: 'header', name, shuffle, subdeck }) as Header
 export const interpolate = (command: string, marker: string, tag: string | null, tags: string[] | null) => ({ kind: 'interpolate', command, marker, tag, tags }) as Interpolate

@@ -148,11 +148,11 @@ export function interpolateSubtToStringPlain(subst: InterpolateSubstT): string {
   }
 }
 
-export function interpolateSubtToString(subst: InterpolateSubstT, cutSemi = false): string {
+export function interpolateSubtToString(subst: InterpolateSubstT, cutSemi = false, maxLen = 50): string {
   const cut = cutSemi ? subst.map(s => s.split(';')[0]) : subst
   const out = interpolateSubtToStringPlain(cut)
 
-  return `[${out.length > 50 ? `${out.slice(0, 50)}...` : out}]`
+  return `[${out.length > maxLen ? `${out.slice(0, maxLen)}...` : out}]`
 }
 
 function substituteInterpolate(line: RenderLine, marker: string, subst: InterpolateSubstT): RenderLine {

@@ -1,5 +1,4 @@
 -=-
 Scales: [keyz=keys().slice(0, 1)]
 {key=keyz.at(0);}
-Scales3: [key]key:freeze [modeShifts(fields.key.at(0))]mode:freeze [shiftsDistributed(desMS(fields.mode.at(0)).shifts, \[1, -2, -3, 4\], '0112223333')]:computed:show-2
-# [ss(`dia chrom arp hm mm +1 -1 +6 lyddom`)]
+Scales3: [key]key:freeze [ss(`2 2+1 3 3+1 3+2 4 4+1 4+2 4+3`)]:show-2:inline [ss(`40 41 42 43 44 45`)]metro:show-2:inline [shuffle(modeShifts(fields.key.at(0), `dia chr arp hm mm +1 -1 +6 sub wT wD pos`))]mode:freeze:cut-semi:maxlen-80 [shiftsDistributed(desMS(fields.mode.at(0)).shifts, desMS(fields.mode.at(0)).shifts >= 15 ? \[1, 2, 3, 3, -4\] : \[1, -2, -3, 4\], '0112223333')]:computed:show-2

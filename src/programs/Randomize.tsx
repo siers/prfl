@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
-import { ContentOrTag, isCutSemi, isInline, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, isCutSemi, isInline, makeEmptyMemory, maxLen, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -259,7 +259,7 @@ function Randomize(controls: any): JSX.Element {
           const cutSemi = subst ? isCutSemi(subst) : false
           const TagName = inline ? 'span' : 'div'
           return <TagName key={idx} onClick={_ => tag && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })} style={{ fontSize: string ? '2rem' : '1.7rem' }}>
-            {string ? ct[1] : interpolateSubtToString(subst!.contents, cutSemi)}
+            {string ? ct[1] : interpolateSubtToString(subst!.contents, cutSemi, maxLen(subst!, 50))}
           </TagName>
         })
       }
