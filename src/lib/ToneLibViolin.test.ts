@@ -144,7 +144,7 @@ describe('ToneLibViolin', () => {
       shifts: 5,
       chromShifts: 7,
     }
-    const serialized = 'phr:b2-e4:s5:c7'
+    const serialized = 'phr:24;s5:c7'
 
     test('serializes', () => {
       expect(serializeModeShift(ms)).toBe(serialized)

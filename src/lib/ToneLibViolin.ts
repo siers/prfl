@@ -195,6 +195,7 @@ const modes = 'ion dor phr lyd mix aeo loc'.split(' ')
 
 // bugs: chromatic is off by variable number (1-4) of shifts for computed starting fingers 0/1
 // TODO: mix with scale, if chromatic, use chromatic shift number
+// TODO: randomize start/end fingers
 // TODO: hide the shift number from the user (can be ad-hoc based on a different serialization char)
 // TODO: make functions that operate on tags, don't store compute
 export function modeShifts(keyIn: Note | Key, startFinger: number = 2, endFinger: number = 4): string[] {
@@ -216,20 +217,24 @@ export function modeShifts(keyIn: Note | Key, startFinger: number = 2, endFinger
 
     const computedStartingFinger = startFinger - startCompensation
 
-    return `${modes[idx]}:b${computedStartingFinger}-e${endFinger}:s${shifts}:c${chromShifts}`
-    // return `${render(note)} ${modes[idx]} ${renderSen(beginPos)} ${renderSen(endPos)} s${shifts} c${chromShifts}`
+    return serializeModeShift({
+      modeNr: idx,
+      mode: modes[idx],
+      start: computedStartingFinger,
+      end: endFinger,
+      shifts,
+      chromShifts,
+    })
   })
 }
 
-// serialize a ModeShift, identical to modesAndShifts output:
-// "<mode>:b<start>-e<end>:s<shifts>:c<chromShifts>"
 // modeNr and root are not encoded (modeNr is recovered from the mode; root is not).
 export function serializeModeShift(ms: Omit<ModeShift, 'root'>): string {
-  return `${ms.mode}:b${ms.start}-e${ms.end}:s${ms.shifts}:c${ms.chromShifts}`
+  return `${ms.mode}:${ms.start}${ms.end};s${ms.shifts}:c${ms.chromShifts}`
 }
 
 export function deserializeModeShift(s: string): Omit<ModeShift, 'root'> {
-  const match = s.match(/^(?<mode>[^:]+):b(?<start>-?\d+)-e(?<end>-?\d+):s(?<shifts>-?\d+):c(?<chromShifts>-?\d+)$/)
+  const match = s.match(/^(?<mode>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):c(?<chromShifts>-?\d+)$/)
   if (!match) throw new Error(`invalid ModeShift: ${s}`)
   const { mode, start, end, shifts, chromShifts } = match.groups!
   return {

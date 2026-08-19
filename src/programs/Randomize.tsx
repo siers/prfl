@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
-import { ContentOrTag, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, isCutSemi, isInline, makeEmptyMemory, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -255,10 +255,11 @@ function Randomize(controls: any): JSX.Element {
           const tag = ct[0] == 'tag'
           const string = ct[0] == 'string'
           const subst = tag ? (lookupTag.get(ct[1]) as Substitution) : undefined
-          const inline = string || subst?.tags?.includes('inline')
+          const inline = string || (subst && isInline(subst))
+          const cutSemi = subst ? isCutSemi(subst) : false
           const TagName = inline ? 'span' : 'div'
           return <TagName key={idx} onClick={_ => tag && recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })} style={{ fontSize: string ? '2rem' : '1.7rem' }}>
-            {string ? ct[1] : interpolateSubtToString(subst!.contents)}
+            {string ? ct[1] : interpolateSubtToString(subst!.contents, cutSemi)}
           </TagName>
         })
       }
