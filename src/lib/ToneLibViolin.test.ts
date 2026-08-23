@@ -131,10 +131,6 @@ describe('ToneLibViolin', () => {
     })
   })
 
-  // test('modesAndShifts', () => {
-  //   expect(modesAndShifts(findMajor(parseNote('d')!)!)).toStrictEqual()
-  // })
-
   describe('ModeShift serialization', () => {
     const ms: ModeShift = {
       modeNr: 2, // phr is modes[2]

@@ -160,6 +160,7 @@ type StringEmbeddedNote = {
   string: String,
   position: number,
   chromPosition: number,
+  note: Note,
 }
 
 export function renderSen(sen: StringEmbeddedNote): string {
@@ -168,15 +169,18 @@ export function renderSen(sen: StringEmbeddedNote): string {
 
 // bug: G# isn't empty string, but wouldn't be returned,
 // so instead of slice(n) it should be (if index <= startingFrom || semi(string) < semi(note) return [])
-export function embedNote(note: Note, restrict: StringName[] = stringNames, statringFrom = 0): StringEmbeddedNote[] {
+export function embedNote(note: Note, restrict: StringName[] = stringNames, startingFrom = 0): StringEmbeddedNote[] {
   return restrict.flatMap(stringName => {
     const string = strings3[stringIndex(stringName)]
-    return zipWithIndex(string.positions).slice(statringFrom).flatMap(([idx, position]) => {
-      return [{
+    return string.positions.flatMap((position, idx) => {
+      const sen = {
         string,
         position: idx,
-        chromPosition: semi(position) - semi(string.base),
-      }].slice(0, +equalLetterOctave(note, position))
+        note,
+        chromPosition: semi(note) - semi(string.base),
+      }
+
+      return equalLetterOctave(note, position) && sen.chromPosition >= startingFrom ? [sen] : []
     })
   })
 }
@@ -220,8 +224,8 @@ export function modeShiftsGen(
     const note = rebaseSemiByPitch(knote, parseNote('G3')!)
     const endNote = { ...note, octave: note.octave + 3 }
 
-    const beginPos = embedNote(note, ['G'])[0]
-    const endPos = embedNote(endNote, ['E'])[0]
+    const beginPos: StringEmbeddedNote = embedNote(note, ['G'])[0]
+    const endPos: StringEmbeddedNote = embedNote(endNote, ['E'])[0]
 
     const startCompensation = Math.max(0, startFinger - beginPos.position)
     const endCompensation = endFinger - startFinger

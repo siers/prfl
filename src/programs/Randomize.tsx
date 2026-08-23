@@ -530,7 +530,7 @@ export default Randomize
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: subdecks: populate subdecks from blocks, if key shares the same name as the block
-// TODO: subdecks: blocks should take variables
+// TODO: subdecks: blocks should take variables, no special subdeck syntax
 // TODO: subdecks: key prefixes should be shown in the ui
 // TODO: open: subdecks: if subdecks were a function, you couldn't update existing items any more. impact? (A: only top level items matter, everything dynamic has to be refreshed)
 
