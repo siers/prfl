@@ -11,6 +11,7 @@ export const stringNames: StringName[] = ['G', 'D', 'A', 'E']
 type String = {
   name: StringName,
   base: Note,
+  index: number,
   positions: Note[], // C major, open string + all positions up until second octave
 }
 
@@ -29,6 +30,7 @@ export function stringsSpanning(span: number = 24): String[] {
     return {
       name,
       base,
+      index: stringNames.indexOf(name),
       positions: notes,
     }
   })
@@ -76,7 +78,7 @@ export function stringsForTonality(k: Key): String[] {
   }))
 
   return stringPositions.map((ps, idx) => {
-    return { name: strings[idx].name, base: strings[idx].base, positions: ps } satisfies String
+    return { name: strings[idx].name, base: strings[idx].base, positions: ps, index: idx } satisfies String
   })
 }
 
@@ -161,6 +163,7 @@ type StringEmbeddedNote = {
   position: number,
   chromPosition: number,
   note: Note,
+  availFingers: number[],
 }
 
 export function renderSen(sen: StringEmbeddedNote): string {
@@ -173,11 +176,20 @@ export function embedNote(note: Note, restrict: StringName[] = stringNames, star
   return restrict.flatMap(stringName => {
     const string = strings3[stringIndex(stringName)]
     return string.positions.flatMap((position, idx) => {
+      const chrom = semi(note) - semi(string.base)
+      const availFingers =
+        chrom == 0 ? [0] :
+          chrom < 3 ? [1] : // NOTE: this tree can be improved
+            chrom < 4 ? [1, 2] :
+              chrom < 5 ? [1, 2, 3] :
+                [1, 2, 3, 4]
+
       const sen = {
         string,
         position: idx,
         note,
-        chromPosition: semi(note) - semi(string.base),
+        chromPosition: chrom,
+        availFingers,
       }
 
       return equalLetterOctave(note, position) && sen.chromPosition >= startingFrom ? [sen] : []
@@ -193,6 +205,7 @@ export type ModeShift = {
   start: number,
   end: number,
   shifts: number,
+  additional: string,
 }
 
 // fully computed variant: carries the root and both shift types.
@@ -207,11 +220,15 @@ const modes = 'ion dor phr lyd mix aeo loc'.split(' ')
 // TODO: bug: chromatic is off by variable number (1-4) of shifts for computed starting fingers 0/1
 // TODO: randomize start/end fingers
 // TODO: handle -1/+1/+6, because it will have minor fingering differences
+// TODO: in the usage, make shifts take diatonic/chromat
+// Features:
+// * arbitrary starting/ending fingers
+// * diatonic/chromatic/position scales
 export function modeShiftsGen(
   keyIn: Note | Key,
   scales?: string,
-  startFinger: number = 2,
-  endFinger: number = 4
+  startFingerTarget: number = 2,
+  endFinger: number = 4,
 ): ModeShiftGen[] {
   const key = Array.isArray(keyIn) ? keyIn : findMajor(keyIn)!
 
@@ -224,28 +241,35 @@ export function modeShiftsGen(
     const note = rebaseSemiByPitch(knote, parseNote('G3')!)
     const endNote = { ...note, octave: note.octave + 3 }
 
-    const beginPos: StringEmbeddedNote = embedNote(note, ['G'])[0]
+    const beginPos: StringEmbeddedNote = _.sortBy(embedNote(note, ['G', 'D']), sen => sen.position)[0]
     const endPos: StringEmbeddedNote = embedNote(endNote, ['E'])[0]
 
-    const startCompensation = Math.max(0, startFinger - beginPos.position)
-    const endCompensation = endFinger - startFinger
-    const diatonicShifts = endPos.position - beginPos.position - startCompensation - endCompensation
+    const startFinger = _.sortBy(beginPos.availFingers, f => Math.abs(startFingerTarget - f))[0]
 
-    const chromStringCompensation = -startCompensation - 1 + 2 * 3 // off-by-one(?) + start finger + string crossings
+    const endCompensation = endFinger - startFinger
+    const diatonicShifts = endPos.position - beginPos.position - endCompensation
+
+    const chromStringCompensation = (endPos.string.index - beginPos.string.index) * 3
     const chromShifts = endPos.chromPosition - beginPos.chromPosition + chromStringCompensation + endCompensation
 
-    const computedStartingFinger = startFinger - startCompensation
+    const shifts =
+      scale == 'chrom' || scale == 'chr' ? chromShifts :
+        scale == 'pos' ? 0 :
+          diatonicShifts
+
+    const additional = scale == 'pos' ? shuffleArray('1234567'.split('')).join('') : ''
 
     return {
       modeNr: modeIdx,
       mode: modes[modeIdx],
       scale,
       root: note,
-      start: computedStartingFinger,
+      start: startFinger,
       end: endFinger,
       diatonicShifts,
       chromShifts,
-      shifts: scale == 'chrom' || scale == 'chr' ? chromShifts : diatonicShifts,
+      shifts,
+      additional,
     }
   })
 }
@@ -261,13 +285,13 @@ export function modeShifts(
 
 // modeNr is recovered from the mode; root and the raw shift counts are not encoded.
 export function serializeModeShift(ms: ModeShift): string {
-  return `${ms.mode}.${ms.scale}:${ms.start}${ms.end};s${ms.shifts}`
+  return `${ms.mode}.${ms.scale}:${ms.start}${ms.end};s${ms.shifts}:a${ms.additional}`
 }
 
 export function deserializeModeShift(s: string): ModeShift {
-  const match = s.match(/^(?<mode>[^.:]+)\.(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+)$/)
+  const match = s.match(/^(?<mode>[^.:]+)\.(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):a(?<additional>[^:]+)$/)
   if (!match) throw new Error(`invalid ModeShift: ${s}`)
-  const { mode, scale, start, end, shifts } = match.groups!
+  const { mode, scale, start, end, shifts, additional } = match.groups!
   return {
     modeNr: modes.indexOf(mode),
     mode,
@@ -275,6 +299,7 @@ export function deserializeModeShift(s: string): ModeShift {
     start: Number(start),
     end: Number(end),
     shifts: Number(shifts),
+    additional,
   }
 }
 
