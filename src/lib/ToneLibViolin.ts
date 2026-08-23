@@ -227,12 +227,16 @@ const modes = 'ion dor phr lyd mix aeo loc'.split(' ')
 export function modeShiftsGen(
   keyIn: Note | Key,
   scales?: string,
-  startFingerTarget: number = 2,
-  endFinger: number = 4,
+  startFingerTarget: number = 0,
+  endFingerTarget: number = 0,
 ): ModeShiftGen[] {
   const key = Array.isArray(keyIn) ? keyIn : findMajor(keyIn)!
 
   const ksc = zipLongest<Note | string>(key, shuffleArray((scales || 'maj').split(' ')))
+
+  const pickAvail = (avail: number[], target: number) => _.sortBy(avail, f => Math.abs(target - f))[0]
+  const pickAvailOrRandom = (avail: number[], target: number) =>
+    target == 0 ? pick(avail) : pickAvail(avail, target)
 
   return ksc.map(([knoteIn, scaleIn], idx) => {
     const [knote, scale] = [knoteIn, scaleIn] as [Note, string]
@@ -244,7 +248,9 @@ export function modeShiftsGen(
     const beginPos: StringEmbeddedNote = _.sortBy(embedNote(note, ['G', 'D']), sen => sen.position)[0]
     const endPos: StringEmbeddedNote = embedNote(endNote, ['E'])[0]
 
-    const startFinger = _.sortBy(beginPos.availFingers, f => Math.abs(startFingerTarget - f))[0]
+    const startFinger = pickAvailOrRandom(beginPos.availFingers, startFingerTarget)
+    const endFingerAvail = [4, 3, 2, 1].slice(0, 1 + Math.max(0, 15 - endPos.position))
+    const endFinger = pickAvailOrRandom(endFingerAvail, endFingerTarget)
 
     const endCompensation = endFinger - startFinger
     const diatonicShifts = endPos.position - beginPos.position - endCompensation
@@ -277,8 +283,8 @@ export function modeShiftsGen(
 export function modeShifts(
   keyIn: Note | Key,
   scales: string = 'maj',
-  startFinger: number = 2,
-  endFinger: number = 4
+  startFinger: number = 0,
+  endFinger: number = 0
 ): string[] {
   return modeShiftsGen(keyIn, scales, startFinger, endFinger).map(serializeModeShift)
 }
@@ -289,7 +295,7 @@ export function serializeModeShift(ms: ModeShift): string {
 }
 
 export function deserializeModeShift(s: string): ModeShift {
-  const match = s.match(/^(?<mode>[^.:]+)\.(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):a(?<additional>[^:]+)$/)
+  const match = s.match(/^(?<mode>[^.:]+)\.(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):a(?<additional>[^:]*)$/)
   if (!match) throw new Error(`invalid ModeShift: ${s}`)
   const { mode, scale, start, end, shifts, additional } = match.groups!
   return {
