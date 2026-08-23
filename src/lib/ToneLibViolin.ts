@@ -291,13 +291,14 @@ export function modeShifts(
 
 // modeNr is recovered from the mode; root and the raw shift counts are not encoded.
 export function serializeModeShift(ms: ModeShift): string {
-  return `${ms.mode}.${ms.scale}:${ms.start}${ms.end};s${ms.shifts}:a${ms.additional}`
+  return `${ms.scale == 'pos' ? '' : `${ms.mode}.`}${ms.scale}:${ms.start}${ms.end};s${ms.shifts}:a${ms.additional}`
 }
 
 export function deserializeModeShift(s: string): ModeShift {
-  const match = s.match(/^(?<mode>[^.:]+)\.(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):a(?<additional>[^:]*)$/)
+  const match = s.match(/^((?<mode>[^.:]+)\.)?(?<scale>[^:]+):(?<start>\d)(?<end>\d);s(?<shifts>-?\d+):a(?<additional>[^:]*)$/)
   if (!match) throw new Error(`invalid ModeShift: ${s}`)
-  const { mode, scale, start, end, shifts, additional } = match.groups!
+  let { mode, scale, start, end, shifts, additional } = match.groups!
+  mode = mode || 'ion'
   return {
     modeNr: modes.indexOf(mode),
     mode,

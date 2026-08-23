@@ -157,7 +157,7 @@ describe('ToneLibViolin', () => {
     })
 
     test('round-trips every modesAndShifts return', () => {
-      modeShifts(findMajor(parseNote('d')!)!, 'maj').forEach(str =>
+      modeShifts(findMajor(parseNote('d')!)!, 'maj pos').forEach(str =>
         expect(serializeModeShift(deserializeModeShift(str))).toBe(str)
       )
     })
