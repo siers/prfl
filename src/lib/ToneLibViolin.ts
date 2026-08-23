@@ -181,7 +181,7 @@ export function embedNote(note: Note, restrict: StringName[] = stringNames, star
         chrom == 0 ? [0] :
           chrom < 3 ? [1] : // NOTE: this tree can be improved
             chrom < 4 ? [1, 2] :
-              chrom < 5 ? [1, 2, 3] :
+              chrom < 6 ? [1, 2, 3] :
                 [1, 2, 3, 4]
 
       const sen = {
@@ -217,13 +217,13 @@ export type ModeShiftGen = ModeShift & {
 
 const modes = 'ion dor phr lyd mix aeo loc'.split(' ')
 
-// TODO: bug: chromatic is off by variable number (1-4) of shifts for computed starting fingers 0/1
-// TODO: randomize start/end fingers
 // TODO: handle -1/+1/+6, because it will have minor fingering differences
-// TODO: in the usage, make shifts take diatonic/chromat
+// TODO: rename shiftsMD to shiftsMS
+// TODO: in shiftsMS, push the distribution to EA the higher you start
 // Features:
 // * arbitrary starting/ending fingers
-// * diatonic/chromatic/position scales
+// * shifts for diatonic/chromatic
+// * position generator
 export function modeShiftsGen(
   keyIn: Note | Key,
   scales?: string,
