@@ -417,6 +417,7 @@ export type Interface = {
   shifts(target?: number, inv?: number[]): string[],
   shiftStrings(distrib: string, shifts: number): string[],
   shiftsDistributed(target: number, inv: number[], distrib: string): string[],
+  shiftsMD(serMS: string, invStr: string, distrib: string): string[],
   perm<A>(a: A[], size?: number): A[][],
   powerBuckets<A>(a: A[]): A[][][],
   power<A>(a: A[]): A[][],
@@ -470,6 +471,9 @@ export type Interface = {
   modeShifts: (keyIn: string, scales?: string, startFinger?: number, endFinger?: number) => string[],
   modeName: (mode: number) => string,
   desMS(s: string): Omit<ModeShift, 'root'>,
+
+  metro(base: number, diff: number): string[],
+  metroS(base: number, diff: number): string[],
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -500,6 +504,19 @@ export function glob(pattern: string, images: ImageEntry[]): string[] {
     const abbrevs = basenames.map(a => a.split('-').slice(0, length).join('-'))
     return _.uniq(abbrevs).length == basenames.length ? [abbrevs] : []
   })[0] || basenames
+}
+
+function shiftsMD(serMS: string, invStr: string, distrib: string): string[] {
+  const ms = deserializeModeShift(serMS)
+  const [invDia, invChrom] = invStr.split(':').map(inv => [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item)))
+  const inv = ms.shifts < 16 ? invDia : invChrom
+
+  return shiftsDistributed(ms.shifts, inv, distrib)
+}
+
+function metro(base: number, diff: number): string[] {
+  return directRange(base - diff, base + diff).map(s => `${s}`)
+
 }
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
@@ -661,5 +678,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     modeShifts: (keyIn: Note | string, scales?: string) => modeShifts(parseNote(keyIn)!, scales),
     modeName,
     desMS: deserializeModeShift,
+    shiftsMD,
+
+    metro,
+    metroS: (b: number, d: number) => shuffle(metro(b, d)),
   }
 }
