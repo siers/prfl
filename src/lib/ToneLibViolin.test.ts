@@ -129,6 +129,11 @@ describe('ToneLibViolin', () => {
       expect(embedRender('F#')).toBe(embedRender('F'))
       expect(embedRender('Fb')).toBe(embedRender('F'))
     })
+
+    test('available fingers', () => {
+      const sen = embedNote(parseNote('c4')!, ['G'])
+      expect(sen.map(s => s.availFingers)).toStrictEqual([[1, 2, 3]])
+    })
   })
 
   describe('ModeShift serialization', () => {

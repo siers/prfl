@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter } from './ToneLib.ts'
+import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
 
 describe('ToneLib', () => {
@@ -419,4 +419,53 @@ describe('ToneLib', () => {
 
     expect(keysMajor().filter(k => [b, f].every(n => keyHasSemi(k, n))).map(keyCenter).map(renderN)).toStrictEqual('C F# Gb'.split(' '))
   })
+
+  // "altered scale": every degree of the major scale except the 4th and 5th lowered by one accidental.
+  // Acceptance table: how many of those notes are unspellable within allNotes() (by name/alter),
+  // i.e. how far the flattening drives us past the double-flat edge of the generated note spectrum.
+  test('altered scale notes outside allNotes acceptance', () => {
+    const alteredExpected: [tonic: string, scale: string, outside: string, percent: number][] = [
+      ['C',  'Cb Db Eb F G Ab Bb',      '',                        0],
+      ['G',  'Gb Ab Bb C D Eb F',       '',                        0],
+      ['F',  'Fb Gb Ab Bb C Db Eb',     '',                        0],
+      ['D',  'Db Eb F G A Bb C',        '',                        0],
+      ['Bb', 'Bbb Cb Db Eb F Gb Ab',    'Bbb',                     1 / 7],
+      ['A',  'Ab Bb C D E F G',         '',                        0],
+      ['Eb', 'Ebb Fb Gb Ab Bb Cb Db',   'Ebb',                     1 / 7],
+      ['E',  'Eb F G A B C D',          '',                        0],
+      ['Ab', 'Abb Bbb Cb Db Eb Fb Gb',  'Abb Bbb',                 2 / 7],
+      ['B',  'Bb C D E F# G A',         '',                        0],
+      ['Db', 'Dbb Ebb Fb Gb Ab Bbb Cb', 'Dbb Ebb Bbb',             3 / 7],
+      ['F#', 'F G A B C# D E',          '',                        0],
+      ['Gb', 'Gbb Abb Bbb Cb Db Ebb Fb','Gbb Abb Bbb Ebb',         4 / 7],
+      ['C#', 'C D E F# G# A B',         '',                        0],
+      ['Cb', 'Cbb Dbb Ebb Fb Gb Abb Bbb','Cbb Dbb Ebb Abb Bbb',    5 / 7],
+    ]
+
+    const spectrum = new Set(allNotes().map(n => renderN(normalize(n))))
+    // degrees 4 and 5 (0-indexed 3 and 4) keep their accidental, everything else drops by one
+    const [fourth, fifth] = [3, 4]
+    const alter = (key: Key) => key.map((n, i) => i === fourth || i === fifth ? n : addAccidental(n, -1))
+
+    alteredExpected.forEach(([tonic, scale, outside, percent]) => {
+      const altered = alter(findMajor(parseNote(tonic)!)!)
+      const missing = altered.filter(n => !spectrum.has(renderN(n)))
+
+      expect(altered.map(renderN).join(' ')).toBe(scale)
+      expect(missing.map(renderN).join(' ')).toBe(outside)
+      expect(missing.length / altered.length).toBeCloseTo(percent)
+    })
+
+    expect(alteredExpected).toHaveLength(keysMajor().length)
+
+    // over all keys: 16 of 105 notes (15.24%) cannot be spelled inside allNotes(), every one a double flat
+    const all = keysMajor().flatMap(alter)
+    const allMissing = all.filter(n => !spectrum.has(renderN(n)))
+
+    expect(all).toHaveLength(105)
+    expect(allMissing).toHaveLength(16)
+    expect(allMissing.every(n => n.alter === -2)).toBe(true)
+    expect(100 * allMissing.length / all.length).toBeCloseTo(15.24, 2)
+  })
+
 })
