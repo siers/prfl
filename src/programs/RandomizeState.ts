@@ -233,19 +233,19 @@ export function reduceTimer(s: RState | undefined, commandIn: TimerCommand, targ
   const leafCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const stack = s?.cursorStack || []
 
-  // totalTimer is the one true running clock: start/stop/subtract always land
-  // there, and only there — never on ancestor/outer item timers, which would
-  // otherwise double-apply the same command up the whole chain.
+  // running-state syncs from totalTimer; elapsed length is per-level, so a subtract corrects every level
   let commandTotal: TimerAction
   let commandLeaf: TimerAction // the leaf may additionally get 'restart', unlike totalTimer
+  let ancestorSubtract: TimerAction[] = []
 
   if (commandIn == 'local-as-global') {
     commandTotal = 'no-op'
     commandLeaf = s?.totalTimer?.kind == 'started' ? 'start' : 'stop'
   } else if (commandIn == 'subtract-and-restart') {
-    const currentItem = deckGet(s.items || {}, leafCursor)
-    commandTotal = ['subtract', currentItem?.timer || null]
+    const minus = deckGet(s.items || {}, leafCursor)?.timer || null
+    commandTotal = ['subtract', minus]
     commandLeaf = 'restart'
+    ancestorSubtract = [['subtract', minus]]
   } else if (target == 'local') {
     commandTotal = 'no-op'
     commandLeaf = commandIn // restart/start/stop stays leaf-only
@@ -256,23 +256,19 @@ export function reduceTimer(s: RState | undefined, commandIn: TimerCommand, targ
 
   const totalTimer = modifyTimerPure(s?.totalTimer || undefined, commandTotal, now)
 
-  // Ancestors/outer never run their own command — every level above the leaf
-  // is always just resynced to totalTimer's resulting running state, so a
-  // command that changes totalTimer (start/stop/subtract) or a plain switch of
-  // the current item (advance/spawn/pop, via local-as-global) both keep the
-  // whole chain consistent with one ground truth.
   const commandUpChain: TimerAction = totalTimer.kind == 'started' ? 'start' : 'stop'
+  const commandAncestor: TimerAction[] = [...ancestorSubtract, commandUpChain]
 
-  const chain: [DeckCursor, TimerAction, TimerAction][] = [
-    ...stack.map(cursor => [cursor, commandUpChain, 'no-op'] satisfies [DeckCursor, TimerAction, TimerAction]),
-    [leafCursor, commandLeaf, 'stop'],
+  const chain: [DeckCursor, TimerAction[], TimerAction[]][] = [
+    ...stack.map(cursor => [cursor, commandAncestor, ['no-op']] satisfies [DeckCursor, TimerAction[], TimerAction[]]),
+    [leafCursor, [commandLeaf], ['stop']],
   ]
 
   const items: Decks<UserItem> = chain.reduce((acc, [[deck, index], command, siblingCommand]) => ({
     ...acc,
     [deck]: deckItems(acc, deck).map((item, i) => ({
       ...item,
-      timer: modifyTimerPure(item?.timer, i == index ? command : siblingCommand, now),
+      timer: (i == index ? command : siblingCommand).reduce((t, c) => modifyTimerPure(t, c, now), item?.timer),
     })),
   }), s.items || {})
 

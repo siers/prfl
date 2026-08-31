@@ -284,15 +284,50 @@ describe('reduceTimer', () => {
     expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true })
   })
 
-  test('subtract-and-restart while nested still discounts totalTimer, and every ancestor resyncs to it', () => {
+  test('subtract-and-restart while nested discounts totalTimer and the ancestor alike', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } } // 5s elapsed so far
+    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 4000, running: true } // ancestor: 4s elapsed
     s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s elapsed
 
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
-    expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // discounted by the leaf's 1s
-    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // ancestor resynced to totalTimer's (still running) state
-    expect(s.items!['Scale/zip'][0].timer?.running).toBe(true) // leaf restarted
+    expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // 5s - 1s
+    expect(s.items![DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'started', start: NOW - 3000, running: true }) // 4s - 1s
+    expect(s.items!['Scale/zip'][0].timer).toStrictEqual({ kind: 'started', start: NOW, running: true }) // leaf restarted
+  })
+
+  test('subtract-and-restart two levels deep takes the same interval off every ancestor', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = { ...s, cursorStack: [...s.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], items: { ...s.items, leaf: [item('x')] } }
+    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } }
+    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 5000, running: true } // outer: 5s
+    s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 3000, running: true } // inner: 3s
+    s.items!.leaf[0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s
+
+    s = reduceTimer(s, 'subtract-and-restart', null, NOW)
+    expect(s.items![DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // 5s - 1s, not compounded
+    expect(s.items!['Scale/zip'][0].timer).toStrictEqual({ kind: 'started', start: NOW - 2000, running: true }) // 3s - 1s
+  })
+
+  test('an ancestor shorter than the discounted interval clamps to zero rather than going negative', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } }
+    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 400, running: true } // ancestor: only 0.4s
+    s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s
+
+    s = reduceTimer(s, 'subtract-and-restart', null, NOW)
+    expect(s.items![DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'started', start: NOW, running: true }) // clamped to 0, still running
+  })
+
+  test('subtract-and-restart with totalTimer stopped subtracts up the chain and leaves it stopped', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = { ...s, totalTimer: { kind: 'stopped', length: 5000, running: false } }
+    s.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length: 4000, running: false } // ancestor: 4s
+    s.items!['Scale/zip'][0].timer = { kind: 'stopped', length: 1000, running: false } // leaf: 1s
+
+    s = reduceTimer(s, 'subtract-and-restart', null, NOW)
+    expect(s.totalTimer).toStrictEqual({ kind: 'stopped', length: 4000, running: false })
+    expect(s.items![DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'stopped', length: 3000, running: false }) // subtracted, and still stopped
   })
 
   test('a refresh leaves totalTimer stopped at zero, not silently running', () => {

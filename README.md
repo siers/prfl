@@ -2,6 +2,8 @@
 
 A musical practice list generator with a timer and metronome built in.
 
+Offers hierarchical timers for items and their subdecks (parametrizations or real subdecks). Current item's timers can be also restarted or subtracted from the total.
+
 ## Why
 
 Practicing well means controlling *what* you practice (randomized vs. blocked

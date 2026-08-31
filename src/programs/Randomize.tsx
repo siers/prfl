@@ -544,8 +544,6 @@ export default Randomize
 // TODO: scales: shifting patterns depending on the specific scale (which mode, which finger starts on, shift length can be 6, 7 or 8)
 // TODO: parametrization: some params should not be taken into account when generating subdecks (through tags or UI clicks or subsets)
 
-// TODO: bug: timers: subtract should subtract up the chain, clanker half-assed it
-
 // TODO: execution: hide nonreviewed (timeout?), make them scrollable
 // TODO: execution: missing items after latest seek changes
 // TODO: execution: swipe actions on the item to hide the stack
