@@ -135,11 +135,11 @@ test('dropThree is not a no-op when nothing visible is ahead', () => {
 
 test('drop to last', () => {
   let s = freshState(words('a b c d e f'))
-  window.x = true
+  // window.x = true // dead debug flag, nothing reads it
 
   s = dropThree(s, _ => true)
   expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
-  window.x = false
+  // window.x = false
 })
 
 // test('dropThree with excludeForBury also skips items trailing on dropped count', () => {

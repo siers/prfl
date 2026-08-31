@@ -1,12 +1,11 @@
-import * as ToneLib from '../lib/ToneLib'
+import { JSX } from 'react'
 import { shuffleArray } from '../lib/Random'
-import { prepareNext, select, restart } from '../lib/Program'
-import { chunk } from '../lib/Array'
+import { prepareNext, select } from '../lib/Program'
 import FlashList from './FlashList.js'
 
-function toggleFullScreen(video) {
+function toggleFullScreen(video: Element | null) {
   if (!document.fullscreenElement) {
-    video.requestFullscreen()
+    video?.requestFullscreen()
   } else {
     document.exitFullscreen?.()
   }
@@ -14,9 +13,9 @@ function toggleFullScreen(video) {
 
 // % pwd | grep -q perflab$ && (jq -R -n -c '[inputs]' <(find public/ -type f | sed 's:^public/::') | sed 's/^/export default /; s:^:/* automatically generated, don'\''t touch */ :' > src/programs/FlashList.js)
 
-var preloadCache = {}
+var preloadCache: Record<string, number> = {}
 
-function preloadCached(list) {
+function preloadCached(list: string[]) {
   list.forEach(url => {
     if (preloadCache[url]) return
     var img = new Image()
@@ -26,12 +25,16 @@ function preloadCached(list) {
   })
 }
 
-function Flash(controls) {
-  const directories = Object.groupBy(FlashList, f => f.match(/^[^\/]+/)[0])
+function Flash(controls: any): JSX.Element {
+  const directories = FlashList.reduce<Record<string, string[]>>((acc, f) => {
+    const dir = f.match(/^[^\/]+/)?.[0]
+    if (dir) (acc[dir] ||= []).push(f)
+    return acc
+  }, {})
   const directory = controls.state?.directory || Object.keys(directories)[0]
   const current = directories[directory]
 
-  const prepare = (opts) => prepareNext({ ...controls, ...opts }, () => directory ? shuffleArray(current) : [''])
+  const prepare = (opts: { restart?: boolean } = {}) => prepareNext({ ...controls, ...opts }, () => directory ? shuffleArray(current) : [''])
 
   preloadCached(current)
   prepare()

@@ -1,6 +1,28 @@
+import { JSX } from 'react'
 import { shuffleArray } from '../lib/Random'
 
-function avoidLastFirstMatch(lastLast, list) {
+// Programs keep their own state shapes; the fields below are the ones this
+// module reads and writes.
+export type ProgramState = {
+  next?: any[] | null
+  size?: number
+  lastLast?: any
+  [key: string]: any
+}
+
+export type Controls = {
+  state?: ProgramState | null
+  setState: (next: (state: ProgramState) => ProgramState) => void
+  advance?: string | boolean
+  restart?: boolean
+}
+
+export type RenderOpts = {
+  html?: boolean
+  count?: number
+}
+
+function avoidLastFirstMatch<A>(lastLast: A | undefined, list: A[]): A[] {
   if (lastLast && list.length > 1 && lastLast == list[0]) {
     const [head, next, ...rest] = list
     return [next, ...(shuffleArray([head, ...rest]))]
@@ -9,7 +31,7 @@ function avoidLastFirstMatch(lastLast, list) {
   }
 }
 
-export function prepareNext(controls, makeData) {
+export function prepareNext(controls: Controls, makeData: (state?: ProgramState | null) => any[]) {
   const {state, setState, advance, restart} = controls
 
   if (restart || (state?.next?.length || 0) < 1) {
@@ -22,7 +44,7 @@ export function prepareNext(controls, makeData) {
   }
 }
 
-export function renderNext(state, opts) {
+export function renderNext(state: ProgramState | null | undefined, opts?: RenderOpts): JSX.Element {
   const next = state?.next
   const html = opts?.html || false
 
@@ -41,7 +63,7 @@ export function renderNext(state, opts) {
   )
 }
 
-export function fromProducer(controls, makeData, opts) {
+export function fromProducer(controls: Controls, makeData: (state?: ProgramState | null) => any[], opts?: RenderOpts): JSX.Element {
   prepareNext(controls, makeData)
   return renderNext(controls.state, opts)
 }
@@ -51,11 +73,16 @@ export function fromProducer(controls, makeData, opts) {
 //   controls.setState(state => ({...state, next: null}))
 // }
 
-export function select(controls, name, selection, onChange) {
-  const set = value => controls.setState(state => ({...state, [name]: value, next: null}))
+export function select(
+  controls: Controls,
+  name: string,
+  selection: string[],
+  onChange?: (value: string) => void,
+): JSX.Element {
+  const set = (value: string) => controls.setState(state => ({...state, [name]: value, next: null}))
   const current = (controls.state || {})[name] || selection[0]
 
-  const change = e => {
+  const change = (e: React.ChangeEvent<HTMLSelectElement>) => {
     set(e.target.value)
     onChange && onChange(e.target.value)
   }

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import _ from 'lodash'
-import { checkIsShuffledMinD, shuffleMI } from './exp_20260504_shufflem'
+import { checkIsShuffledMinD /*, shuffleMI */ } from './exp_20260504_shufflem'
 
 test('checkIsShuffledMinD', () => {
   expect(checkIsShuffledMinD(0, [])).toStrictEqual(true)

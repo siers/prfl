@@ -13,22 +13,23 @@ export default function Jcuken(controls: any): JSX.Element {
 
   const makeData = () => shuffleArray(alphabet)
 
-  function flashLetter(letter, subclass) {
+  function flashLetter(letter: string, subclass: string) {
     if (alphabet.indexOf(letter) === -1) return
 
     // useRef complains about false ordering, can't imagine how to fix it right now
-    const el = document.querySelector('.wrap[data-mode=jcuken] .letter')
+    const el = document.querySelector<HTMLElement>('.wrap[data-mode=jcuken] .letter')
+    if (!el) return
 
     el.innerText = letter
     el.classList.remove("correct", "incorrect")
     el.classList.add(subclass)
 
-    const thisKey = parseInt(el.dataset.animationKey || 0) + 1
-    el.dataset.animationKey = thisKey
+    const thisKey = parseInt(el.dataset.animationKey || '0') + 1
+    el.dataset.animationKey = `${thisKey}`
     const timeout = 20
 
-    const nextFrame = (key, opacity) => {
-      if (el.dataset.animationKey == key && opacity > 0) {
+    const nextFrame = (key: number, opacity: number) => {
+      if (el.dataset.animationKey == `${key}` && opacity > 0) {
         el.style.opacity = `${Math.round(opacity * 100)}%`
         setTimeout(() => nextFrame(key, Math.max(0, opacity - 0.1)), timeout)
       }
@@ -43,7 +44,7 @@ export default function Jcuken(controls: any): JSX.Element {
     if (isLetter) {
       const correctHit = controls.state?.next?.[0] == key
       if (correctHit) prepareNext({ state: controls.state, setState, advance: true }, makeData)
-      flashLetter(key, correctHit && 'correct' || 'incorrect')
+      flashLetter(key, correctHit ? 'correct' : 'incorrect')
     } else if (advance == 'next' || advance == 'prev') {
       prepareNext({ state: controls.state, setState, advance: true }, makeData)
     }
