@@ -7,3 +7,6 @@ exercises/*
 .env.*
 !.env.example
 .vite
+
+# built rndl bundle
+.bin/
