@@ -52,14 +52,30 @@ export function setCurrent<A>(state: ListState<A>, index: number, exclude: Exclu
   return exclude(moved.items[moved.current]) ? seek(moved, Direction.Forward, exclude) : moved
 }
 
-export function dropThree<A>(state: ListState<A>, excludeForBury: Exclude<A>, excludeForVisibility: Exclude<A> = excludeNever): ListState<A> {
+// `atLeast` is a lower bound on where the item lands: the drop target is the later
+// of "three visible items down" and `atLeast`. Callers pass `bottomOfQueue` here to
+// push a repeatedly-dropped item below the items still trailing it, so it stops
+// competing with tasks that haven't had a turn.
+export function dropThree<A>(state: ListState<A>, excludeForBury: Exclude<A>, excludeForVisibility: Exclude<A> = excludeNever, atLeast: number = 0): ListState<A> {
   if (state.items.length === 0) return state
 
   const ahead = linearSeekPast(state.items, state.current, Direction.Forward, excludeForBury, 1, 1)
-  const items = arrayMove(state.items, state.current, ahead[clampIndex(ahead, 2)])
+  const three = ahead[clampIndex(ahead, 2)]
+  const target = clampIndex(state.items, Math.max(three, atLeast))
+  const items = arrayMove(state.items, state.current, target)
   const new_ = { ...state, items }
 
   return seek(new_, 0, excludeForVisibility)
+}
+
+// Where an item sinks to when it drops out of contention: the last visible index
+// still occupied by an item whose `droppedOf` trails `dropped` by more than one —
+// i.e. the bottom of the run of items that haven't had their turn yet. Returns 0
+// when nothing trails, so an item's first drop stays an ordinary drop-three.
+export function bottomOfQueue<A>(state: ListState<A>, dropped: number, droppedOf: (item: A) => number, exclude: Exclude<A> = excludeNever): number {
+  return visible(state, exclude)
+    .filter(([item, index]) => index !== state.current && droppedOf(item) + 1 < dropped)
+    .reduce((bottom, [_, index]) => Math.max(bottom, index), 0)
 }
 
 export function toTop<A>(state: ListState<A>): ListState<A> {

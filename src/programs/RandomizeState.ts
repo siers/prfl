@@ -8,7 +8,7 @@ import { mapParse, mapSerialize } from '../lib/Map.js'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
-import { ListState, dropThree, toTop, Exclude } from './GenericList.ts'
+import { ListState, dropThree, bottomOfQueue, toTop, Exclude } from './GenericList.ts'
 import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './Decks.ts'
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 
@@ -195,8 +195,9 @@ export function modifyItemState(
   // own seek for them (signalled by returning a non-null new current).
   const excludeForBury: Exclude<UserItem> = it => exclude(it) || ((it.dropped || 0) + 2 <= currentDroppedCount)
   const list: ListState<UserItem> = { items: updatedItems, current }
+  const queueBottom = bottomOfQueue(list, currentDroppedCount, it => it.dropped || 0, exclude)
   const reordered: ListState<UserItem> | null =
-    controls.bury === true ? dropThree(list, excludeForBury, exclude)
+    controls.bury === true ? dropThree(list, excludeForBury, exclude, queueBottom)
       : controls.unreview === true ? toTop(list)
         : null
 

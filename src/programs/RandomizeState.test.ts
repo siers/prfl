@@ -90,17 +90,30 @@ describe('reduceRecalc — item actions', () => {
     expect(s.current).toStrictEqual([DEFAULT_DECK, 1]) // reorder keeps the in-deck index; the render layer skips 'b' when showing
   })
 
-  // test('bury marks the item dropped, and a second bury skips already-dropped items when counting three', () => {
-  //   let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
-  //   s = reduceRecalc(s, { item: { bury: true } }, deps())
-  //   expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
-  //   expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(1)
+  test('bury marks the item dropped, and a first drop never competes with fresher items', () => {
+    let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(1)
 
-  //   s = reduceRecalc(s, { item: { bury: true } }, deps())
-  //   expect(labels(s)).toStrictEqual(['c', 'd', 'e', 'f', 'a', 'b'])
-  //   expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(1)
-  //   expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'b')?.dropped).toBe(1)
-  // })
+    // 'b' is on its own first drop too, so it also just goes three down.
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['c', 'd', 'a', 'b', 'e', 'f'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'b')?.dropped).toBe(1)
+  })
+
+  test('a second drop sends the item below every task still waiting its first turn', () => {
+    let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
+    // four burys: a, b, c, d each get dropped once and rotate to the front again.
+    for (let n = 0; n < 4; n++) s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['a', 'b', 'c', 'd', 'e', 'f'])
+
+    // 'a' is now on its second drop, and 'e'/'f' have never been dropped — so 'a'
+    // goes to the bottom of the queue rather than three slots down.
+    s = reduceRecalc(s, { item: { bury: true } }, deps())
+    expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
+    expect(s.items?.[DEFAULT_DECK]?.find(i => i.contents == 'a')?.dropped).toBe(2)
+  })
 
   test('unreview (star) moves the current item to the front, follows it, and clears dropped', () => {
     let s = stateOf(['a', 'b', 'c', 'd'], 2) // on 'c'

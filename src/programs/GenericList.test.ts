@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { Direction } from './LinearSeek.ts'
 import {
   dropThree,
+  bottomOfQueue,
   freshState,
   seek,
   setCurrent,
@@ -142,25 +143,59 @@ test('drop to last', () => {
   // window.x = false
 })
 
-// test('dropThree with excludeForBury also skips items trailing on dropped count', () => {
-//   const excludeForBury = (currentItem: Word, currentDroppedCount: number): Exclude<Word> =>
-//     it => exclude(it) || ((it.dropped || 0) < currentDroppedCount - 1)
+// An item dropped more than once sinks to the bottom of the queue — below every
+// item still trailing its dropped count — instead of only three slots down.
+const droppedOf = (w: Word) => w.dropped || 0
+const dropped = (state: ListState<Word>, counts: Record<string, number>): ListState<Word> => ({
+  ...state,
+  items: state.items.map(i => counts[i.value] === undefined ? i : { ...i, dropped: counts[i.value] }),
+})
+const buryWith = (state: ListState<Word>, count: number, excludeForBury: Exclude<Word> = exclude) =>
+  dropThree(state, excludeForBury, exclude, bottomOfQueue(state, count, droppedOf, exclude))
 
-//   let s = freshState(words('a b c d e f'))
-//   s.items[0].dropped = 1
-//   s.items[2].dropped = 1
-//   s.items[3].dropped = 1
-//   s.items[4].dropped = 1
-//   s.items[5].dropped = 1
+test('bottomOfQueue is 0 on a first drop, so nothing competes yet', () => {
+  const s = dropped(freshState(words('a b c d e')), { a: 1 })
+  expect(bottomOfQueue(s, 1, droppedOf, exclude)).toBe(0)
+  expect(labels(buryWith(s, 1))).toStrictEqual(['b', 'c', 'd', 'a', 'e'])
+})
 
-//   s = dropThree(s, excludeForBury(s.items[0], 2))
-//   expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'e', 'a', 'f'])
+test('bottomOfQueue is the last visible index still held by a trailing item', () => {
+  const s = dropped(freshState(words('a b c d e f')), { a: 3, d: 1 })
+  // b(0) c(0) d(1) e(0) all trail a(3) by more than one; f(0) does too, and
+  // reduce takes the max — index 5.
+  expect(bottomOfQueue(s, 3, droppedOf, exclude)).toBe(5)
+})
 
-//   s.items[0].dropped = 3
+test('a repeatedly-dropped item lands at the bottom of the queue', () => {
+  const s = dropped(freshState(words('a b c d e f')), { a: 3, d: 1, f: 2 })
+  // f(2) is only one behind a(3), so it does not trail — the queue ends at e (index 4).
+  expect(bottomOfQueue(s, 3, droppedOf, exclude)).toBe(4)
+  expect(labels(buryWith(s, 3))).toStrictEqual(['b', 'c', 'd', 'e', 'a', 'f'])
+})
 
-//   s = dropThree(s, excludeForBury(s.items[0], 3))
-//   expect(labels(s)).toStrictEqual(['c', 'd', 'e', 'a', 'f', 'b'])
-// })
+test('the queue bottom only ever pushes further down, never pulls back up', () => {
+  const s = dropped(freshState(words('a b c d e f')), { a: 2, b: 0, c: 1, d: 1, e: 1, f: 1 })
+  // only b(0) trails a(2) by more than one -> bottom 1, but three-down still wins.
+  expect(bottomOfQueue(s, 2, droppedOf, exclude)).toBe(1)
+  expect(labels(buryWith(s, 2))).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
+})
+
+test('the queue bottom skips hidden items', () => {
+  let s = dropped(freshState(words('a b c d e f')), { a: 3 })
+  s.items[4].done = true
+  s.items[5].done = true // e and f are hidden, so the queue ends at d (index 3)
+  expect(bottomOfQueue(s, 3, droppedOf, exclude)).toBe(3)
+  expect(labels(buryWith(s, 3))).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
+})
+
+test('queue bottom and excludeForBury combine: whichever lands the item lower wins', () => {
+  const s = dropped(freshState(words('a b c d e f')), { a: 3, b: 1, c: 1 })
+  // excludeForBury (Randomize's rule) skips items trailing by 2+: b(1) and c(1)
+  // are skipped when counting three, pushing the three-down target to the end.
+  const excludeForBury: Exclude<Word> = it => exclude(it) || (droppedOf(it) + 2 <= 3)
+  expect(bottomOfQueue(s, 3, droppedOf, exclude)).toBe(5)
+  expect(labels(buryWith(s, 3, excludeForBury))).toStrictEqual(['b', 'c', 'd', 'e', 'f', 'a'])
+})
 
 test('toTop moves the current item to the front and follows it', () => {
   let s = freshState(words('a b c d'))

@@ -57,8 +57,9 @@ export function deckSeek<A>(decks: Decks<A>, cursor: DeckCursor, direction: Dire
 }
 
 // current + 3 within the deck (and the arrayMove it implies) — both deck-local.
-export function deckDropThree<A>(decks: Decks<A>, cursor: DeckCursor, exclude: Exclude<A>): [Decks<A>, DeckCursor] {
-  return onDeck(decks, cursor, list => dropThree(list, exclude))
+// `atLeast` is the same lower bound dropThree takes, resolved against deck-local indices.
+export function deckDropThree<A>(decks: Decks<A>, cursor: DeckCursor, exclude: Exclude<A>, atLeast: number = 0): [Decks<A>, DeckCursor] {
+  return onDeck(decks, cursor, list => dropThree(list, exclude, undefined, atLeast))
 }
 
 // arrayMove to the front, deck-local.
