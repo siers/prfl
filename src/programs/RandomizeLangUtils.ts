@@ -467,7 +467,7 @@ export type Interface = {
   // domain specific
   scalePositions: () => string[],
   chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
-  frets: () => string[],
+  frets: (upTo?: number) => string[],
   modeShifts: (keyIn: string, scales?: string, startFinger?: number, endFinger?: number) => string[],
   modeName: (mode: number) => string,
   desMS(s: string): Omit<ModeShift, 'root'>,
@@ -674,7 +674,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     scalePositions,
     chromaticSlide,
-    frets: () => frets().flat(),
+    frets: (upTo?: number) => frets(upTo).flat(),
     modeShifts: (keyIn: Note | string, scales?: string) => modeShifts(parseNote(keyIn)!, scales),
     modeName,
     desMS: deserializeModeShift,

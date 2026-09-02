@@ -532,6 +532,8 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
+// TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
+
 // TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: subdecks: populate subdecks from blocks, if key shares the same name as the block
