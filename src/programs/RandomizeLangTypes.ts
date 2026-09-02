@@ -144,6 +144,7 @@ export type Tagged = { tags: string[] | null }
 export const isFrozen = (x: Tagged): boolean => (x.tags || []).includes('freeze')
 export const isComputed = (x: Tagged): boolean => (x.tags || []).includes('computed')
 export const isInline = (x: Tagged): boolean => (x.tags || []).includes('inline')
+export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')
 export const showCount = (x: Tagged): number => {
   const show = (x.tags || []).find(t => t === 'show' || t.startsWith('show-'))

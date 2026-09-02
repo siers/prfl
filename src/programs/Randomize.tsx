@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
-import { ContentOrTag, isCutSemi, isInline, makeEmptyMemory, maxLen, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, isCutSemi, isInline, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -262,8 +262,9 @@ function Randomize(controls: any): JSX.Element {
           const content = string ? ct[1] : interpolate
           const recalcF = () => recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })
           const TagName = string || (subst && isInline(subst)) ? 'span' : 'div'
+          const fontFamily = subst && monospace(subst) ? { fontFamily: 'monospace' } : {}
 
-          return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && recalcF()} style={{ fontSize: string ? '2rem' : '1.7rem' }} >
+          return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && recalcF()} style={{ fontSize: string ? '2rem' : '1.5rem', ...fontFamily }} >
             {content}
           </TagName>
         })
