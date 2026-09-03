@@ -10,6 +10,7 @@ const {
   product,
   parts,
   divide,
+  loopSubstrings,
   indexPyramid,
   phrasePyramid,
   j,
@@ -100,6 +101,10 @@ test('divide', () => {
 //   expect(partChunks(5, 2)).toStrictEqual([['0%', '20%'], ['40%', '60%', '80%']])
 //   expect(mj(partChunks(5, 2))).toStrictEqual(['0% 20%', '40% 60% 80%'])
 // })
+
+test('loopStrings', () => {
+  expect(loopSubstrings('abc')).toStrictEqual('a b c ab bc ca abc bca cab'.split(' '))
+})
 
 test('indexPyramid', () => {
   const predistrib = indexPyramid(5).flat().flat()

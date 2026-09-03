@@ -147,6 +147,8 @@ function zipLongestShuf<A>(...args: A[][]): A[][] {
   return zipLongestGen(timesUntilShuf, ...args)
 }
 
+//
+
 function shuffleM<A>(a: A[]): A[] {
   return shuffleMinDistance(a, 1)
 }
@@ -263,10 +265,39 @@ function progressClamp(start: string, end: string, from: number, to: number) {
 
 // progressive gluing
 
-function indexPyramid(totalLength: number): number[][][] {
-  return directRange(1, totalLength).map((_, length) => {
-    return directRange(0, totalLength - 1).map((_, start) => {
-      return directRange(start, start + length).map(x => x % totalLength)
+function substringsIdxs(seqLen: number, maxLenIn?: number, minLenIn?: number): [number, number][] {
+  const maxLen = maxLenIn || seqLen
+  const minLen = Math.max(minLenIn || 1)
+
+  return directRange(minLen, maxLen).flatMap(length => {
+    return directRange(0, seqLen - 1).map((_, start) => {
+      return [start, (start + length) % seqLen] satisfies [number, number]
+    })
+  })
+}
+
+function loopSubstringsG<A>(str: string | A[], maxLen?: number, minLen?: number): string[][] {
+  const a: string[] = typeof str === 'string' ? s(str) : str.map(s => `${s}`)
+
+  return substringsIdxs(a.length, maxLen, minLen).map(([first, last_]) => {
+    const last = last_ <= first ? last_ + str.length : last_
+    return [...a, ...a].slice(first, last)
+  })
+}
+
+function loopSubstringsZ<A>(str: string | A[], z: string, maxLen?: number, minLen?: number): string[] {
+  return loopSubstringsG(str, maxLen, minLen).map(s => s.join(z))
+}
+
+function loopSubstrings<A>(str: string | A[], maxLen?: number, minLen?: number): string[] {
+  return loopSubstringsZ(str, '', maxLen, minLen)
+}
+
+function indexPyramid(seqLen: number, maxLenIn?: number): number[][][] {
+  const maxLen = maxLenIn || seqLen
+  return directRange(1, maxLen).map((_, length) => {
+    return directRange(0, seqLen - 1).map((_, start) => {
+      return directRange(start, start + length).map(x => x % maxLen)
     })
   })
 }
@@ -405,6 +436,7 @@ export type Interface = {
   interspersing: <A>(arr: A[], sep: A[]) => A[],
   interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
   arrayRotate<A>(arr: A[], count: number): A[],
+  uniq<A>(arr: A[]): A[],
 
   // combinatorics
   cross: (sentence: string) => string[],
@@ -438,7 +470,10 @@ export type Interface = {
 
   // progressive gluing
 
-  indexPyramid: (totalLength: number) => number[][][],
+  indexPyramid(seqLen: number, maxLen?: number): number[][][],
+  loopSubstringsG<A>(s: string | A[], max?: number, min?: number): string[][],
+  loopSubstringsZ<A>(s: string | A[], z: string, max?: number, min?: number): string[],
+  loopSubstrings<A>(s: string | A[], max?: number, min?: number): string[],
   phrasePyramid(phrases: string | string[]): string[][],
   pyramid(phrases: string | string[], roughness?: number): string[][],
   phraseKey(phrase: string): string,
@@ -621,6 +656,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     interspersing,
     interleavingEvery,
     arrayRotate: arrayShift,
+    uniq: _.uniq,
 
     cross,
     product,
@@ -649,6 +685,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     progressClamp,
 
     indexPyramid,
+    loopSubstringsG,
+    loopSubstringsZ,
+    loopSubstrings,
     phrasePyramid,
     pyramid,
     phraseKey,
