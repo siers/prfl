@@ -17,31 +17,33 @@ const OpenSheetMusicDisplay = ({
   drawPartNames = false,
   drawingParameters = "compacttight",
 }) => {
-  // Two divs: offsetting the measured one shrinks it, and centring feeds back.
   const outerRef = useRef(null)
   const innerRef = useRef(null)
   const osmdRef = useRef(null)
 
+  // A transform, not a margin: OSMD lays out against its container's offsetWidth.
   const centre = () => {
-    const outer = outerRef.current
-    const inner = innerRef.current
-    const osmd = osmdRef.current
-    if (!outer || !inner || !osmd) return
+    return
+    // const outer = outerRef.current
+    // const inner = innerRef.current
+    // const osmd = osmdRef.current
+    // if (!outer || !inner || !osmd) return
 
-    const system = osmd.graphic?.musicPages?.[0]?.musicSystems?.[0]
-    if (!system) return
+    // const system = osmd.graphic?.musicPages?.[0]?.musicSystems?.[0]
+    // if (!system) return
 
-    const scoreWidth = system.PositionAndShape.size.width * OSMD_UNIT_PX * ZOOM
-    const padding = (outer.getBoundingClientRect().width - scoreWidth) / 2
+    // const scoreWidth = system.PositionAndShape.size.width * OSMD_UNIT_PX * ZOOM
+    // const padding = (outer.getBoundingClientRect().width - scoreWidth) / 2
 
-    // A score wider than its container would otherwise go off the left edge.
-    inner.style.marginLeft = `${Math.max(0, padding)}px`
+    // // A score wider than its container would otherwise go off the left edge.
+    // inner.style.transform = `translateX(${Math.max(0, padding)}px)`
   }
 
   useEffect(() => {
     if (!innerRef.current) return
 
-    const options = { autoResize, drawTitle, drawSubtitle, drawComposer, drawPartNames, drawingParameters }
+    // OSMD's own autoResize re-renders without recentring, so we drive resize.
+    const options = { autoResize: false, drawTitle, drawSubtitle, drawComposer, drawPartNames, drawingParameters }
 
     // A second OSMD on the same div leaves the previous one's SVG behind.
     if (!osmdRef.current) osmdRef.current = new OSMD(innerRef.current, options)
@@ -54,14 +56,12 @@ const OpenSheetMusicDisplay = ({
 
     osmd.load(file).then(() => {
       if (!current || !innerRef.current) return
-      innerRef.current.style.marginLeft = '0px' // lay out from a neutral position
       osmd.render()
       centre()
     })
 
     const handleResize = () => {
       if (!osmdRef.current || !innerRef.current) return
-      innerRef.current.style.marginLeft = '0px'
       osmdRef.current.render()
       centre()
     }
