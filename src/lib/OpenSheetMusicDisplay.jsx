@@ -3,6 +3,11 @@ import { OpenSheetMusicDisplay as OSMD } from 'opensheetmusicdisplay'
 
 // https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/blob/develop/src/OpenSheetMusicDisplay/OSMDOptions.ts
 
+const ZOOM = 0.8
+
+// OSMD's own units; 10 converts them to px at zoom 1.
+const OSMD_UNIT_PX = 10
+
 const OpenSheetMusicDisplay = ({
   file,
   autoResize = true,
@@ -12,41 +17,70 @@ const OpenSheetMusicDisplay = ({
   drawPartNames = false,
   drawingParameters = "compacttight",
 }) => {
-  const divRef = useRef(null)
+  // Two divs: offsetting the measured one shrinks it, and centring feeds back.
+  const outerRef = useRef(null)
+  const innerRef = useRef(null)
   const osmdRef = useRef(null)
 
-  const setupOsmd = () => {
-    if (!divRef.current) return
+  const centre = () => {
+    const outer = outerRef.current
+    const inner = innerRef.current
+    const osmd = osmdRef.current
+    if (!outer || !inner || !osmd) return
 
-    const options = { autoResize, drawTitle, drawSubtitle, drawComposer, drawPartNames, drawingParameters }
+    const system = osmd.graphic?.musicPages?.[0]?.musicSystems?.[0]
+    if (!system) return
 
-    osmdRef.current = new OSMD(divRef.current, options)
+    const scoreWidth = system.PositionAndShape.size.width * OSMD_UNIT_PX * ZOOM
+    const padding = (outer.getBoundingClientRect().width - scoreWidth) / 2
 
-    osmdRef.current.load(file).then(() => {
-      osmdRef.current.render()
-      const osmd = osmdRef.current
-
-      const scale = 0.8
-      osmd.zoom = scale
-      const scoreWidth = osmd.graphic.musicPages[0].musicSystems[0].PositionAndShape.size.width;
-      const sheetMusicDiv = divRef.current
-      const padding = (divRef.current.getBoundingClientRect().width - 35 - (parseInt(scoreWidth) * 10) * scale) / 2
-      sheetMusicDiv.style.marginLeft = String(padding) + "px";
-    })
+    // A score wider than its container would otherwise go off the left edge.
+    inner.style.marginLeft = `${Math.max(0, padding)}px`
   }
 
   useEffect(() => {
-    setupOsmd()
+    if (!innerRef.current) return
 
-    const handleResize = () => osmdRef.current?.render()
+    const options = { autoResize, drawTitle, drawSubtitle, drawComposer, drawPartNames, drawingParameters }
+
+    // A second OSMD on the same div leaves the previous one's SVG behind.
+    if (!osmdRef.current) osmdRef.current = new OSMD(innerRef.current, options)
+
+    const osmd = osmdRef.current
+    osmd.zoom = ZOOM
+
+    // load() is async: only the newest may draw, and not onto a dead node.
+    let current = true
+
+    osmd.load(file).then(() => {
+      if (!current || !innerRef.current) return
+      innerRef.current.style.marginLeft = '0px' // lay out from a neutral position
+      osmd.render()
+      centre()
+    })
+
+    const handleResize = () => {
+      if (!osmdRef.current || !innerRef.current) return
+      innerRef.current.style.marginLeft = '0px'
+      osmdRef.current.render()
+      centre()
+    }
     if (autoResize) window.addEventListener('resize', handleResize)
 
     return () => {
+      current = false
       window.removeEventListener('resize', handleResize)
     }
-  }, [file, drawTitle, autoResize])
+  }, [file, drawTitle, drawSubtitle, drawComposer, drawPartNames, drawingParameters, autoResize])
 
-  return <div ref={divRef} />
+  // Drop the renderer only when the component actually goes away.
+  useEffect(() => () => {
+    osmdRef.current?.clear()
+    osmdRef.current = null
+  }, [])
+
+  // Full width, or an ancestor's `items-center` shrinks the ruler to the score.
+  return <div ref={outerRef} style={{ width: '100%' }}><div ref={innerRef} /></div>
 }
 
 export default OpenSheetMusicDisplay

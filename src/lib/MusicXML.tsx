@@ -49,7 +49,38 @@ export function slurMarkers(n) {
   ]
 }
 
-export function note(note, duration, opts): elements.Note {
+// A rest is a note whose Pitch slot holds <rest/> instead.
+export function rest(duration): elements.Note {
+  return new elements.Note({
+    contents: [
+      [
+        null, // elements.Chord
+        new elements.Rest({}),
+        new elements.Duration({ contents: [duration] }),
+        [], // elements.Tie
+      ],
+      new Array<elements.Instrument>(),
+      null, // elements.Footnote
+      null, // elements.Level
+      null, // elements.Voice
+      null, // elements.Type
+      new Array<elements.Dot>(),
+      null, // elements.Accidental
+      null, // elements.TimeModification
+      null, // elements.Stem
+      null, // elements.Notehead
+      null, // elements.NoteheadText
+      null, // elements.Staff
+      [], // elements.Beam
+      new Array<elements.Notations>(),
+      new Array<elements.Lyric>(),
+      null, // elements.Play
+      null, // elements.Listen
+    ],
+  })
+}
+
+export function note(note, duration, opts?): elements.Note {
   const o = opts || {}
 
   const tie = o.tied && new elements.Chord || null
@@ -73,7 +104,7 @@ export function note(note, duration, opts): elements.Note {
 
   const accidental = note.alter == 0 ? null : new elements.Alter({ contents: [note.alter] })
 
-  const beam = [new elements.Beam({ attributes: { number: opts.beamNumber }, contents: [opts.beam] })]
+  const beam = o.beam ? [new elements.Beam({ attributes: { number: o.beamNumber }, contents: [o.beam] })] : []
   // const beam = opts.beam && [new elements.Beam({ contents: [opts.beam] })] || []
 
   return new elements.Note({
@@ -117,11 +148,11 @@ export function note(note, duration, opts): elements.Note {
   })
 }
 
-export function measure(attr, ...notes) {
+export function measure(attr, notes, number = 1) {
   return new elements.MeasurePartwise({
-    attributes: { number: '1' },
+    attributes: { number: String(number) },
     contents: [
-      (attr ? [attributes()] : []).concat(...notes)
+      (attr ? [attributes()] : []).concat(notes)
     ],
   })
 }
@@ -131,7 +162,7 @@ export function notesToMusic(measures) {
 
   const measuresWithAttributes =
     measures.map((elem, index) =>
-      measure(index == 0, elem)
+      measure(index == 0, elem, index + 1)
     )
 
   musicXml

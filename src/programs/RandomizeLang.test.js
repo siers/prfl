@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { initSequences, evalContentsS, evalContents, evalContentsMem, evalContentsDecks, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
-import { isFrozen, isComputed, showCount } from './RandomizeLangTypes.js'
+import { isFrozen, isComputed, isHidden, showCount } from './RandomizeLangTypes.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -767,4 +767,15 @@ describe('computed rotation', () => {
     const rotated = rotateInterpolableLine(item, 'mirror')
     expect(rotated.contents).toBe("Line: [A B] [A B]")
   })
+})
+
+test('hide tag', () => {
+  const line = evalContents("MyScale: play it [`c4 d4 e8 f8`]sheet:hide").flat()[0]
+  const subst = line.source.substitutions.find(s => s.tag == 'sheet')
+
+  // The substitution survives with its value, so the sheet display can read it;
+  // only the text rendering opts out.
+  expect(subst.contents).toStrictEqual(['c4 d4 e8 f8'])
+  expect(isHidden(subst)).toBe(true)
+  expect(isHidden({ tags: null })).toBe(false)
 })

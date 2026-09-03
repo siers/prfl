@@ -1,7 +1,8 @@
 import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
 import * as ToneLib from '../lib/ToneLib'
 import { pointwiseInterval, findMajor } from '../lib/ToneLib'
-import { note, notesToMusic } from '../lib/MusicXML'
+import { note, rest, notesToMusic } from '../lib/MusicXML'
+import { parseSheet } from '../lib/SheetNotation'
 import { chunk, transpose } from '../lib/Array'
 import { stringsAboveOpen } from '../lib/ToneLibViolin'
 import { parseInt, take } from 'lodash'
@@ -72,12 +73,23 @@ function markovScale(mp: MarkovParams) {
   return markovScaleOne(mp).concat(markovScaleOne({ ...mp, flip: 1 }))
 }
 
-export default function SheetOSMD(params_: { params: { scale?: string, position?: string, key?: string, random?: string } }) {
+// One MusicXML measure per parsed measure; beams are left to the engraver.
+function serializedSheet(source: string): Note[][] {
+  const { measures, errors } = parseSheet(source)
+
+  errors.length > 0 && console.warn('sheet notation:', errors)
+
+  return measures.map(m => m.map(n => n.note ? note(n.note, n.duration, { bowing: n.bowing }) : rest(n.duration)))
+}
+
+export default function SheetOSMD(params_: { params: { sheet?: string, scale?: string, position?: string, key?: string, random?: string } }) {
   const params = params_.params
   const scale =
-    params.scale == 'markov'
-      ? markovScale({ tonic: params.key || 'c', position: params.position ? parseInt(params.position) : 1, random: params.random })
-      : galamianScale()
+    params.sheet !== undefined
+      ? serializedSheet(params.sheet)
+      : params.scale == 'markov'
+        ? markovScale({ tonic: params.key || 'c', position: params.position ? parseInt(params.position) : 1, random: params.random })
+        : galamianScale()
 
   const xml = notesToMusic(scale)
 

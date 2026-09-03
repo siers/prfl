@@ -146,6 +146,8 @@ export const isComputed = (x: Tagged): boolean => (x.tags || []).includes('compu
 export const isInline = (x: Tagged): boolean => (x.tags || []).includes('inline')
 export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')
+// Feeds the sheet/image displays and stays re-rollable, but renders no text.
+export const isHidden = (x: Tagged): boolean => (x.tags || []).includes('hide')
 export const showCount = (x: Tagged): number => {
   const show = (x.tags || []).find(t => t === 'show' || t.startsWith('show-'))
   if (show === undefined) return Infinity

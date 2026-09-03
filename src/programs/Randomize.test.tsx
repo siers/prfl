@@ -15,8 +15,8 @@
 //   * Date.now()  — frozen, so timers never advance the rendered state.
 //   * setInterval — the timer loop writes innerHTML out-of-band; fake timers
 //     keep it from firing during assertions. We never assert on timer text.
-//   * SheetOSMD    — only mounts for keys matching /DS$/; our plain-text items
-//     never trigger it, but we stub it anyway as a guard.
+//   * SheetOSMD    — only mounts for items carrying a `sheet` or `scale` tag;
+//     our plain-text items never trigger it, but we stub it anyway as a guard.
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'

@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
-import { ContentOrTag, isCutSemi, isInline, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, isCutSemi, isHidden, isInline, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -261,6 +261,9 @@ function Randomize(controls: any): JSX.Element {
 
           const content = string ? ct[1] : interpolate
           const recalcF = () => recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })
+
+          // `hide` feeds the sheet/image displays without printing the value.
+          if (tag && isHidden(subst!)) return null
           const TagName = string || (subst && isInline(subst)) ? 'span' : 'div'
           const fontFamily = subst && monospace(subst) ? { fontFamily: 'monospace' } : {}
 
@@ -478,8 +481,16 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
+  // `scale` picks a built-in generator, `sheet` carries serialized notation.
   function sheetDisplay(tags: Substitution[]) {
-    const params = Object.fromEntries(tags.filter(t => t.tag).map(t => [t.tag, interpolateSubtToStringPlain(t.contents).split(' ')[0]]))
+    const tagged = tags.filter(t => t.tag)
+    if (!tagged.some(t => t.tag == 'sheet' || t.tag == 'scale')) return null
+
+    // A `scale` param is a single word; `sheet` notation is the whole value.
+    const params = Object.fromEntries(tagged.map(t => {
+      const plain = interpolateSubtToStringPlain(t.contents)
+      return [t.tag, t.tag == 'sheet' ? plain : plain.split(' ')[0]]
+    }))
 
     return <div className="flex flex-col font-mono items-center grow">
       <div className="w-full">
@@ -514,7 +525,7 @@ function Randomize(controls: any): JSX.Element {
                   {itemRender()}
                 </div>
 
-                {items[currentIndex]?.key?.match(/DS$/) && sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
+                {sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
