@@ -604,18 +604,21 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return zipInterleave(...s(sentence).map(x => scheduleBlocks(x)))
   }
 
-  function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full'][] {
+  // A token is `[prefix:]name[-count]`. The optional `prefix:` applies to that
+  // token only, so `scheduleBlocks('pre:tasks-2 other-1')` prefixes the tasks
+  // items and leaves `other`'s alone.
+  function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full', string | null][] {
     let err
 
     const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0]).map(s => {
-      const match = s.match(/^([a-z0-9-]+?)(?:-(\d+|\*))?$/i)
+      const match = s.match(/^(?:([a-z0-9-]+):)?([a-z0-9-]+?)(?:-(\d+|\*))?$/i)
 
       if (!match) err = "block name not found"
-      if (!match![1]) err = "cannot parse block name"
+      if (!match![2]) err = "cannot parse block name"
 
-      const count: number | 'full' = match![2] === undefined ? 'full' : parseInt(match![2] || '1', 10)
+      const count: number | 'full' = match![3] === undefined ? 'full' : parseInt(match![3] || '1', 10)
 
-      return [match![1], count] satisfies [string, number | 'full']
+      return [match![2], count, match![1] ?? null] satisfies [string, number | 'full', string | null]
     })
 
     if (err) return `scheduleBlockks: ${err}`
@@ -623,10 +626,30 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return parsed
   }
 
+  // Prepend `prefix-` to a line's key and, in step, to its contents — so the
+  // rendered text keeps matching LineKeyPattern and the key stays derivable
+  // from what is shown. A keyless line only gets its contents prefixed.
+  // `source.contents` is the pre-substitution template the re-roll path renders
+  // from, so it is prefixed too: leaving it bare would make a re-rolled line
+  // lose the prefix. Its markers are untouched, keeping the substitutions valid.
+  function prefixRenderLine(prefix: string, rl: RenderLine): RenderLine {
+    return {
+      ...rl,
+      contents: `${prefix}-${rl.contents}`,
+      key: rl.key === null ? null : `${prefix}-${rl.key}`,
+      source: rl.source === null
+        ? null
+        : { ...rl.source, contents: `${prefix}-${rl.source.contents}` },
+    }
+  }
+
   function scheduleBlocks(sentence: string): RenderLine[] {
     const parsed = parseScheduleBlocksSentence(sentence)
     if (typeof parsed == 'string') return [errorLine(parsed)]
-    return parsed.flatMap(([name, amount]) => pickBlockStateless(name, amount))
+    return parsed.flatMap(([name, amount, prefix]) => {
+      const lines = pickBlockStateless(name, amount)
+      return prefix === null ? lines : lines.map(rl => prefixRenderLine(prefix, rl))
+    })
   }
 
   return {

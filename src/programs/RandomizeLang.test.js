@@ -183,6 +183,76 @@ describe('scheduleBlocks', () => {
 
     expect(evalContentsS(text)).toHaveLength(1)
   })
+
+  test('a prefixed block prepends the prefix to key and contents, leaving other blocks alone', () => {
+    const text = `
+      -=- tasks
+      t1: task one [s('12')]tagA:show-5
+      -=- other
+      o1: other one [s('34')]tagB
+      -=-
+      {scheduleBlocks('pre:tasks-1 other-1')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContents(text)).toStrictEqual([
+      {
+        "contents": "pre-t1: task one [1 2]",
+        "key": "pre-t1",
+        "kind": "renderline",
+        "separator": null,
+        "source": {
+          "kind": "interpolable-line",
+          "contents": "pre-t1: task one !!!1",
+          "interpols": [
+            {
+              "kind": "interpolate",
+              "command": "s('12')",
+              "marker": "!!!1",
+              "tag": "tagA",
+              "tags": ["show-5"],
+            },
+          ],
+          "substitutions": [
+            {
+              "kind": "substitution",
+              "contents": ["1", "2"],
+              "marker": "!!!1",
+              "tag": "tagA",
+              "tags": ["show-5"],
+            },
+          ],
+        },
+      },
+      {
+        "contents": "o1: other one [3 4]",
+        "key": "o1",
+        "kind": "renderline",
+        "separator": null,
+        "source": {
+          "kind": "interpolable-line",
+          "contents": "o1: other one !!!1",
+          "interpols": [
+            {
+              "kind": "interpolate",
+              "command": "s('34')",
+              "marker": "!!!1",
+              "tag": "tagB",
+              "tags": null,
+            },
+          ],
+          "substitutions": [
+            {
+              "kind": "substitution",
+              "contents": ["3", "4"],
+              "marker": "!!!1",
+              "tag": "tagB",
+              "tags": null,
+            },
+          ],
+        },
+      },
+    ])
+  })
 })
 
 describe('integration', () => {
