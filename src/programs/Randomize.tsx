@@ -18,7 +18,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, liveSubdeckName, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceInsertItem, reduceTimer,
+  deckPath, liveSubdeckName, itemMetroTones, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { burstEmojiNotif } from './Burst.tsx'
@@ -424,6 +424,13 @@ function Randomize(controls: any): JSX.Element {
   const metro: Metro = state?.metro || { bpm: defaultBpm }
   const metroBpm: number = metro.bpm || defaultBpm
 
+  // Memoized on the item, not the parsed array: a fresh array every render
+  // would restart the metro's tone loop each time anything else changed.
+  const metroTones = React.useMemo(
+    () => itemMetroTones(items[currentIndex]),
+    [items[currentIndex]]
+  )
+
   const ticking = !!globalTimer?.running
   const metroPower = ticking && metro.power
 
@@ -487,7 +494,8 @@ function Randomize(controls: any): JSX.Element {
     if (!tagged.some(t => t.tag == 'sheet' || t.tag == 'scale')) return null
 
     // A `scale` param is a single word; `sheet` notation is the whole value.
-    const params = Object.fromEntries(tagged.map(t => {
+    // `tones` is the metro's, not the engraver's — it must not land in params.
+    const params = Object.fromEntries(tagged.filter(t => t.tag != 'tones').map(t => {
       const plain = interpolateSubtToStringPlain(t.contents)
       return [t.tag, t.tag == 'sheet' ? plain : plain.split(' ')[0]]
     }))
@@ -530,7 +538,7 @@ function Randomize(controls: any): JSX.Element {
                 {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {metroPower && <MetroComponent bpm={metroBpm} volume={metro.volume || 0} />}
+                {metroPower && <MetroComponent bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} />}
               </div>
             </ErrorBoundary>
           </div>

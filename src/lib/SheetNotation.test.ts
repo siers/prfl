@@ -47,6 +47,11 @@ describe('parseSheet', () => {
     expect(measures[0].map(n => n.note!.octave)).toStrictEqual([4, 5, 6, 3])
   })
 
+  test('octave marks with accidentals', () => {
+    const { measures } = parseSheet("cis'4")
+    expect(measures[0].map(n => [n.note!.octave, n.note!.alter])).toStrictEqual([[5, 1]])
+  })
+
   test('rests', () => {
     const { measures } = parseSheet('c4 r4 r2')
     expect(measures[0].map(n => [n.note, n.duration])).toStrictEqual([

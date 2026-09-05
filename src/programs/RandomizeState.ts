@@ -1,10 +1,11 @@
 // Pure state reducers for Randomize.
 
-import { evalContents, evalContentsDecks, evalRenderLine, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
-import { makeEmptyMemory } from './RandomizeLangTypes.js'
+import { evalContents, evalContentsDecks, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
+import { isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
+import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
@@ -112,6 +113,20 @@ export function itemMetroBpm(item?: UserItem): number | null {
 
   const parsed = parseFloat(String(subst.contents[0] ?? '').trim())
   return Number.isFinite(parsed) ? parsed : null
+}
+
+// The pitches the metro should sound. Engraving and sounding are separate
+// concerns: a `sheet` tag is silent unless it opts in with a `tones` modifier.
+// Measures are flattened — bar lines don't affect the sounding sequence.
+export function itemMetroTones(item?: UserItem): SheetNote[] {
+  const subst = (item?.source?.substitutions || [])
+    .find(s => s.tag === 'tones' || (s.tag === 'sheet' && isSounded(s)))
+  if (!subst) return []
+
+  const { measures, errors } = parseSheet(interpolateSubtToStringPlain(subst.contents))
+  errors.length > 0 && console.warn('metro tones:', errors)
+
+  return measures.flat()
 }
 
 export function recalcMetro(old: Metro, diff: Metro): Metro {

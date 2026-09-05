@@ -3,10 +3,11 @@ import { UserItem, toUserItem } from './RandomizeTypes.ts'
 import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK, deckGet } from './Decks.ts'
 import { SpawnMode } from './RandomizeDecks.ts'
+import * as ToneLib from '../lib/ToneLib.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
-  defaultBpm, defaultState, Scheduler, itemMetroBpm,
+  defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -695,5 +696,44 @@ describe('breadcrumb / pop navigation', () => {
   test('popTo the last (current) level is a no-op', () => {
     const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     expect(reducePopTo(s, 1, NOW).current).toStrictEqual(['Scale/zip', 0])
+  })
+})
+
+describe('tones tag — the pitches the metro sounds', () => {
+  const tagged = (src: string): UserItem => toUserItem(evalContents(src)[0])
+  const pitches = (i?: UserItem) => itemMetroTones(i).map(n => n.note && ToneLib.render(n.note))
+
+  test('reads a tones tag, flattening measures', () => {
+    const out = itemMetroTones(tagged('Song: [`c4 d4 | e8 f8`]tones:hide'))
+    expect(out.map(n => ToneLib.render(n.note!))).toEqual(['C4', 'D4', 'E4', 'F4'])
+    expect(out.map(n => n.duration)).toEqual([4, 4, 2, 2])
+  })
+
+  test('a plain sheet tag is engraved but not sounded', () => {
+    expect(itemMetroTones(tagged('Song: [`g4 a4`]sheet:hide'))).toEqual([])
+  })
+
+  test('a sheet tag opts into being sounded with a tones modifier', () => {
+    expect(pitches(tagged('Song: [`g4 a4`]sheet:hide:tones'))).toEqual(['G4', 'A4'])
+  })
+
+  test('a tones tag wins over a sounded sheet tag', () => {
+    expect(pitches(tagged('Song: [`c4`]tones:hide [`g4 a4`]sheet:hide:tones'))).toEqual(['C4'])
+  })
+
+  test('rests come through as null notes, keeping their duration', () => {
+    const out = itemMetroTones(tagged('Song: [`c4 r4 d2`]tones:hide'))
+    expect(out.map(n => n.note && ToneLib.render(n.note))).toEqual(['C4', null, 'D4'])
+    expect(out.map(n => n.duration)).toEqual([4, 4, 8])
+  })
+
+  test('accidentals and octave marks survive', () => {
+    expect(pitches(tagged("Song: [`cis4 bes,4 a'4`]tones:hide"))).toEqual(['C#4', 'Bb3', 'A5'])
+  })
+
+  test('no tag, or an unrelated one, yields nothing', () => {
+    expect(itemMetroTones(tagged('Song: play [90]metro'))).toEqual([])
+    expect(itemMetroTones(item('plain'))).toEqual([])
+    expect(itemMetroTones(undefined)).toEqual([])
   })
 })
