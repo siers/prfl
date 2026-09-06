@@ -96,3 +96,42 @@ describe('parseSheet', () => {
     expect(parseSheet('').measures).toStrictEqual([])
   })
 })
+
+describe('absolute frequencies', () => {
+  test('a hz token carries its frequency and no note', () => {
+    const { measures, errors } = parseSheet('<442hz>4')
+    expect(errors).toStrictEqual([])
+    expect(measures[0]).toStrictEqual([{ note: null, hz: 442, duration: 4 }])
+  })
+
+  test('fractional hz, for differences finer than a whole cycle', () => {
+    expect(parseSheet('<440.5hz>4').measures[0][0].hz).toBe(440.5)
+  })
+
+  test('duration and dots work as on any other token', () => {
+    const { measures } = parseSheet('<440hz>8 <440hz>2.')
+    expect(measures[0].map(n => n.duration)).toStrictEqual([2, 12])
+  })
+
+  test('duration carries over, from and to named notes', () => {
+    const { measures } = parseSheet('c8 <440hz> d')
+    expect(measures[0].map(n => n.duration)).toStrictEqual([2, 2, 2])
+  })
+
+  test('octave marks are tolerated but ignored — an absolute pitch has no octave', () => {
+    const { measures, errors } = parseSheet("<440hz>'4 <440hz>,4")
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => n.hz)).toStrictEqual([440, 440])
+  })
+
+  test('case is insensitive and bowing still attaches', () => {
+    const { measures } = parseSheet('<440HZ>4v')
+    expect(measures[0][0]).toStrictEqual({ note: null, hz: 440, duration: 4, bowing: 'up' })
+  })
+
+  test('a malformed frequency is an error, not a silent rest', () => {
+    expect(parseSheet('<hz>4').errors.length).toBe(1)
+    expect(parseSheet('<0hz>4').errors).toStrictEqual(['unusable frequency in: <0hz>4'])
+    expect(parseSheet('<440hz>32').errors).toStrictEqual(['unusable duration in: <440hz>32'])
+  })
+})

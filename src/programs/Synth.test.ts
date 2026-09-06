@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { toneEvents } from './Metro.tsx'
+import { toneEvents } from './Synth.tsx'
 import { parseSheet } from '../lib/SheetNotation.ts'
 
 const notes = (src: string) => parseSheet(src).measures.flat()
@@ -40,5 +40,20 @@ describe('toneEvents — notation to Transport-scheduled pitches', () => {
 
   test('nothing to sound is an empty schedule of zero length', () => {
     expect(toneEvents([])).toEqual([[], 0])
+  })
+})
+
+describe('toneEvents — absolute frequencies', () => {
+  test('a hz token is scheduled as a raw frequency, not a note name', () => {
+    const [events] = toneEvents(notes('<442hz>4 <440hz>4'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([
+      [442, 0, 1], [440, 1, 1],
+    ])
+  })
+
+  test('hz and named notes interleave on one timeline', () => {
+    const [events, total] = toneEvents(notes('c4 <442hz>2 r4'))
+    expect(events.map(e => [e.pitch, e.time])).toEqual([['C4', 0], [442, 1]])
+    expect(total).toBe(4)
   })
 })

@@ -12,6 +12,11 @@
 //   bowing      trailing `v` up-bow, `n` down-bow (or the glyphs `V` / `Π`)
 //   rest        `r` in place of the letter (duration/dots still apply)
 //
+// `<442hz>` names a frequency directly, for training differences finer than the
+// 12-tone grid. Duration/dots follow the angle brackets — `<442hz>8.` — and the
+// octave marks `'`/`,` are accepted but ignored, an absolute pitch having no use
+// for them. Such a note is synth-only: it carries no letter to engrave.
+//
 // The digit is always the duration, so octave takes `'`/`,` instead.
 // A token without a duration inherits the previous one's, as in LilyPond.
 // `|` starts a new measure; an unparsable token is collected in `errors`.
@@ -23,7 +28,8 @@ export const DIVISIONS = 4
 export type Bowing = 'up' | 'down'
 
 export type SheetNote = {
-  note: ToneLib.Note | null // null = rest
+  note: ToneLib.Note | null // null = rest, or a pitch only `hz` can express
+  hz?: number               // exact frequency, for synthesis; unengraveable
   duration: number          // in divisions
   bowing?: Bowing
 }
@@ -45,6 +51,9 @@ const accidentalNames: Record<string, string> = {
 // `v`/`n` mirror the engraved glyphs; `d`/`u` would clash with note letters.
 const bowings: Record<string, Bowing> = { v: 'up', '∨': 'up', n: 'down', 'Π': 'down' }
 
+// `<NNNhz>` with the same trailing duration/dots/bowing; `'`/`,` tolerated and dropped.
+const hzPattern = /^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?$/i
+
 // `<letter><accidentals><octaves><duration><dots><bowing>` — every part but the letter optional.
 const tokenPattern = /^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?$/i
 
@@ -58,7 +67,28 @@ export function denomToDuration(denom: number, dots: number): number | null {
   return Number.isInteger(dotted) && dotted > 0 ? dotted : null
 }
 
+// An absolute frequency: no letter, so nothing to engrave and no octave to apply.
+function parseHzToken(
+  token: string, groups: Record<string, string>, denomPrev: number,
+): [SheetNote | null, number, string | null] {
+  const { hz, denom, dots, bowing } = groups
+
+  const denomNum = denom ? parseInt(denom, 10) : denomPrev
+  const duration = denomToDuration(denomNum, (dots || '').length)
+  if (duration === null) return [null, denomPrev, `unusable duration in: ${token}`]
+
+  const freq = parseFloat(hz)
+  if (!Number.isFinite(freq) || freq <= 0) return [null, denomPrev, `unusable frequency in: ${token}`]
+
+  const bow = bowing ? bowings[bowing] ?? bowings[bowing.toLowerCase()] : undefined
+
+  return [{ note: null, hz: freq, duration, ...(bow ? { bowing: bow } : {}) }, denomNum, null]
+}
+
 function parseToken(token: string, denomPrev: number): [SheetNote | null, number, string | null] {
+  const hzMatch = token.match(hzPattern)
+  if (hzMatch?.groups) return parseHzToken(token, hzMatch.groups, denomPrev)
+
   const match = token.match(tokenPattern)
   if (!match?.groups) return [null, denomPrev, `unparsable token: ${token}`]
 

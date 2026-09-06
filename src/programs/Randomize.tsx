@@ -12,7 +12,7 @@ import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
 import { linearSeekPast } from './LinearSeek.ts'
 import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './Decks.ts'
-import { Metro as MetroComponent } from './Metro.tsx'
+import { Synth } from './Synth.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
 import {
@@ -425,14 +425,17 @@ function Randomize(controls: any): JSX.Element {
   const metroBpm: number = metro.bpm || defaultBpm
 
   // Memoized on the item, not the parsed array: a fresh array every render
-  // would restart the metro's tone loop each time anything else changed.
+  // would restart the synth's tone loop each time anything else changed.
   const metroTones = React.useMemo(
     () => itemMetroTones(items[currentIndex]),
     [items[currentIndex]]
   )
 
   const ticking = !!globalTimer?.running
-  const metroPower = ticking && metro.power
+  const metroPower = !!(ticking && metro.power)
+  // Tones sound on their own: an item that carries them needs no metronome,
+  // and no running timer, to be heard.
+  const audible = metroPower || metroTones.length > 0
 
   const delinearize = (n: number, low: number, high: number) => (1 - Math.sqrt(1 - (n / 1000))) * (high - low) + low
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
@@ -538,7 +541,7 @@ function Randomize(controls: any): JSX.Element {
                 {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {metroPower && <MetroComponent bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} />}
+                {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} />}
               </div>
             </ErrorBoundary>
           </div>
@@ -592,7 +595,6 @@ export default Randomize
 // TODO: paramtrz: spawning params: column subsets, subset per column
 // TODO: paramtrz: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
 
-// TODO: subprogram: drones
 // TODO: paramtrz: either hierarchical or multiple keys
 
 // ---

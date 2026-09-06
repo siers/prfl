@@ -8,9 +8,10 @@ const metroWav = 'metro.wav'
 new Audio(metroWav)
 
 // A scheduled pitch: when to sound it and for how long, both in quarter notes,
-// so the Transport's bpm is the only thing that turns them into seconds.
+// so the Transport's bpm is the only thing that turns them into seconds. The
+// pitch is a note name, or a raw frequency for `<442hz>` tokens — Tone takes both.
 type ToneEvent = {
-  pitch: string,
+  pitch: string | number,
   time: number,
   duration: number,
 }
@@ -24,18 +25,27 @@ export function toneEvents(notes: SheetNote[]): [ToneEvent[], number] {
 
   for (const n of notes) {
     const duration = n.duration / DIVISIONS
-    if (n.note) events.push({ pitch: ToneLib.render(n.note), time: at, duration })
+    // `hz` wins: it's the exact pitch, where a note name is only a grid position.
+    const pitch = n.hz ?? (n.note ? ToneLib.render(n.note) : null)
+    if (pitch !== null) events.push({ pitch, time: at, duration })
     at += duration
   }
 
   return [events, at]
 }
 
-export function Metro(
-  { bpm, volume = 0, tones = [] }: { bpm: number; volume?: number; tones?: SheetNote[] }
+// The audio for an item: a metronome click and/or a sequence of pitches, both
+// on one Transport so they stay in step. Either can sound without the other —
+// `click` powers the metronome, `tones` the pitches.
+export function Synth(
+  { bpm, volume = 0, tones = [], click = true }:
+    { bpm: number; volume?: number; tones?: SheetNote[]; click?: boolean }
 ): JSX.Element {
   const playerRef = useRef<Tone.Player | null>(null)
   const synthRef = useRef<Tone.PolySynth | null>(null)
+  // Read inside the scheduled callback, so muting the click doesn't reschedule it.
+  const clickRef = useRef(click)
+  clickRef.current = click
 
   useEffect(() => {
     const player = new Tone.Player(metroWav).toDestination()
@@ -49,7 +59,7 @@ export function Metro(
     synthRef.current = synth
 
     Tone.getTransport().scheduleRepeat((time) => {
-      player.start(time)
+      if (clickRef.current) player.start(time)
     }, '4n')
 
     try {
@@ -77,6 +87,7 @@ export function Metro(
 
   // A second track on the same clock: the click keeps its own scheduleRepeat,
   // this Part loops the tone sequence over the notation's own total length.
+  // It is independent of `click` — pitches sound with the metronome silent.
   useEffect(() => {
     const synth = synthRef.current
     if (!synth) return
@@ -94,7 +105,16 @@ export function Metro(
 
     part.loop = true
     part.loopEnd = { '4n': total }
-    part.start(0)
+
+    // Start at the next beat rather than at 0. The component now stays mounted
+    // across items (any item with tones keeps it alive), so the Transport
+    // free-runs and position 0 is long past — a Part anchored there would drop
+    // whichever notes fall before the current position. Quantising up to a whole
+    // beat also keeps the sequence in step with the click. Ticks are used rather
+    // than `nextSubdivision`, which returns context time, not Transport time.
+    const transport = Tone.getTransport()
+    const nextBeat = Math.ceil(transport.ticks / transport.PPQ) * transport.PPQ
+    part.start(`${nextBeat}i`)
 
     return () => { try { part.dispose() } catch (e) { console.error(e) } }
   }, [tones])

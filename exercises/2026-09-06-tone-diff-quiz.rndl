@@ -1,0 +1,23 @@
+# Which of the two tones is higher? Trains differences finer than a semitone.
+#
+# The card sounds two tones, then falls silent while you decide. The answer
+# rides a `show-2` window over a four-slot list, so it stays hidden until the
+# second forward press rotates it into view:
+#
+#   press 0   - -                 <- the two tones sound
+#   press 1   - -                 <- silence, decide
+#   press 2   - SECOND (4c)       <- the answer
+#   press 3   SECOND (4c) -       <- answer sliding out
+#   press 4   - -                 <- new pair sounds, cycle repeats
+#
+# `toneSource` and `answer` share that four-slot cycle so they stay in step.
+# Both must stay NON-computed: a `computed` field is re-derived from its
+# sources on every rotation instead of rotating, which would reset the answer
+# to slot 0 each press. `tones` is the one computed field — it just mirrors
+# whichever `toneSource` slot is at the front.
+#
+# `cents` is signed: negative means the second tone is the lower one, so the
+# first was higher. The offsets run from a rough 50c (quartertone, easy) down
+# to 2c (very hard). Drop the wide ones once they stop being interesting.
+
+ToneDiff: [pick(range(196, 660))]base:hide [pick(\[10, -10, 5, -5\])]cents:hide [\[`<${fields.base.at(0)}hz>2 <${(fields.base.at(0) * Math.pow(2, fields.cents.at(0) / 1200)).toFixed(2)}hz>2`, `r1`, `r1`\]]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [\[` `, ` `, `${fields.cents.at(0) > 0 ? 'HIGHER' : 'LOWER'} (${Math.abs(fields.cents.at(0))}c)`\]]answer:show-2 [60]metro
