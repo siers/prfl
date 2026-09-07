@@ -433,9 +433,10 @@ function Randomize(controls: any): JSX.Element {
 
   const ticking = !!globalTimer?.running
   const metroPower = !!(ticking && metro.power)
-  // Tones sound on their own: an item that carries them needs no metronome,
-  // and no running timer, to be heard.
-  const audible = metroPower || metroTones.length > 0
+  // Tones sound without the metronome: an item that carries them needs no
+  // click to be heard. Both still follow the timer — a paused timer means
+  // silence, so the synth doesn't play on into a break.
+  const audible = ticking && (metroPower || metroTones.length > 0)
 
   const delinearize = (n: number, low: number, high: number) => (1 - Math.sqrt(1 - (n / 1000))) * (high - low) + low
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
