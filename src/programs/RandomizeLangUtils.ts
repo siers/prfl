@@ -5,6 +5,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
+import * as ToneLib from '../lib/ToneLib'
 import { chromaticSlide, frets, modeShifts, deserializeModeShift, ModeShift } from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import { shiftFormat, shifts, shiftsDistributed, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
@@ -509,6 +510,10 @@ export type Interface = {
 
   metro(base: number, diff: number): string[],
   metroS(base: number, diff: number): string[],
+
+  ToneLib: any,
+
+  forceSign: (a: number) => string,
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -744,5 +749,9 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     metro,
     metroS: (b: number, d: number) => shuffle(metro(b, d)),
+
+    ToneLib,
+
+    forceSign: (a: number) => a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`,
   }
 }

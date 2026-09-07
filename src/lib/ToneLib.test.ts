@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental } from './ToneLib.ts'
+import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
 
 describe('ToneLib', () => {
@@ -43,6 +43,14 @@ describe('ToneLib', () => {
         "C5 B#5",
       ]
     )
+  })
+
+  test('canonicalEnharmonic', () => {
+    expect(render(canonicalEnharmonic(semi(parseNote('fb4')!)))).toEqual('E4')
+  })
+
+  test('hertzCanonical', () => {
+    expect(render(hertzCanonical(440))).toEqual('A4')
   })
 
   test('rebase', () => {
@@ -425,21 +433,21 @@ describe('ToneLib', () => {
   // i.e. how far the flattening drives us past the double-flat edge of the generated note spectrum.
   test('altered scale notes outside allNotes acceptance', () => {
     const alteredExpected: [tonic: string, scale: string, outside: string, percent: number][] = [
-      ['C',  'Cb Db Eb F G Ab Bb',      '',                        0],
-      ['G',  'Gb Ab Bb C D Eb F',       '',                        0],
-      ['F',  'Fb Gb Ab Bb C Db Eb',     '',                        0],
-      ['D',  'Db Eb F G A Bb C',        '',                        0],
-      ['Bb', 'Bbb Cb Db Eb F Gb Ab',    'Bbb',                     1 / 7],
-      ['A',  'Ab Bb C D E F G',         '',                        0],
-      ['Eb', 'Ebb Fb Gb Ab Bb Cb Db',   'Ebb',                     1 / 7],
-      ['E',  'Eb F G A B C D',          '',                        0],
-      ['Ab', 'Abb Bbb Cb Db Eb Fb Gb',  'Abb Bbb',                 2 / 7],
-      ['B',  'Bb C D E F# G A',         '',                        0],
-      ['Db', 'Dbb Ebb Fb Gb Ab Bbb Cb', 'Dbb Ebb Bbb',             3 / 7],
-      ['F#', 'F G A B C# D E',          '',                        0],
-      ['Gb', 'Gbb Abb Bbb Cb Db Ebb Fb','Gbb Abb Bbb Ebb',         4 / 7],
-      ['C#', 'C D E F# G# A B',         '',                        0],
-      ['Cb', 'Cbb Dbb Ebb Fb Gb Abb Bbb','Cbb Dbb Ebb Abb Bbb',    5 / 7],
+      ['C', 'Cb Db Eb F G Ab Bb', '', 0],
+      ['G', 'Gb Ab Bb C D Eb F', '', 0],
+      ['F', 'Fb Gb Ab Bb C Db Eb', '', 0],
+      ['D', 'Db Eb F G A Bb C', '', 0],
+      ['Bb', 'Bbb Cb Db Eb F Gb Ab', 'Bbb', 1 / 7],
+      ['A', 'Ab Bb C D E F G', '', 0],
+      ['Eb', 'Ebb Fb Gb Ab Bb Cb Db', 'Ebb', 1 / 7],
+      ['E', 'Eb F G A B C D', '', 0],
+      ['Ab', 'Abb Bbb Cb Db Eb Fb Gb', 'Abb Bbb', 2 / 7],
+      ['B', 'Bb C D E F# G A', '', 0],
+      ['Db', 'Dbb Ebb Fb Gb Ab Bbb Cb', 'Dbb Ebb Bbb', 3 / 7],
+      ['F#', 'F G A B C# D E', '', 0],
+      ['Gb', 'Gbb Abb Bbb Cb Db Ebb Fb', 'Gbb Abb Bbb Ebb', 4 / 7],
+      ['C#', 'C D E F# G# A B', '', 0],
+      ['Cb', 'Cbb Dbb Ebb Fb Gb Abb Bbb', 'Cbb Dbb Ebb Abb Bbb', 5 / 7],
     ]
 
     const spectrum = new Set(allNotes().map(n => renderN(normalize(n))))
@@ -468,4 +476,34 @@ describe('ToneLib', () => {
     expect(100 * allMissing.length / all.length).toBeCloseTo(15.24, 2)
   })
 
+
+  // hertz is the lossy leg: a note goes to a frequency and back, and the spelling has to survive.
+  // compared as sets of rendered notes, because enharmonics returns an unordered spelling family.
+  test('hertz round trip preserves the enharmonic family of every note', () => {
+    const spellings = (s: number) => new Set(enharmonics(s).map(n => render(n)))
+
+    expect(noteToHertz(parseNote('a4')!)).toBeCloseTo(440)
+    expect(herzToSemi(440)).toBe(semi(parseNote('a4')!))
+
+    allNotes().forEach(t => {
+      const viaHertz = herzToSemi(noteToHertz(t))
+
+      expect(viaHertz).toBe(semi(t))
+      expect(spellings(viaHertz)).toStrictEqual(spellings(semi(t)))
+    })
+  })
+
+  // the rounding in herzToSemi is what makes the round trip total: any frequency inside
+  // a semitone's half-open neighbourhood collapses onto that key's spellings
+  test('hertz within a quartertone of a note rounds onto that note', () => {
+    const quarterUp = 2 ** (1 / 24)
+
+    allNotes().forEach(t => {
+      const hertz = noteToHertz(t)
+
+      expect(herzToSemi(hertz * quarterUp * 0.999)).toBe(semi(t))
+      expect(herzToSemi(hertz / quarterUp / 0.999)).toBe(semi(t))
+      expect(semiToHertz(semi(t))).toBeCloseTo(hertz)
+    })
+  })
 })

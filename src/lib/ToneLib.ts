@@ -98,6 +98,24 @@ export function pitchClass(n: Note): number {
   return ((semi(n) % 12) + 12) % 12
 }
 
+// semi is piano key numbering (a4 = 49), so equal temperament anchors on a4 = 440hz:
+// https://en.wikipedia.org/wiki/Piano_key_frequencies
+const a4Semi = 49
+const a4Hertz = 440
+
+export function semiToHertz(semiIn: number): number {
+  return a4Hertz * 2 ** ((semiIn - a4Semi) / 12)
+}
+
+export function noteToHertz(n: Note): number {
+  return semiToHertz(semi(n))
+}
+
+// inverse of semiToHertz — rounded, so it lands on a key rather than between two
+export function herzToSemi(hertz: number): number {
+  return Math.round(a4Semi + 12 * Math.log2(hertz / a4Hertz))
+}
+
 export function render(n: Note, octave: Boolean = true): string {
   const alt = alters[n.alter] ?? '?'
   return n.name.toUpperCase() + alt + (octave ? n.octave : '')
@@ -121,6 +139,21 @@ export function enharmonics(semiTarget: number): Note[] {
   const found = spectrum.filter(n => semi(n) % 12 == semiTarget % 12)
 
   return found.map(n => ({ ...n, octave: semiOctaves(semiTarget) }))
+}
+
+// unsafe function
+export function canonicalEnharmonic(semiTarget: number): Note {
+  const enharms = enharmonics(semiTarget)
+  if (enharms.length == 0) {
+    console.error(`canonicalEnharmonic: ${semiTarget} is an invalid semitone`)
+    return c4
+  }
+
+  return _.sortBy(enharms, e => Math.abs(e.alter))[0]
+}
+
+export function hertzCanonical(hertz: number): Note {
+  return canonicalEnharmonic(herzToSemi(hertz))
 }
 
 // old, wrong comment: property key(note, base) = key(note), only octave is changed

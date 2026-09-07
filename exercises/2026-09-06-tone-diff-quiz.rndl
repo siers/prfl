@@ -21,3 +21,6 @@
 # to 2c (very hard). Drop the wide ones once they stop being interesting.
 
 ToneDiff: [pick(range(196, 660))]base:hide [pick(\[10, -10, 5, -5\])]cents:hide [\[`<${fields.base.at(0)}hz>2 <${(fields.base.at(0) * Math.pow(2, fields.cents.at(0) / 1200)).toFixed(2)}hz>2`, `r1`, `r1`\]]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [\[` `, ` `, `${fields.cents.at(0) > 0 ? 'HIGHER' : 'LOWER'} (${Math.abs(fields.cents.at(0))}c)`\]]answer:show-2 [60]metro
+
+# C2 to E7, logarithmic differences, unfortunately not zipped
+ToneDiff: [pick(range(196, 2673))]base:hide [pick(\[50, -50, 25, -25, 12.5, -12.5, 6.25, -6.25, 3.12, 3.12\])]cents:hide [\[`<${fields.base.at(0)}hz>2 <${(fields.base.at(0) * Math.pow(2, fields.cents.at(0) / 1200)).toFixed(2)}hz>2`, `r1`, `r1`\]]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [\[` `, ` `, `${fields.cents.at(0) > 0 ? 'HIGHER' : 'LOWER'}`, `${ToneLib.render(ToneLib.hertzCanonical(fields.base.at(0)))}/${forceSign(fields.cents.at(0))}c`\]]answer:show-2 [60]metro
