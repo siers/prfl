@@ -97,3 +97,15 @@ export async function fetchFileText(fileId: string, mimeType?: string): Promise<
   // plain \n so downstream line-based parsing matches the raw .rngl/.rndl files.
   return mimeType === GOOGLE_DOC ? text.replace(/\r\n/g, '\n') : text
 }
+
+// Pick the file a `?load=<name>` URL parameter refers to. The query is matched
+// case-insensitively as a substring of the file name, so `?load=Napkin` finds
+// `Napkin.rndl` / `napkin notes` without having to spell out the extension.
+// Ties are broken towards the shortest name — the least surprising match when
+// one name is a prefix of another (`Napkin` over `Napkin (old)`).
+export function findFileByName(files: DriveFile[], query: string): DriveFile | undefined {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return undefined
+  const matches = files.filter(f => f.name.toLowerCase().includes(needle))
+  return matches.sort((a, b) => a.name.length - b.name.length)[0]
+}

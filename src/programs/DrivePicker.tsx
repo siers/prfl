@@ -1,5 +1,5 @@
-import { JSX, useState } from 'react'
-import { DriveFile, fetchFileText, getApiKey, listFolder } from '../lib/GoogleDrive.ts'
+import { JSX, useEffect, useRef, useState } from 'react'
+import { DriveFile, fetchFileText, findFileByName, getApiKey, listFolder } from '../lib/GoogleDrive.ts'
 import { ImageEntry, listImages } from '../lib/PrflAssets.ts'
 
 // The folder to browse. Hardcodable via env (VITE_GDRIVE_FOLDER_ID) so the
@@ -7,12 +7,43 @@ import { ImageEntry, listImages } from '../lib/PrflAssets.ts'
 // without a rebuild.
 const DEFAULT_FOLDER_ID = import.meta.env.VITE_GDRIVE_FOLDER_ID || ''
 
+// The URL parameter that names a file to pull in without any clicking:
+// /perflab/?load=Napkin  ->  loads (and starts) the first Drive file whose name
+// contains "Napkin".
+const LOAD_PARAM = 'load'
+
 type Props = {
   // Called with the downloaded file text once the user picks a file.
   onLoad: (text: string) => void
+  // Optional: called instead of onLoad when the file came from `?load=`. Lets
+  // the host treat an unattended load differently from a deliberate pick (we
+  // start the program right away). Falls back to onLoad when absent.
+  onAutoLoad?: (text: string) => void
   // Optional: called with the folder's images as [filename, rawUrl] tuples when
   // the user loads images. Omit to hide the image control.
   onImages?: (images: ImageEntry[]) => void
+}
+
+// Read `?load=` off the current URL, or '' when it isn't there.
+function loadParam(): string {
+  try {
+    return new URLSearchParams(window.location.search).get(LOAD_PARAM) || ''
+  } catch {
+    return ''
+  }
+}
+
+// Drop `?load=` from the address bar once we've acted on it, so a refresh (or a
+// bookmark made after the fact) doesn't re-fetch and clobber later edits.
+function stripLoadParam(): void {
+  try {
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has(LOAD_PARAM)) return
+    url.searchParams.delete(LOAD_PARAM)
+    window.history.replaceState(null, '', url.toString())
+  } catch {
+    /* non-browser host, or history blocked — the load itself still happened */
+  }
 }
 
 type Status =
@@ -24,10 +55,55 @@ type Status =
 
 // A small picker that lists a public Drive folder and loads the chosen file's
 // text into the editor. Renders as a single 📁 control that expands to a list.
-export function DrivePicker({ onLoad, onImages }: Props): JSX.Element {
+export function DrivePicker({ onLoad, onAutoLoad, onImages }: Props): JSX.Element {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [folderId, setFolderId] = useState(DEFAULT_FOLDER_ID)
+
+  // `?load=<name>`: list the folder, take the best name match, load it. Runs at
+  // most once per mount (React 18 mounts twice in StrictMode, and the picker
+  // re-renders on every keystroke in the editor) — the ref, not the effect deps,
+  // is what makes that true.
+  const autoLoaded = useRef(false)
+  useEffect(() => {
+    const query = loadParam()
+    if (!query || autoLoaded.current) return
+    autoLoaded.current = true
+
+    const id = folderId || DEFAULT_FOLDER_ID
+    if (!id) {
+      setStatus({ kind: 'error', message: `?load=${query}: no folder configured (VITE_GDRIVE_FOLDER_ID).` })
+      setOpen(true)
+      return
+    }
+    if (!getApiKey()) {
+      setStatus({ kind: 'error', message: `?load=${query}: no API key — see DrivePicker / GoogleDrive.ts for setup.` })
+      setOpen(true)
+      return
+    }
+
+    // Errors surface in the (opened) panel rather than throwing: a mistyped
+    // ?load= shouldn't leave the user staring at an unexplained empty editor.
+    ;(async () => {
+      setStatus({ kind: 'loading' })
+      try {
+        const files = await listFolder(id)
+        const file = findFileByName(files, query)
+        if (!file) {
+          setStatus({ kind: 'error', message: `?load=${query}: no matching file in the folder.` })
+          setOpen(true)
+          return
+        }
+        const text = await fetchFileText(file.id, file.mimeType)
+        ;(onAutoLoad || onLoad)(text)
+        stripLoadParam()
+        setStatus({ kind: 'idle' })
+      } catch (e) {
+        setStatus({ kind: 'error', message: e instanceof Error ? e.message : String(e) })
+        setOpen(true)
+      }
+    })()
+  }, [])
 
   async function refreshList(id: string) {
     setStatus({ kind: 'listing' })

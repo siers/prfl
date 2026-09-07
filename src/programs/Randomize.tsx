@@ -149,6 +149,14 @@ function Randomize(controls: any): JSX.Element {
   }
 
 
+  // Load contents and go straight into execution — the same pair of steps the
+  // ▶️ control performs, for the unattended `?load=` path where there is nobody
+  // to press it.
+  function startWith(text: string) {
+    recalc({ contents: text, eval: true, execute: true })
+    modifyTimer('start')
+  }
+
   function popToLevel(level: number) {
     setState((s: RState | undefined) => reducePopTo(s, level, Date.now()))
   }
@@ -168,6 +176,7 @@ function Randomize(controls: any): JSX.Element {
       <a className="pr-3 select-none" onClick={() => confirm('delete?') && recalc({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
       <DrivePicker
         onLoad={text => recalc({ contents: text, eval: true })}
+        onAutoLoad={text => startWith(text)}
         onImages={images => setState((s: RState | undefined) => s && { ...s, images })}
       />
 
