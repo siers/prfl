@@ -5,15 +5,14 @@
 {shapes=`dim sixths ysaye tonic squares`;}
 {modes=`1 2 3 4 5 6 7`;}
 -=- scales
-# sheet music from serialized notation: lilypond-ish, `hide` keeps it off the text line
-# SheetDemo: play it [`c4n d4v e8n f8v | g2n r4 a'4.v`]sheet:hide
 -=- scale-stops
 ScaleStopsString: [key] [ss(stops)] [zipLongest(ss(`DAE`), ':', ss(`0+H-W+H, 0+W-H`), ss(`1234`))]
 -=- bowing
-BowingRainbow: [zipLongest(s('33% 50% 66%'), `:`, ss('G Dd Du Ad Au E'), `:`, ss('up down'))] [metroS(42, 4)]metro:show-1:inline
+BowingRainbow: [zipLongest(s('33% 50% 66%'), `:`, zipLongest(ss('G Dd Du Ad Au E'), ss(`GD DAu DAd AE`)).flat(), `:`, ss('up down'))] [metroS(42, 4)]metro:show-1:inline
 BowDistribution: [ss(`123468`)]:computed [\[...ss(`G D A E`), ...ss(`GD DA AE EA AD DG G D A E GD DA AE EA AD DG GDA DAE EAD ADE GDG DGD DAD ADA AEA EAE`)\]]:show-1 [metroS(50, 8)]metro:show-2:inline
-Entrances: [zipLongestShuf(ss(`GDAE`), ss(`0/1 1/1 1/2↑ 1/2↓ 1/4↑ 1/4↓ 3/4↑ 3/4↓ 1/3↑ 1/3↓ 2/3↑ 2/3↓`), ss(`LS`))]:show-4
-Directions: [ss(`↑↓↑↓↑↓↑↓`)] [ss(`↑↓↑↓↑↓↑↓`)] [ss(`↑↓↑↓↑↓↑↓`)] [ss(`↑↓↑↓↑↓↑↓`)] 
+Entrances: [zipLongestShuf(ss(`GDAE`), ss(`0/1 1/1 1/2↑ 1/2↓ 1/4↑ 1/4↓ 3/4↑ 3/4↓ 1/3↑ 1/3↓ 2/3↑ 2/3↓`), ss(`Long Marc Spidey Fade SewMach`))]:show-4
+# Directions: [ss(`↑↓↑↓↑↓↑↓`)] [ss(`↑↓↑↓↑↓↑↓`)] [ss(`↑↓↑↓↑↓↑↓`)] [ss(`↑↓↑↓↑↓↑↓`)] 
+Directions: [shuffle(timesUntil(8, shuffle(uniq(loopSubstringsG(`G,:D:A:E'`.split(':'), 3, 2))).at(0)))]over:hide [zipLongest(fields.over, ss(`vvvvnnnn`)).map(a=>a.join(''))]sheet:computed:hide [metroS(50, 8)]metro:show-1:inline 
 -=- shifting
 #{after('2026-03-16', '')}ShiftingFourth: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [ss(`G D A E`)]
 0x ShiftingSlides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
@@ -44,13 +43,7 @@ Entr1: bow ends clicks exercise [ss(`GDAE`)]
 # Entr3: entrances down, with stability and power
 # V, Pieces
 --- violin1
-# Kreutz25: [zipLongest(zip(ss(`1 2 3 4 5 6 7 8 9 10 11`), shuffleX(`.0 .5 .0 .5 `, 10)), ':', ss(`dblΠ dblV sepΠ sepV`))]
 --- violin-focus
-# Kreutzer7: [ss(`1,2,3,4,5,6,7,8,9,10`)] [ss(`33% 50% 66%`)]
-# Kreutzer30: [ss(`1.0 1.5 2.0 2.5 3.0 3.5`)]
-# ClaraSchuRomance: [zip(ss(`1 2 3 4 5 6 7 8`), shuffleX(`.0 .5 .0 .5 `, 10))]
-# MatteisFantasia: [zip(ss(`1 2 3 4 5 6 7 8 9`), shuffleX(`.0 .5 .0 .5 `, 10))]
-# Czardasz: [ss(`largo allegro-vivo1 molto-meno meno-lento allegro-vivace allegretto molto-vivo2`)]
 WienLegende: [ss(`1234`)]
 orchestra
 --- violin-next
@@ -59,37 +52,33 @@ ClaraSchuRomance2: do it
 --- orchestra::
 K621: [ss(`0 A B C D E F`)]
 BhvnSym1: [ss(`Adag Alleg A B C D E `)]
-BrahmsSym1: [shuffle(range(1, 5))] 
+BrahmsSym1: [shuffle(range(1, 6))] 
 SchubertSym4: [ss(`0 A B C D`)]
 SchumannSym3: [ss(`1 9 18 25 39 50 A B C D E F`)]
 Lobgs: [shuffle(range(1, 28))]
+SmSy: [s(`123`)]
 # Piano
 # P, Exercises
---- WhenFallLove:: 
-WFL-comp-bass: 
-WFL-comp-37: 
-WFL-comp-73: 
-WFL-comp-connect3: 
-WFL-comp-linear:
-WFL-comp-letters:
-WFL-comp-cells: [shuffle(perm(s('1235'))).map(x=>x.join(''))]:show-8
-WFL-sketch
+--- jazz-piece
+recall: [ss(`bass linear 37 73 thirds letters`)]
+constraints: [ss(`connect linear`)]
+comp: [ss(`comp,`)]
+comp-sketch [ss(`tension 25 licks tonics chromatics highlight altered mysterious`)]
+cells: [shuffle(perm(s('1235'))).map(x=>x.join(''))]:show-8
+shoehorn: [ss(`subs lyddom`)]
+-=- WhenFallLoveT
+{scheduleBlocks(`WFL:jazz-piece`)}
 WFL-head
 WFL-solo1
 WFL-solo2
---- MomentsNotice:: 
-MN-comp-bass: 
-MN-comp-37: 
-MN-comp-73: 
-MN-comp-connect3: 
-MN-comp-linear:
-MN-comp-letters:
-MN-comp-sketch: 
-MN-comp-cells: [shuffle(perm(s('1235'))).map(x=>x.join(''))]:show-8
-MN-head
-MN-go-to-second-volta
-MN-lyddom
-MN-all-subs
+-=- WhenFallLove::
+{scheduleBlocks(`WhenFallLoveT`)}
+-=- MomentsNoticeT
+{scheduleBlocks(`MN:jazz-piece`)}
+MN-head: second volta!
+MN-playlist
+-=- MomentsNotice::
+{scheduleBlocks(`MomentsNoticeT`)}
 # P, Main
 -=- Arabesque::
 ArabesqueProblems: [ss(`2-1-arp 2-2-chord 4-1-arp 4-2-arp 4-3-chord`)]
@@ -99,9 +88,9 @@ Abq: [pyramid('1234', 3).map(shuffle).flat()]:ordered
 --- piano-focus
 # TriadPairs: [pickKeysShuf().flat()] [ss(`I-II I-ii I-III I-IIIb I-VIb I-VI#`)] [zipLongest(shuffle(perm(`135`)).map(p=>p.join(``)), `:`, shuffle(perm(`135`)).map(p=>p.join(``)))] 
 TriSubs: play [keys()] [ss(`2th 5th`)]
-# OSJ: 1642 [keys()]
-# 25s: chromatic, fifths, 736251
-25s: [zipLongestShuf(keys(), ss(`↑chr,↓chr,doms`))] [zipLongest(ss(`33 34 35 36 37`), `-`, ss(`42 43 44`))] [``]
+25s: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))] [ss(`minor 5b 5b6b subs`)]
+VL: [keys()] [ss(`dom bdom thir bthird`)]
+Comp: [keys()] [ss(`AB minor`)]
 Gerschwin: [ss(`A, B, Largamente, Tempo I, Finale`)]
 Maple: [pyramid(`1 2 Trio Finale`, 3).map(shuffle).flat()]:ordered
 Intermezzo: [ss(`A C D D5 E F F4 G11 G2 H1`)]
@@ -110,6 +99,7 @@ Arabesque
 WhenFallLove
 MomentsNotice
 Wiegenlied: sing
+Regenlied: sing
 Love: sing
 
 --- piano-second
@@ -144,12 +134,15 @@ Scales3: [key]key:freeze:inline [ss(`1 2 2+1 3 3+1 3+2 4 4+1 4+2 4+3`)]:show-1:i
 ScaleStops: [key] [ss(stops)] [scalePositions()]
 {scheduleBlocks('scales-0 scale-stops-0 shifting-0').flat().flat()}
 -=- warmup-tasks
-VlnChrom: [zipLongest(keys(), ss(`↑↓`))] [ss(`triads 4ads`)] [ss(`base inv1 inv2`)] [ss(`straight flips`)] [ss(`p1,p2a,p2b,p3,p4a,p4b,p5a,p5b,p6a,p6b,p7`)] [metroS(50, 8)]metro:show-1:inline
+VlnChrom: [zipLongest(keys(), ss(`↑↓`))] [ss(`triads 4ads 6bdom`)] [ss(`base inv1 inv2`)] [ss(`straight flips`)] [ss(`p1,p2a,p2b,p3,p4a,p4b,p5a,p5b,p6a,p6b,p7`)] [metroS(50, 8)]metro:show-1:inline
+StringIntervals: [ss(`3:31 3:41 3:42 4:11 4:12 4:13 4:14 4:21 4:22 4:23 4:24 4:31 4:32 4:33 4:34 4:41 4:42 4:43 4:44`)]
+BowGym: [ss(`seesaw windshield fwcircle bwcircle zigzaglevels`)]
+ToneDiff: [pick(range(196, 660))]base:hide [pick(\[10, -10, 5, -5\])]cents:hide [\[`<${fields.base.at(0)}hz>2 <${(fields.base.at(0) * Math.pow(2, fields.cents.at(0) / 1200)).toFixed(2)}hz>2`, `r1`, `r1`\]]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [\[` `, ` `, `${fields.cents.at(0) > 0 ? 'HIGHER' : 'LOWER'} (${Math.abs(fields.cents.at(0))}c)`\]]answer:show-2 [60]metro
 
 {scheduleBlocks(`bowing vibrato`)}
 -=- warmup::
-{scheduleBlocks(`warmup-tasks`)}
 {keyz}
+{scheduleBlocks(`warmup-tasks`)}
 {zipT(...keyz.map(k => { keyR = k; key = keyR.replace(/^Key-/,''); return blockLines('warmup-key') \})).flat()}
 # TriadPair: I-153-II-351
 # Frets: [shuffle(frets())] [ss(`1234`)] [ss(`=, +, -`)]
@@ -161,11 +154,6 @@ VlnChrom: [zipLongest(keys(), ss(`↑↓`))] [ss(`triads 4ads`)] [ss(`base inv1 
 piano-focus
 violin-focus
 composition-2
--=- deck-prio-2
-piano-second-1
-jazz-chops-1
-piano-chops-1
-violin-technique-1
 
 -=- decks-piano
 piano-focus-4
@@ -175,8 +163,6 @@ piano-chops-3
 # TODO: make zipScheduleBlocks(shuffle(block).join`` a function on its own
 -=- prio-1
 {zipScheduleBlocks(shuffle(block(`deck-prio-1`)).join(` `))}
--=- prio-2
-{scheduleBlocks(block(`deck-prio-2`).join(` `))}
 -=- deck-piano
 {zipScheduleBlocks(shuffle(block(`decks-piano`)).join(` `))}
 
