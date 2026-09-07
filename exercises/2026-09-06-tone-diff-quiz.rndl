@@ -1,26 +1,10 @@
-# Which of the two tones is higher? Trains differences finer than a semitone.
+# Which of the two tones is higher?
 #
-# The card sounds two tones, then falls silent while you decide. The answer
-# rides a `show-2` window over a four-slot list, so it stays hidden until the
-# second forward press rotates it into view:
+# Two tones sound, then silence while you decide. The answer appears on the
+# second press, naming the direction and the offset: HIGHER D6/+6.25c.
 #
-#   press 0   - -                 <- the two tones sound
-#   press 1   - -                 <- silence, decide
-#   press 2   - SECOND (4c)       <- the answer
-#   press 3   SECOND (4c) -       <- answer sliding out
-#   press 4   - -                 <- new pair sounds, cycle repeats
-#
-# `toneSource` and `answer` share that four-slot cycle so they stay in step.
-# Both must stay NON-computed: a `computed` field is re-derived from its
-# sources on every rotation instead of rotating, which would reset the answer
-# to slot 0 each press. `tones` is the one computed field — it just mirrors
-# whichever `toneSource` slot is at the front.
-#
-# `cents` is signed: negative means the second tone is the lower one, so the
-# first was higher. The offsets run from a rough 50c (quartertone, easy) down
-# to 2c (very hard). Drop the wide ones once they stop being interesting.
+# Bases span C2 to E7, one from each fifth of the range, shuffled — the whole
+# range comes up every five cards, in a scrambled order. Offsets run 50c
+# (easy) down to 3c (very hard); drop the wide ones once they get boring.
 
-ToneDiff: [pick(range(196, 660))]base:hide [pick(\[10, -10, 5, -5\])]cents:hide [\[`<${fields.base.at(0)}hz>2 <${(fields.base.at(0) * Math.pow(2, fields.cents.at(0) / 1200)).toFixed(2)}hz>2`, `r1`, `r1`\]]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [\[` `, ` `, `${fields.cents.at(0) > 0 ? 'HIGHER' : 'LOWER'} (${Math.abs(fields.cents.at(0))}c)`\]]answer:show-2 [60]metro
-
-# C2 to E7, logarithmic differences, unfortunately not zipped
-ToneDiff: [pick(range(196, 2673))]base:hide [pick(\[50, -50, 25, -25, 12.5, -12.5, 6.25, -6.25, 3.12, 3.12\])]cents:hide [\[`<${fields.base.at(0)}hz>2 <${(fields.base.at(0) * Math.pow(2, fields.cents.at(0) / 1200)).toFixed(2)}hz>2`, `r1`, `r1`\]]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [\[` `, ` `, `${fields.cents.at(0) > 0 ? 'HIGHER' : 'LOWER'}`, `${ToneLib.render(ToneLib.hertzCanonical(fields.base.at(0)))}/${forceSign(fields.cents.at(0))}c`\]]answer:show-2 [60]metro
+ToneDiff: [zipLongest(shuffle(divide(range(ToneLib.semi(ToneLib.parseNote('c2')), ToneLib.semi(ToneLib.parseNote('e7'))), 5).map(pick)).map(s => ToneLib.semiToHertz(Number(s)).toFixed(2)), shuffle(\[50, 25, 12.5, 6.25, 3.125\]), shuffle(\[1, 1, -1, -1\])).flatMap(p => \[p, p, p\]).map(p => p.join('/'))]pairs:hide [fields.pairs.at(0).split('/').at(0)]base:computed:hide [(Number(fields.pairs.at(0).split('/').at(1)) * Number(fields.pairs.at(0).split('/').at(2))).toString()]cents:computed:hide [fields.pairs.map((p, i) => { const \[b, m, s\] = p.split('/'); return i % 3 == 0 ? `<${b}hz>2 <${(Number(b) * Math.pow(2, Number(m) * Number(s) / 1200)).toFixed(2)}hz>2` : `r1` })]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [fields.pairs.map((p, i) => { const \[b, m, s\] = p.split('/'); const c = Number(m) * Number(s); return i % 3 == 2 ? `${c > 0 ? 'HIGHER' : 'LOWER'} ${ToneLib.render(ToneLib.hertzCanonical(Number(b)))}/${forceSign(c)}c` : ` ` })]answer:show-2 [60]metro

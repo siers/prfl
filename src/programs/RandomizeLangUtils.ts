@@ -3,7 +3,7 @@ import { cardMemory } from './RandomizeTypes'
 import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
-import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
+import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices, chunk } from '../lib/Array'
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
 import * as ToneLib from '../lib/ToneLib'
 import { chromaticSlide, frets, modeShifts, deserializeModeShift, ModeShift } from '../lib/ToneLibViolin'
@@ -424,6 +424,7 @@ export type Interface = {
   parts: (n: number, m?: number) => string[],
   partsShuf: (n: number, m?: number) => string[],
   divide: <A>(as: A[], parts: number) => A[][],
+  chunk: <A>(as: A[], len: number) => A[][],
   partChunks: (part: number, chunk: number, offset?: number) => string[][],
   partChunksShuf: (part: number, chunk: number, offset?: number) => string[][],
   zip: (...as: string[][]) => string[],
@@ -671,6 +672,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     parts,
     partsShuf,
     divide,
+    chunk,
     partChunks,
     partChunksShuf,
     zip,
