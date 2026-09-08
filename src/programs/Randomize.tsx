@@ -12,7 +12,7 @@ import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
 import { linearSeekPast } from './LinearSeek.ts'
 import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './Decks.ts'
-import { Synth } from './Synth.tsx'
+import { Synth, unlockAudio } from './Synth.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
 import {
@@ -149,12 +149,10 @@ function Randomize(controls: any): JSX.Element {
   }
 
 
-  // Load contents and go straight into execution — the same pair of steps the
-  // ▶️ control performs, for the unattended `?load=` path where there is nobody
-  // to press it.
+  // Load contents and go into execution for the unattended `?load=` path.
+  // The timer is deliberately left stopped to wait for user's input to unblock audio.
   function startWith(text: string) {
     recalc({ contents: text, eval: true, execute: true })
-    modifyTimer('start')
   }
 
   function popToLevel(level: number) {
@@ -381,7 +379,7 @@ function Randomize(controls: any): JSX.Element {
   function reviewStats(): JSX.Element {
     // probably unit-tests use these
     const timerControls = <>
-      <span onClick={() => modifyTimer(localTimer?.running ? 'stop' : 'start')} className="pb-3 px-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
+      <span onClick={() => { unlockAudio(); modifyTimer(localTimer?.running ? 'stop' : 'start') }} className="pb-3 px-2 select-none">{localTimer?.running ? '⏸️' : '▶️'}</span>
       <span onClick={() => modifyTimer('restart', 'local')} className="pb-3 px-2 select-none">🔄</span>
       <span onClick={() => modifyTimer('subtract-and-restart')} className="pb-3 px-2 select-none">⏪</span>
     </>
@@ -412,7 +410,7 @@ function Randomize(controls: any): JSX.Element {
       d == 'N' && modifyTimer('restart', 'local')
     })
     const localTimerMouseUp: MouseEventHandler<HTMLDivElement> = (_) => {
-      if (timerLock != undefined) modifyTimer(localTimer?.running ? 'stop' : 'start')
+      if (timerLock != undefined) { unlockAudio(); modifyTimer(localTimer?.running ? 'stop' : 'start') }
     }
 
     return <div className="w-full pb-2 text-center font-mono">
@@ -461,7 +459,7 @@ function Randomize(controls: any): JSX.Element {
           <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm * 0.333333 })}>÷3</span>
           <span
             className="p-[2px] inline-block text-center w-[4em]"
-            onClick={_ => metroState({ power: ticking ? !metro.power : true, timer: ticking ? undefined : 'start' })}
+            onClick={_ => { unlockAudio(); metroState({ power: ticking ? !metro.power : true, timer: ticking ? undefined : 'start' }) }}
             style={{ color: metroPower ? '#000' : '#aaa' }}
           >
             @{state?.metro?.bpm}
@@ -527,7 +525,7 @@ function Randomize(controls: any): JSX.Element {
       {inExecution && programSwitcher()}
 
       <div className="pl-[10px]">
-        <a className="pr-3 select-none" onClick={() => { recalc({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
+        <a className="pr-3 select-none" onClick={() => { unlockAudio(); recalc({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
         {inExecution && executionControlButtons()}
       </div>

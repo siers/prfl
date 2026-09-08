@@ -7,6 +7,10 @@ const metroWav = 'metro.wav'
 
 new Audio(metroWav)
 
+export function unlockAudio() {
+  Tone.start().catch(e => console.error(e))
+}
+
 // A scheduled pitch: when to sound it and for how long, both in quarter notes,
 // so the Transport's bpm is the only thing that turns them into seconds. The
 // pitch is a note name, or a raw frequency for `<442hz>` tokens — Tone takes both.
