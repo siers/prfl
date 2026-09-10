@@ -4,6 +4,7 @@ import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
+import { NEXT_TAG } from './RandomizeNext'
 import type { ImageEntry } from '../lib/PrflAssets'
 
 // Extra, host-supplied bits the high-level evaluators thread down into the DSL
@@ -388,10 +389,8 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
   const l = structuredClone(l_)
 
   if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
-    // A `computed` field never rotates its own list: it always reflects its
-    // sources, so it is re-derived below from the rotated non-computed fields.
     const rotated = (l.source.substitutions || []).map(s =>
-      !isComputed(s) && (!tag || tag == s.tag)
+      !isComputed(s) && (!tag || tag == s.tag) && (tag != null || s.tag != NEXT_TAG)
         ? { ...s, contents: rotateInterpolateSubst(s.contents) }
         : s
     )
@@ -418,10 +417,6 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
   } else return l
 }
 
-// The flashcard "hidden answer" view: blank each interpolated part to '-' so the
-// answer isn't shown. A substitution narrowed to a single value (a spawned leaf)
-// is already concrete — there's nothing to hide — so render its value instead of
-// blanking it.
 export function emptiedInterpolations(l_: RenderLine): RenderLine {
   const l = structuredClone(l_)
 
@@ -432,17 +427,6 @@ export function emptiedInterpolations(l_: RenderLine): RenderLine {
   )
 }
 
-// Collapse each interpolation to a single chosen value (one per substitution,
-// in substitution order) and re-render via the same substitute path the parent
-// used. Used by deck-spawning to materialise one concrete child per combination
-// without re-deriving the text by hand.
-//
-// The source is kept (not discarded): each substitution is narrowed to its
-// single chosen value while preserving its marker and tag. That keeps tag-driven
-// rendering (images, sheets, content-with-tags) working on spawned children,
-// which would otherwise lose all tag metadata. The interpols are dropped, since a
-// collapsed leaf has nothing left to (re-)evaluate — that keeps it frozen (no
-// re-eval, not spawnable) while its tags live on.
 export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
   const l = structuredClone(l_)
 
@@ -484,4 +468,18 @@ export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<S
   )
 
   return [cwt, byTag]
+}
+
+export function setSubstitutionContents(l_: RenderLine, marker: string, contents: InterpolateSubstT): RenderLine {
+  const l = structuredClone(l_)
+  if (!l.source?.substitutions) return l
+
+  const newSubst = l.source.substitutions.map(s => s.marker === marker ? { ...s, contents } : s)
+
+  const resubst = newSubst.reduce<RenderLine>(
+    (l, s) => substituteInterpolate(l, s.marker, s.contents),
+    { ...l, contents: l.source.contents },
+  )
+
+  return { ...resubst, source: { ...l.source, substitutions: newSubst } }
 }

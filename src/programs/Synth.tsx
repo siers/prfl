@@ -41,15 +41,22 @@ export function toneEvents(notes: SheetNote[]): [ToneEvent[], number] {
 // The audio for an item: a metronome click and/or a sequence of pitches, both
 // on one Transport so they stay in step. Either can sound without the other —
 // `click` powers the metronome, `tones` the pitches.
+//
+// `onClick` fires on every beat, muted or not, so the beat can drive things
+// besides sound (the `next` tag counts its steps off it). It runs outside the
+// audio callback, via the draw queue, since it touches React state.
 export function Synth(
-  { bpm, volume = 0, tones = [], click = true }:
-    { bpm: number; volume?: number; tones?: SheetNote[]; click?: boolean }
+  { bpm, volume = 0, tones = [], click = true, onClick }:
+    { bpm: number; volume?: number; tones?: SheetNote[]; click?: boolean; onClick?: () => void }
 ): JSX.Element {
   const playerRef = useRef<Tone.Player | null>(null)
   const synthRef = useRef<Tone.PolySynth | null>(null)
   // Read inside the scheduled callback, so muting the click doesn't reschedule it.
   const clickRef = useRef(click)
   clickRef.current = click
+  // Same for the beat callback: a new closure each render must not reschedule.
+  const onClickRef = useRef(onClick)
+  onClickRef.current = onClick
 
   useEffect(() => {
     const player = new Tone.Player(metroWav).toDestination()
@@ -64,6 +71,10 @@ export function Synth(
 
     Tone.getTransport().scheduleRepeat((time) => {
       if (clickRef.current) player.start(time)
+      // The click is silenceable, the beat is not: `onClick` counts beats even
+      // when the metronome is muted (an item sounding only tones still ticks).
+      const fire = onClickRef.current
+      if (fire) Tone.getDraw().schedule(() => fire(), time)
     }, '4n')
 
     try {

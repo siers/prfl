@@ -1,6 +1,6 @@
 // Pure state reducers for Randomize.
 
-import { evalContents, evalContentsDecks, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems } from './RandomizeLang.js'
+import { evalContents, evalContentsDecks, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents } from './RandomizeLang.js'
 import { isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
@@ -12,6 +12,7 @@ import { Direction } from './LinearSeek.ts'
 import { ListState, dropThree, bottomOfQueue, toTop, Exclude } from './GenericList.ts'
 import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './Decks.ts'
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
+import { NextAction, findNextSubstitution, parseNextSteps, renderNextSteps, stepNext } from './RandomizeNext.ts'
 
 export const currentStateVersion = 5
 export const defaultBpm = 60
@@ -219,6 +220,31 @@ export function modifyItemState(
   return reordered
     ? [reordered.items, newMemory, reordered.current]
     : [updatedItems, newMemory, null]
+}
+
+// ── next tag ────────────────────────────────────────────────────────────────
+
+export function reduceMetroClick(s: RState | undefined): [RState, NextAction | null] {
+  if (!s) return [defaultState, null]
+
+  const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
+  const item = deckGet(s.items || {}, cursor)
+  const subst = findNextSubstitution(item?.source?.substitutions)
+  if (!item || !subst) return [s, null]
+
+  const steps = parseNextSteps(subst.contents)
+  if (steps.length === 0) return [s, null]
+
+  const [stepped, action] = stepNext(steps)
+  const newItem: UserItem = { ...item, ...setSubstitutionContents(item, subst.marker, renderNextSteps(stepped)) }
+
+  const [deck, index] = cursor
+  const items: Decks<UserItem> = {
+    ...(s.items || {}),
+    [deck]: deckItems(s.items || {}, deck).map((it, i) => i === index ? newItem : it),
+  }
+
+  return [{ ...s, items }, action]
 }
 
 // ── timers ───────────────────────────────────────────────────────────────────

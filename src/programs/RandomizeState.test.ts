@@ -6,7 +6,7 @@ import { SpawnMode } from './RandomizeDecks.ts'
 import * as ToneLib from '../lib/ToneLib.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones,
 } from './RandomizeState.ts'
 
@@ -735,5 +735,70 @@ describe('tones tag — the pitches the metro sounds', () => {
     expect(itemMetroTones(tagged('Song: play [90]metro'))).toEqual([])
     expect(itemMetroTones(item('plain'))).toEqual([])
     expect(itemMetroTones(undefined)).toEqual([])
+  })
+})
+
+
+describe('reduceMetroClick — the `next` tag counting off the metronome', () => {
+  // A card whose programme is written in the DSL, so the tag is parsed the way
+  // it is in the editor rather than hand-built.
+  const carded = (programme: string, over: Partial<RState> = {}): RState => ({
+    version: 5,
+    items: { [DEFAULT_DECK]: evalContents(`Etude: [\'${programme}\'.split(\' \')]next`).map(toUserItem) },
+    current: [DEFAULT_DECK, 0],
+    ...over,
+  })
+
+  const shown = (s: RState) => deckGet(s.items || {}, s.current!)?.contents
+
+  test('a click spends into the head step and shows it on the card', () => {
+    const [s, action] = reduceMetroClick(carded('4f 4r'))
+    expect(shown(s)).toBe('Etude: [3:1f 4r]')
+    expect(action).toBe(null)
+  })
+
+  test('the spec walk, click by click, ending in the fire and the rotation', () => {
+    let s = carded('4f 4r')
+    const trail: [string | undefined, string][] = []
+    for (let i = 0; i < 4; i++) {
+      const [next, action] = reduceMetroClick(s)
+      s = next
+      trail.push([shown(s), action || '-'])
+    }
+    expect(trail).toEqual([
+      ['Etude: [3:1f 4r]', '-'],
+      ['Etude: [2:2f 4r]', '-'],
+      ['Etude: [1:3f 4r]', '-'],
+      ['Etude: [4r 4f]', 'f'],
+    ])
+  })
+
+  test('the countdown survives a round trip through the DSL text', () => {
+    // Re-parsing what the card renders must resume where it left off, which is
+    // what makes the spent clicks belong in the value rather than beside it.
+    let s = carded('4f 4r')
+    for (let i = 0; i < 2; i++) s = reduceMetroClick(s)[0]
+    const resumed = carded('2:2f 4r')
+    expect(shown(reduceMetroClick(s)[0])).toBe(shown(reduceMetroClick(resumed)[0]))
+  })
+
+  test('an item without the tag is left alone', () => {
+    const s = stateOf(['plain'])
+    expect(reduceMetroClick(s)).toEqual([s, null])
+  })
+
+  test('only the current item counts down', () => {
+    // `-=-` keeps the two in the order written; the default block shuffles.
+    const two: RState = {
+      version: 5,
+      items: { [DEFAULT_DECK]: evalContents("-=-\nA: ['2f']next\nB: ['2f']next").map(toUserItem) },
+      current: [DEFAULT_DECK, 1],
+    }
+    const [s] = reduceMetroClick(two)
+    expect((s.items?.[DEFAULT_DECK] || []).map(i => i.contents)).toEqual(['A: [2f]', 'B: [1:1f]'])
+  })
+
+  test('no state is no crash', () => {
+    expect(reduceMetroClick(undefined)[1]).toBe(null)
   })
 })

@@ -18,9 +18,10 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, liveSubdeckName, itemMetroTones, itemSkipped, reduceMetro, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceInsertItem, reduceTimer,
+  deckPath, liveSubdeckName, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
+import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
 import { burstEmojiNotif } from './Burst.tsx'
 import { SwipeDirection, useWipe } from './SwipeHandlers.tsx'
 import { DrivePicker } from './DrivePicker.tsx'
@@ -148,6 +149,13 @@ function Randomize(controls: any): JSX.Element {
     setState((s: RState | undefined) => reduceInsertItem(s, dsl, Date.now()))
   }
 
+  function metroClick() {
+    setState((s: RState | undefined) => reduceMetroClick(s)[0])
+
+    const action = nextAction(items[currentIndex])
+    if (action === 'f') recalc({ item: { regenerate: 'next' } })
+    if (action === 'r') recalc({ item: { regenerate: 'new' } })
+  }
 
   // Load contents and go into execution for the unattended `?load=` path.
   // The timer is deliberately left stopped to wait for user's input to unblock audio.
@@ -440,10 +448,8 @@ function Randomize(controls: any): JSX.Element {
 
   const ticking = !!globalTimer?.running
   const metroPower = !!(ticking && metro.power)
-  // Tones sound without the metronome: an item that carries them needs no
-  // click to be heard. Both still follow the timer — a paused timer means
-  // silence, so the synth doesn't play on into a break.
-  const audible = ticking && (metroPower || metroTones.length > 0)
+  const driven = parseNextSteps(findNextSubstitution(items[currentIndex]?.source?.substitutions)?.contents || []).length > 0
+  const audible = ticking && (metroPower || metroTones.length > 0 || driven)
 
   const delinearize = (n: number, low: number, high: number) => (1 - Math.sqrt(1 - (n / 1000))) * (high - low) + low
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
@@ -549,7 +555,7 @@ function Randomize(controls: any): JSX.Element {
                 {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} />}
+                {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven ? metroClick : undefined} />}
               </div>
             </ErrorBoundary>
           </div>
