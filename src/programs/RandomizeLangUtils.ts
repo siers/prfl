@@ -7,6 +7,7 @@ import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipL
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
 import * as ToneLib from '../lib/ToneLib'
 import { chromaticSlide, frets, modeShifts, deserializeModeShift, ModeShift } from '../lib/ToneLibViolin'
+import * as ToneLibViolin from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import { shiftFormat, shifts, shiftsDistributed, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
@@ -513,6 +514,7 @@ export type Interface = {
   metroS(base: number, diff: number): string[],
 
   ToneLib: any,
+  ToneLibViolin: any,
 
   forceSign: (a: number) => string,
 }
@@ -753,6 +755,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     metroS: (b: number, d: number) => shuffle(metro(b, d)),
 
     ToneLib,
+    ToneLibViolin,
 
     forceSign: (a: number) => a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`,
   }
