@@ -449,7 +449,7 @@ function Randomize(controls: any): JSX.Element {
   const ticking = !!globalTimer?.running
   const metroPower = !!(ticking && metro.power)
   const driven = parseNextSteps(findNextSubstitution(items[currentIndex]?.source?.substitutions)?.contents || []).length > 0
-  const audible = ticking && (metroPower || metroTones.length > 0 || driven)
+  const audible = ticking && (metroPower || metroTones.length > 0)
 
   const delinearize = (n: number, low: number, high: number) => (1 - Math.sqrt(1 - (n / 1000))) * (high - low) + low
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
@@ -555,7 +555,7 @@ function Randomize(controls: any): JSX.Element {
                 {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
                 {metro.opened && metroUI()}
-                {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven ? metroClick : undefined} />}
+                {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven && metroPower ? metroClick : undefined} />}
               </div>
             </ErrorBoundary>
           </div>

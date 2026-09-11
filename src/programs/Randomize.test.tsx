@@ -24,6 +24,14 @@ import { useRef, useState } from 'react'
 
 vi.mock('./SheetOSMD.tsx', () => ({ default: () => null }))
 
+// Synth renders nothing, so it leaves no DOM to assert on. Stand it up as a
+// probe element instead: its presence is "the synth is mounted", and the real
+// Tone.js Transport never starts under test.
+vi.mock('./Synth.tsx', () => ({
+  Synth: () => <div data-testid="synth" />,
+  unlockAudio: () => {},
+}))
+
 import Randomize from './Randomize.tsx'
 
 // A faithful stand-in for App.jsx's host: owns the program state, hands
@@ -157,6 +165,21 @@ describe('Randomize — spawn buttons', () => {
 
     act(() => { fireEvent.click(getByText('🔙')) }) // back out
     expect(currentItemText(container)).toContain('Scale: play [C D] [up down]') // parent again (with its buttons)
+  })
+
+  // The synth is gated on audibility alone: a `next` card is beat-driven, but a
+  // beat it cannot hear must not spin up the Tone.js Transport and audio nodes.
+  test('a next-tag item alone does not mount the synth; powering the metro does', () => {
+    const { container, getByText } = setupExecuting("-=-\nalpha ['4f 4r'.split(' ')]next")
+
+    // Timer is running and the item is `next`-driven, but nothing sounds:
+    // metro is unpowered and the item carries no tones.
+    expect(container.querySelector('[data-testid="synth"]')).toBeNull()
+
+    // 🥁 opens the metro panel, @bpm powers it — now there is audio to make.
+    act(() => { fireEvent.click(getByText('🥁')) })
+    act(() => { fireEvent.click(getByText(/^@\d/)) }) // the @bpm span is the power toggle
+    expect(container.querySelector('[data-testid="synth"]')).toBeTruthy()
   })
 
   test('breadcrumb shows the deck path and a crumb pops back to its level', () => {

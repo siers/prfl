@@ -42,9 +42,10 @@ export function toneEvents(notes: SheetNote[]): [ToneEvent[], number] {
 // on one Transport so they stay in step. Either can sound without the other —
 // `click` powers the metronome, `tones` the pitches.
 //
-// `onClick` fires on every beat, muted or not, so the beat can drive things
+// `onClick` fires on every beat the Transport runs, so the beat can drive things
 // besides sound (the `next` tag counts its steps off it). It runs outside the
-// audio callback, via the draw queue, since it touches React state.
+// audio callback, via the draw queue, since it touches React state. The synth is
+// only mounted for audible items, so a caller wanting beats must sound something.
 export function Synth(
   { bpm, volume = 0, tones = [], click = true, onClick }:
     { bpm: number; volume?: number; tones?: SheetNote[]; click?: boolean; onClick?: () => void }
@@ -72,7 +73,7 @@ export function Synth(
     Tone.getTransport().scheduleRepeat((time) => {
       if (clickRef.current) player.start(time)
       // The click is silenceable, the beat is not: `onClick` counts beats even
-      // when the metronome is muted (an item sounding only tones still ticks).
+      // when the click itself is muted.
       const fire = onClickRef.current
       if (fire) Tone.getDraw().schedule(() => fire(), time)
     }, '4n')
