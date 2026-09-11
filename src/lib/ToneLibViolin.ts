@@ -1,6 +1,6 @@
 import { directRange, transpose, zipLongest, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt, shuffleArray } from './Random'
-import { enharmonics, equalLetterOctave, findMajor, Key, majorKey, Note, parseNote, rebaseSemiByPitch, rename, render, renderN, semi } from './ToneLib'
+import { addAccidental, enharmonics, equalLetterOctave, findMajor, Key, majorKey, Note, noteToNatural, parseNote, rebaseSemiByPitch, rename, render, renderN, semi } from './ToneLib'
 import _ from 'lodash'
 
 // TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
@@ -195,6 +195,13 @@ export function embedNote(note: Note, restrict: StringName[] = stringNames, star
       return equalLetterOctave(note, position) && sen.chromPosition >= startingFrom ? [sen] : []
     })
   })
+}
+
+// doesn't hold the same invariant as in embedNote where the order of output is the order of restrict
+export function embedNotePlusMinus(note: Note, restrict: StringName[] = stringNames, startingFrom = 0): StringEmbeddedNote[] {
+  const natural = noteToNatural(note)
+  const notes = [natural, addAccidental(note, -1), addAccidental(note, 1)]
+  return notes.flatMap(n => embedNote(n, restrict, startingFrom))
 }
 
 // serializable variant, with less info: no root, and only the shift count shown for the scale.

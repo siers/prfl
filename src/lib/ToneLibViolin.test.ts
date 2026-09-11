@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { embedNote, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
+import { embedNote, embedNotePlusMinus, renderSen, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
 import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
@@ -133,6 +133,24 @@ describe('ToneLibViolin', () => {
     test('available fingers', () => {
       const sen = embedNote(parseNote('c4')!, ['G'])
       expect(sen.map(s => s.availFingers)).toStrictEqual([[1, 2, 3]])
+    })
+  })
+
+  describe('embedNotePlusMinus', () => {
+    const plusMinusRender = (note: string, restrict?: StringName[], startingFrom?: number) =>
+      embedNotePlusMinus(parseNote(note)!, restrict, startingFrom)
+        .map(sen => `${render(sen.note)}@${renderSen(sen)}`)
+        .join(' ')
+
+    test('embeds the natural, then the flat, then the sharp', () => {
+      expect(plusMinusRender('E4')).toBe('E4@G5 E4@D1 Eb4@G5 Eb4@D1 E#4@G5 E#4@D1')
+      expect(plusMinusRender('G4', ['G', 'D'])).toBe('G4@G7 G4@D3 Gb4@G7 Gb4@D3 G#4@G7 G#4@D3')
+    })
+
+    test('startingFrom drops embeddings below the chromatic position', () => {
+      // E4 on the open-ish end of the D string sits at chromPosition 2, its flat at 1
+      expect(plusMinusRender('E4', undefined, 2)).toBe('E4@G5 E4@D1 Eb4@G5 E#4@G5 E#4@D1')
+      expect(plusMinusRender('E4', undefined, 3)).toBe('E4@G5 Eb4@G5 E#4@G5 E#4@D1')
     })
   })
 

@@ -147,6 +147,10 @@ export function addAccidental(note: Note, accidental: number): Note {
   return { ...note, alter: note.alter + accidental }
 }
 
+export function noteToNatural(note: Note): Note {
+  return { ...note, alter: 0 }
+}
+
 function semiOctaves(semiIn: number): number {
   return Math.floor((semiIn - semi(c1)) / 12) + 1
 }
