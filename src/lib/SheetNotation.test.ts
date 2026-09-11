@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { denomToDuration, parseSheet, resolveColor, stringColors } from './SheetNotation'
+import { denomToDuration, parseMarks, parseSheet, resolveColor, stringColors } from './SheetNotation'
 
 describe('denomToDuration', () => {
   test('lilypond denominators', () => {
@@ -230,5 +230,72 @@ describe('colour', () => {
       expect(error, spec).toBeNull()
       expect(resolved, spec).toMatch(musicXmlColor)
     })
+  })
+})
+
+describe('text', () => {
+  test('parenthesised text rides along as a fingering', () => {
+    const { measures, errors } = parseSheet('c4(1) d4(3) e4')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => n.text)).toStrictEqual(['1', '3', undefined])
+  })
+
+  test('text is not only digits', () => {
+    // whatever is written engraves verbatim; the parser does not police it
+    const { measures, errors } = parseSheet('c4(2-3) d4(IV) e4(o)')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => n.text)).toStrictEqual(['2-3', 'IV', 'o'])
+  })
+
+  test('text and colour commute — parentheses keep them apart', () => {
+    const { measures, errors } = parseSheet('c4[G](1) d4(1)[G]')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => [n.color, n.text])).toStrictEqual([
+      [resolveColor('G')[0], '1'], [resolveColor('G')[0], '1'],
+    ])
+  })
+
+  test('text composes with bowing, dots and accidentals', () => {
+    const { measures, errors } = parseSheet("bes'8.v[A](4)")
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0][0]).toStrictEqual({
+      note: { name: 'b', alter: -1, octave: 5 },
+      duration: 3, bowing: 'up', color: resolveColor('A')[0], text: '4',
+    })
+  })
+
+  test('text does not carry over the way duration does', () => {
+    const { measures } = parseSheet('c8(1) d e')
+    expect(measures[0].map(n => [n.duration, n.text])).toStrictEqual([
+      [2, '1'], [2, undefined], [2, undefined],
+    ])
+  })
+
+  test('empty parentheses are an error, not an empty fingering on the staff', () => {
+    expect(parseSheet('c4()').errors).toStrictEqual(['empty text: c4()'])
+    expect(parseSheet('c4()').measures[0][0].text).toBeUndefined()
+  })
+
+  test('a repeated mark is reported rather than silently last-one-wins', () => {
+    expect(parseSheet('c4(1)(2)').errors).toStrictEqual(['repeated text: (1)(2)'])
+    expect(parseSheet('c4[G][E]').errors).toStrictEqual(['repeated colour: [G][E]'])
+
+    // the first spelling is what lands, and the note still lands
+    expect(parseSheet('c4(1)(2)').measures[0][0].text).toBe('1')
+  })
+
+  test('text on a rest or a frequency has nothing to hang off', () => {
+    expect(parseSheet('r4(1)').errors).toStrictEqual(['text on a rest: r4(1)'])
+    expect(parseSheet('<440hz>4(1)').errors).toStrictEqual(['text on a frequency: <440hz>4(1)'])
+  })
+
+  test('parseMarks reads either order and both kinds', () => {
+    expect(parseMarks('[G](1)')).toStrictEqual([{ color: 'G', text: '1' }, []])
+    expect(parseMarks('(1)[G]')).toStrictEqual([{ color: 'G', text: '1' }, []])
+    expect(parseMarks('')).toStrictEqual([{}, []])
   })
 })

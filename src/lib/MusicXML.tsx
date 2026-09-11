@@ -90,15 +90,19 @@ export function note(note, duration, opts?): elements.Note {
     && new elements.Notehead({ attributes: { color: o.color, filled: o.filled }, contents: noteheadContents })
     || null
 
+  // Bowing and fingering are both <technical>, and MusicXML allows only one per
+  // <notations> — so they share an element rather than each bringing their own.
   const bowing = { down: new elements.DownBow(), up: new elements.UpBow() }[o.bowing]
-  const down = o.bowing ? new elements.Technical({ contents: [[bowing]] }) : null
+  const fingering = o.text ? new elements.Fingering({ contents: [String(o.text)] }) : null
+  const technicals = [bowing, fingering].filter(x => x)
+  const technical = technicals.length > 0 ? new elements.Technical({ contents: [technicals] }) : null
 
   const notations =
     new elements.Notations({
       contents: [
         null, // Footnote
         null, // Label
-        [o.slur, down].filter(x => x),
+        [o.slur, technical].filter(x => x),
       ]
     })
 

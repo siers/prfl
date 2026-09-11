@@ -188,6 +188,28 @@ describe('ToneLib', () => {
     expect(parseSheet(renderSheet(c6, 4, 'cG')).errors).toStrictEqual(['unusable colour: cG'])
   })
 
+  test('renderSheet text', () => {
+    expect(renderSheet(parseNote('c6')!, 4, undefined, '3')).toBe("c''4(3)")
+    expect(renderSheet(parseNote('c6')!, 8, 'G', '3')).toBe("c''8[G](3)")
+  })
+
+  test('a texted note round-trips with its fingering intact', () => {
+    const c6 = parseNote('c6')!
+
+    const { measures, errors } = parseSheet(renderSheet(c6, 4, 'G', '3'))
+    expect(errors).toStrictEqual([])
+    expect(measures.flat()[0]!.note).toStrictEqual(c6)
+    expect(measures.flat()[0]!.color).toBe(resolveColor('G')[0])
+    expect(measures.flat()[0]!.text).toBe('3')
+  })
+
+  test('renderSheet omits a mark it was not given', () => {
+    // an empty string is no mark, not an empty one — `c4()` is an error downstream
+    const c = parseNote('c4')!
+    expect(renderSheet(c, 4, '', '')).toBe('c4')
+    expect(parseSheet(renderSheet(c, 4, '', '')).errors).toStrictEqual([])
+  })
+
   test('pointwiseInterval', () => {
     const c4 = parseNote('c4')!
     const e4 = parseNote('e4')!

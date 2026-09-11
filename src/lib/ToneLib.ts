@@ -129,16 +129,18 @@ export function renderN(n: Note): string {
 const altersSheet: Record<number, string> = { 0: '', 1: 'is', '-1': 'es', 2: 'isis', '-2': 'eses' }
 const sheetOctave = 4
 
-// `color` is written through as given — SheetNotation owns what a colour may be, and
-// resolving it here would make this depend on the module that parses its own output.
-export function renderSheet(n: Note, denom: number = 4, color?: string): string {
+// `color` and `text` are written through as given — SheetNotation owns what each may
+// be, and resolving them here would make this depend on the module that parses its own
+// output. The two marks are emitted `[colour](text)`, though the parser reads either order.
+export function renderSheet(n: Note, denom: number = 4, color?: string, text?: string): string {
   const alter = altersSheet[n.alter] ?? '?'
   const octaves = n.octave >= sheetOctave
     ? "'".repeat(n.octave - sheetOctave)
     : ','.repeat(sheetOctave - n.octave)
   const kolor = color ? `[${color}]` : ''
+  const teksts = text ? `(${text})` : ''
 
-  return n.name + alter + octaves + denom + kolor
+  return n.name + alter + octaves + denom + kolor + teksts
 }
 
 export function addAccidental(note: Note, accidental: number): Note {

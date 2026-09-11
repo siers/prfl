@@ -7,13 +7,22 @@ import { note, rest, notesToMusic } from './MusicXML.tsx'
 function engrave(source: string): string {
   const { measures } = parseSheet(source)
   return notesToMusic(measures.map(m => m.map(n =>
-    n.note ? note(n.note, n.duration, { bowing: n.bowing, color: n.color }) : rest(n.duration))))
+    n.note ? note(n.note, n.duration, { bowing: n.bowing, color: n.color, text: n.text }) : rest(n.duration))))
 }
 
 // The <notehead> elements themselves, so an assertion can't pass off the back of
 // some unrelated corner of the document.
 function noteheads(source: string): string[] {
   return engrave(source).match(/<notehead[^>]*>[^<]*<\/notehead>/g) ?? []
+}
+
+// Whole <technical> blocks, not bare <fingering>: a fingering that landed in a second
+// <technical> alongside the bowing would still match the narrower pattern, and MusicXML
+// allows only one per <notations>. The serializer indents, so the block is collapsed
+// onto one line — the assertions are about which elements nest, not about layout.
+function technicals(source: string): string[] {
+  return (engrave(source).match(/<technical>.*?<\/technical>/gs) ?? [])
+    .map(t => t.replace(/>\s+</g, '><'))
 }
 
 describe('engraved colour', () => {
@@ -55,5 +64,38 @@ describe('engraved colour', () => {
       expect(heads[0], name).toMatch(/<notehead color="#[\dA-F]{6}">normal<\/notehead>/)
       expect(resolveColor(name)[0], name).toMatch(musicXmlColor)
     })
+  })
+})
+
+describe('engraved text', () => {
+  test('text reaches a fingering element', () => {
+    expect(technicals('c4(3)')).toStrictEqual(['<technical><fingering>3</fingering></technical>'])
+  })
+
+  test('an untexted note gets no technical at all', () => {
+    expect(technicals('c4')).toStrictEqual([])
+    expect(technicals('c4[G]')).toStrictEqual([])
+  })
+
+  test('bowing and fingering share one technical element', () => {
+    // MusicXML permits a single <technical> per <notations>; a second would be dropped
+    expect(technicals('c4v(2)')).toStrictEqual([
+      '<technical><up-bow/><fingering>2</fingering></technical>',
+    ])
+  })
+
+  test('text and colour engrave independently of each other', () => {
+    expect(noteheads('c4[G](1)')).toStrictEqual([
+      `<notehead color="${resolveColor('G')[0]}">normal</notehead>`,
+    ])
+    expect(technicals('c4[G](1)')).toStrictEqual(['<technical><fingering>1</fingering></technical>'])
+  })
+
+  test('non-numeric text survives verbatim', () => {
+    expect(technicals('c4(IV)')).toStrictEqual(['<technical><fingering>IV</fingering></technical>'])
+  })
+
+  test('a rejected text engraves nothing rather than an empty fingering', () => {
+    expect(technicals('c4()')).toStrictEqual([])
   })
 })
