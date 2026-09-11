@@ -238,7 +238,7 @@ function evalInterpolate(
     const fields = fieldsContext([...frozen, ...ss])
     const extra = { fields, frozen: fields }
     const substOut: any = executeCommand(i.command, context, extra)
-    if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: $subst?.contents}`), ss]
+    if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: ${substOut}`), ss]
     subst = toInterpolateSubst(substOut)
   }
 

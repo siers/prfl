@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
 import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
-import { parseSheet } from './SheetNotation.ts'
+import { parseSheet, resolveColor } from './SheetNotation.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -169,6 +169,23 @@ describe('ToneLib', () => {
     expect(renderSheet(c)).toBe('c4')
     expect(parseSheet(renderSheet(c)).measures.flat()[0]!.duration).toBe(4)
     expect(parseSheet(renderSheet(c, 8)).measures.flat()[0]!.duration).toBe(2)
+  })
+
+  test('renderSheet color', () => {
+    expect(renderSheet(parseNote('c6')!, 4, 'G')).toBe("c''4[G]")
+  })
+
+  test('a coloured note round-trips with its colour intact', () => {
+    // renderSheet writes the colour through verbatim, so only a spelling the parser
+    // accepts survives: `[G]` is the G string, `[cG]` is not a colour at all
+    const c6 = parseNote('c6')!
+
+    const good = parseSheet(renderSheet(c6, 4, 'G'))
+    expect(good.errors).toStrictEqual([])
+    expect(good.measures.flat()[0]!.note).toStrictEqual(c6)
+    expect(good.measures.flat()[0]!.color).toBe(resolveColor('G')[0])
+
+    expect(parseSheet(renderSheet(c6, 4, 'cG')).errors).toStrictEqual(['unusable colour: cG'])
   })
 
   test('pointwiseInterval', () => {

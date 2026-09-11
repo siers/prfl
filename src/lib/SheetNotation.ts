@@ -2,7 +2,7 @@
 //
 //   [`c4 d4 e8 f8 | g2 a'4 bes,4`]sheet:hide
 //
-// A token is `<letter><accidentals><octave marks><duration><dots><bowing>`:
+// A token is `<letter><accidentals><octave marks><duration><dots><bowing><colour>`:
 //
 //   letter      a-g (case-insensitive)
 //   accidentals `is`/`es` (LilyPond) or `#`/`b`, up to two — c#, cis, bes, ceses
@@ -10,7 +10,13 @@
 //   duration    LilyPond denominator: 1 = whole, 2 = half, 4 = quarter, 8, 16
 //   dots        `.` multiplies the duration by 1.5 (a second dot by 1.75)
 //   bowing      trailing `v` up-bow, `n` down-bow (or the glyphs `V` / `Π`)
+//   colour      `[G]` `[D]` `[A]` `[E]` for the violin string of that name, a hex
+//               colour `[#ff8800]`, or a keyword `[red]`. Colours the notehead only.
 //   rest        `r` in place of the letter (duration/dots still apply)
+//
+// Brackets are used because every letter is already spoken for: a-g are notes, `r`
+// is a rest, `v`/`n` are bowings, `b` is a flat. Unlike duration, colour does not
+// carry over to the next token — it is a mark on one note, not a running state.
 //
 // `<442hz>` names a frequency directly, for training differences finer than the
 // 12-tone grid. Duration/dots follow the angle brackets — `<442hz>8.` — and the
@@ -32,6 +38,7 @@ export type SheetNote = {
   hz?: number               // exact frequency, for synthesis; unengraveable
   duration: number          // in divisions
   bowing?: Bowing
+  color?: string            // CSS colour for the notehead, already resolved from the palette
 }
 
 export type SheetMeasure = SheetNote[]
@@ -44,6 +51,29 @@ export type SheetParse = {
 const DEFAULT_OCTAVE = 4
 const DEFAULT_DENOM = 4
 
+export const stringColors: Record<string, string> = {
+  G: '#b35009',
+  D: '#0cb7c9',
+  A: '#c9c60c',
+  E: '#09e698',
+}
+
+// export const stringColors: Record<string, string> = {
+//   G: '#C0392B', // red
+//   D: '#E67E22', // orange
+//   A: '#27AE60', // green
+//   E: '#2980B9', // blue
+// }
+
+// MusicXML colours are `#RRGGBB` (optionally `#AARRGGBB`) in uppercase hex — the
+// schema validates against that regex and silently drops anything else, so a CSS
+// keyword would engrave as no colour at all. These are the keywords worth spelling,
+// resolved here rather than left to be dropped downstream.
+const namedColors: Record<string, string> = {
+  black: '#000000', red: '#FF0000', green: '#008000', blue: '#0000FF',
+  orange: '#FFA500', purple: '#800080', grey: '#808080', gray: '#808080',
+}
+
 const accidentalNames: Record<string, string> = {
   isis: '##', is: '#', eses: 'bb', es: 'b',
 }
@@ -52,10 +82,36 @@ const accidentalNames: Record<string, string> = {
 const bowings: Record<string, Bowing> = { v: 'up', '∨': 'up', n: 'down', 'Π': 'down' }
 
 // `<NNNhz>` with the same trailing duration/dots/bowing; `'`/`,` tolerated and dropped.
-const hzPattern = /^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?$/i
+// A colour is matched so it can be reported, not silently treated as an unparsable token.
+const hzPattern = /^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?(?:\[(?<color>[^\][\s]*)\])?$/i
 
-// `<letter><accidentals><octaves><duration><dots><bowing>` — every part but the letter optional.
-const tokenPattern = /^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?$/i
+// `<letter><accidentals><octaves><duration><dots><bowing><colour>` — every part but the letter optional.
+const tokenPattern = /^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?(?:\[(?<color>[^\][\s]*)\])?$/i
+
+// A bracketed colour is a violin string name (`[G]`), a hex colour (`[#ff8800]`) or
+// one of the keywords above (`[red]`). String names are matched first and
+// case-sensitively, so `[E]` is the E string while `[e]` is not.
+//
+// Everything resolves to the uppercase `#RRGGBB` MusicXML demands: the alternative is
+// an engraver that drops the attribute and colours nothing, with no error anywhere.
+// `#RGB` shorthand is expanded, since it is the spelling people reach for.
+export function resolveColor(spec: string): [string | null, string | null] {
+  if (spec.length == 0) return [null, 'empty colour']
+
+  // Palette entries go through the same normalisation as a hand-written colour: they
+  // are ordinary hex, and a lowercase one would otherwise fail MusicXML's uppercase
+  // pattern and be dropped — leaving `[G]` silently colourless while `[#b35009]` works.
+  const named = (spec == spec.toUpperCase() ? stringColors[spec] : undefined)
+    ?? namedColors[spec.toLowerCase()]
+  const hex = named ?? spec
+
+  const short = hex.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i)
+  if (short) return [`#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`.toUpperCase(), null]
+
+  if (/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(hex)) return [hex.toUpperCase(), null]
+
+  return [null, `unusable colour: ${spec}`]
+}
 
 // LilyPond denominator to MusicXML duration units; null if it needs a fraction.
 export function denomToDuration(denom: number, dots: number): number | null {
@@ -71,7 +127,7 @@ export function denomToDuration(denom: number, dots: number): number | null {
 function parseHzToken(
   token: string, groups: Record<string, string>, denomPrev: number,
 ): [SheetNote | null, number, string | null] {
-  const { hz, denom, dots, bowing } = groups
+  const { hz, denom, dots, bowing, color } = groups
 
   const denomNum = denom ? parseInt(denom, 10) : denomPrev
   const duration = denomToDuration(denomNum, (dots || '').length)
@@ -82,7 +138,10 @@ function parseHzToken(
 
   const bow = bowing ? bowings[bowing] ?? bowings[bowing.toLowerCase()] : undefined
 
-  return [{ note: null, hz: freq, duration, ...(bow ? { bowing: bow } : {}) }, denomNum, null]
+  // An hz note has no notehead, so a colour on it has nothing to paint.
+  const colored = color === undefined ? null : `colour on a frequency: ${token}`
+
+  return [{ note: null, hz: freq, duration, ...(bow ? { bowing: bow } : {}) }, denomNum, colored]
 }
 
 function parseToken(token: string, denomPrev: number): [SheetNote | null, number, string | null] {
@@ -92,7 +151,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const match = token.match(tokenPattern)
   if (!match?.groups) return [null, denomPrev, `unparsable token: ${token}`]
 
-  const { letter, accidentals, octaves, denom, dots, bowing } = match.groups
+  const { letter, accidentals, octaves, denom, dots, bowing, color } = match.groups
 
   const denomNum = denom ? parseInt(denom, 10) : denomPrev
   const duration = denomToDuration(denomNum, (dots || '').length)
@@ -102,9 +161,14 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const bow = bowing ? bowings[bowing] ?? bowings[bowing.toLowerCase()] : undefined
   const bowed = bow ? { bowing: bow } : {}
 
+  const [resolved, colorError] = color === undefined ? [null, null] : resolveColor(color)
+  const colored = resolved ? { color: resolved } : {}
+
   // A bow mark on a rest has nothing to engrave — say so rather than dropping it.
   if (letter.toLowerCase() == 'r') {
-    return [{ note: null, duration }, denomNum, bow ? `bowing on a rest: ${token}` : null]
+    const restError = bow ? `bowing on a rest: ${token}`
+      : color !== undefined ? `colour on a rest: ${token}` : null
+    return [{ note: null, duration }, denomNum, restError]
   }
 
   const accidental = accidentalNames[(accidentals || '').toLowerCase()] ?? (accidentals || '')
@@ -115,7 +179,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const note = ToneLib.parseNote(`${letter.toLowerCase()}${accidental}`)
   if (!note) return [null, denomPrev, `unparsable note: ${token}`]
 
-  return [{ note: { ...note, octave }, duration, ...bowed }, denomNum, null]
+  return [{ note: { ...note, octave }, duration, ...bowed, ...colored }, denomNum, colorError]
 }
 
 export function parseSheet(source: string): SheetParse {

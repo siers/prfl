@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { denomToDuration, parseSheet } from './SheetNotation'
+import { denomToDuration, parseSheet, resolveColor, stringColors } from './SheetNotation'
 
 describe('denomToDuration', () => {
   test('lilypond denominators', () => {
@@ -133,5 +133,102 @@ describe('absolute frequencies', () => {
     expect(parseSheet('<hz>4').errors.length).toBe(1)
     expect(parseSheet('<0hz>4').errors).toStrictEqual(['unusable frequency in: <0hz>4'])
     expect(parseSheet('<440hz>32').errors).toStrictEqual(['unusable duration in: <440hz>32'])
+  })
+})
+
+describe('colour', () => {
+  // The palette may be written in any case; what lands on a note is the normalised
+  // form, so tests ask for that rather than comparing against the raw table.
+  const stringColor = (name: string) => resolveColor(name)[0]
+
+  test('the four violin strings each get their own colour', () => {
+    const { measures, errors } = parseSheet("g,4[G] d4[D] a4[A] e'4[E]")
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => n.color)).toStrictEqual([
+      stringColor('G'), stringColor('D'), stringColor('A'), stringColor('E'),
+    ])
+    // the point of a string palette: four notes, four distinguishable colours
+    expect(new Set(measures[0].map(n => n.color)).size).toBe(4)
+  })
+
+  test('hex and keyword colours normalise to what musicxml accepts', () => {
+    // MusicXML validates colour against /#[\dA-F]{6}.../ and silently drops anything
+    // else, so keywords and #RGB shorthand have to be resolved here, not passed on.
+    const { measures, errors } = parseSheet('c4[red] d4[#ff8800] e4[#F80] f4[GREY]')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => n.color)).toStrictEqual(['#FF0000', '#FF8800', '#FF8800', '#808080'])
+  })
+
+  test('a string name is the string, not a note letter', () => {
+    // `[E]` is the E string; the note it hangs off is unaffected
+    const { measures } = parseSheet('c4[E]')
+    expect(measures[0][0].note).toStrictEqual({ name: 'c', alter: 0, octave: 4 })
+    expect(measures[0][0].color).toBe(stringColor('E'))
+  })
+
+  test('colour does not carry over the way duration does', () => {
+    // duration is running state, colour is a mark on one note
+    const { measures } = parseSheet('c8[G] d e')
+    expect(measures[0].map(n => [n.duration, n.color])).toStrictEqual([
+      [2, stringColor('G')], [2, undefined], [2, undefined],
+    ])
+  })
+
+  test('colour composes with bowing and dots', () => {
+    const { measures, errors } = parseSheet("a'8.v[A]")
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0][0]).toStrictEqual({
+      note: { name: 'a', alter: 0, octave: 5 }, duration: 3, bowing: 'up', color: stringColor('A'),
+    })
+  })
+
+  test('colour composes with accidentals, both spellings', () => {
+    const { measures, errors } = parseSheet('bes4[D] c#4[G]')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => [n.note!.name, n.note!.alter, n.color])).toStrictEqual([
+      ['b', -1, stringColor('D')], ['c', 1, stringColor('G')],
+    ])
+  })
+
+  test('an unusable colour is reported, the note still lands', () => {
+    const { measures, errors } = parseSheet('c4[nope!] d4')
+
+    expect(measures[0].map(n => [n.note!.name, n.color])).toStrictEqual([
+      ['c', undefined], ['d', undefined],
+    ])
+    expect(errors).toStrictEqual(['unusable colour: nope!'])
+  })
+
+  test('an empty bracket is an error, not a silent no-op', () => {
+    expect(parseSheet('c4[]').errors).toStrictEqual(['empty colour'])
+  })
+
+  test('colour on a rest or a frequency has no notehead to paint', () => {
+    expect(parseSheet('r4[G]').errors).toStrictEqual(['colour on a rest: r4[G]'])
+    expect(parseSheet('<440hz>4[G]').errors).toStrictEqual(['colour on a frequency: <440hz>4[G]'])
+  })
+
+  test('resolveColor', () => {
+    expect(resolveColor('G')).toStrictEqual([stringColors.G.toUpperCase(), null])
+    expect(resolveColor('red')).toStrictEqual(['#FF0000', null])
+    expect(resolveColor('#abcdef')).toStrictEqual(['#ABCDEF', null])
+    expect(resolveColor('#ff88')).toStrictEqual([null, 'unusable colour: #ff88'])
+    expect(resolveColor('')).toStrictEqual([null, 'empty colour'])
+  })
+
+  test('every colour it emits is one musicxml will accept', () => {
+    // the schema's own pattern, which drops a non-matching attribute without complaint
+    const musicXmlColor = /^#[\dA-F]{6}([\dA-F][\dA-F])?$/
+    const specs = [...Object.keys(stringColors), 'red', 'green', 'grey', '#f80', '#ff8800']
+
+    specs.forEach(spec => {
+      const [resolved, error] = resolveColor(spec)
+      expect(error, spec).toBeNull()
+      expect(resolved, spec).toMatch(musicXmlColor)
+    })
   })
 })

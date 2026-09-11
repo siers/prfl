@@ -79,7 +79,8 @@ function serializedSheet(source: string): Note[][] {
 
   errors.length > 0 && console.warn('sheet notation:', errors)
 
-  return measures.map(m => m.map(n => n.note ? note(n.note, n.duration, { bowing: n.bowing }) : rest(n.duration)))
+  return measures.map(m => m.map(n =>
+    n.note ? note(n.note, n.duration, { bowing: n.bowing, color: n.color }) : rest(n.duration)))
 }
 
 export default function SheetOSMD(params_: { params: { sheet?: string, scale?: string, position?: string, key?: string, random?: string } }) {

@@ -85,8 +85,8 @@ export function note(note, duration, opts?): elements.Note {
 
   const tie = o.tied && new elements.Chord || null
 
-  const noteheadContents = o.notehead ? [o.notehead] : null
-  const notehead = (o.color || o.filled || noteheadContents)
+  const noteheadContents = o.notehead ? [o.notehead] : ['normal']
+  const notehead = (o.color || o.filled || o.notehead)
     && new elements.Notehead({ attributes: { color: o.color, filled: o.filled }, contents: noteheadContents })
     || null
 

@@ -129,13 +129,16 @@ export function renderN(n: Note): string {
 const altersSheet: Record<number, string> = { 0: '', 1: 'is', '-1': 'es', 2: 'isis', '-2': 'eses' }
 const sheetOctave = 4
 
-export function renderSheet(n: Note, denom: number = 4): string {
+// `color` is written through as given — SheetNotation owns what a colour may be, and
+// resolving it here would make this depend on the module that parses its own output.
+export function renderSheet(n: Note, denom: number = 4, color?: string): string {
   const alter = altersSheet[n.alter] ?? '?'
   const octaves = n.octave >= sheetOctave
     ? "'".repeat(n.octave - sheetOctave)
     : ','.repeat(sheetOctave - n.octave)
+  const kolor = color ? `[${color}]` : ''
 
-  return n.name + alter + octaves + denom
+  return n.name + alter + octaves + denom + kolor
 }
 
 export function addAccidental(note: Note, accidental: number): Note {
