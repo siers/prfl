@@ -373,6 +373,10 @@ function pickKeysShuf(settings?: PickKeysInt): string[][] {
   return pickKeys({ ...settings, shuffle: true, split: parseInt(pick('34')) })
 }
 
+function allKeys(settings?: PickKeysInt): string[] {
+  return pickKeysShuf(settings).flat()
+}
+
 function letterKeys(): string[] {
   return majorKeyCentersWeighted().map(([, ...chunks]) => {
     const weights = chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight))
@@ -492,6 +496,7 @@ export type Interface = {
 
   pickKeys: (settings?: PickKeysInt) => string[][],
   pickKeysShuf: (settings?: PickKeysInt) => string[][],
+  allKeys: (settings?: PickKeysInt) => string[],
   letterKeys: () => string[],
   keys: () => string[],
 
@@ -734,6 +739,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
 
     pickKeys,
     pickKeysShuf,
+    allKeys,
     letterKeys,
     keys,
 
