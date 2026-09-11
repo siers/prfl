@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical } from './ToneLib.ts'
+import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
+import { parseSheet } from './SheetNotation.ts'
 
 describe('ToneLib', () => {
   test('parse static', () => {
@@ -131,6 +132,43 @@ describe('ToneLib', () => {
     keysMajor().flat().forEach(note => {
       expect(note).toStrictEqual(parseNote(render(note)))
     })
+  })
+
+  test('renderSheet survives a roundtrip through sheet notation', () => {
+    // every spelling the library can generate, across the octaves it uses
+    const notes = keysMajor().flat().flatMap(n =>
+      [1, 2, 3, 4, 5, 6, 7].map(octave => ({ ...n, octave })))
+
+    notes.forEach(note => {
+      const { measures, errors } = parseSheet(renderSheet(note))
+      expect(errors, renderSheet(note)).toStrictEqual([])
+      expect(measures.flat().map(s => s.note), renderSheet(note)).toStrictEqual([note])
+    })
+  })
+
+  test('renderSheet keeps enharmonics apart', () => {
+    // the point of spelling-first: these share a pitch but must not share a token
+    const spellings = ['e', 'fb', 'e#', 'f', 'b#', 'c', 'cb', 'bb'].map(s => parseNote(s)!)
+    const tokens = spellings.map(n => renderSheet(n))
+
+    expect(new Set(tokens).size).toBe(spellings.length)
+    expect(tokens).toStrictEqual(['e4', 'fes4', 'eis4', 'f4', 'bis4', 'c4', 'ces4', 'bes4'])
+  })
+
+  test('renderSheet spells the octave as marks, not as the duration digit', () => {
+    // render()'s trailing digit is an octave, but sheet notation reads it as a
+    // duration — c2 there is a half note in octave 4, a silently different pitch
+    expect(renderSheet(parseNote('c2')!)).toBe('c,,4')
+    expect(renderSheet(parseNote('c6')!)).toBe("c''4")
+    expect(parseSheet(render(parseNote('c2')!)).measures.flat()[0]!.note)
+      .not.toStrictEqual(parseNote('c2'))
+  })
+
+  test('renderSheet takes a duration, defaulting to a quarter note', () => {
+    const c = parseNote('c4')!
+    expect(renderSheet(c)).toBe('c4')
+    expect(parseSheet(renderSheet(c)).measures.flat()[0]!.duration).toBe(4)
+    expect(parseSheet(renderSheet(c, 8)).measures.flat()[0]!.duration).toBe(2)
   })
 
   test('pointwiseInterval', () => {

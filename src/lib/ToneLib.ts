@@ -126,6 +126,18 @@ export function renderN(n: Note): string {
   return render(n, false)
 }
 
+const altersSheet: Record<number, string> = { 0: '', 1: 'is', '-1': 'es', 2: 'isis', '-2': 'eses' }
+const sheetOctave = 4
+
+export function renderSheet(n: Note, denom: number = 4): string {
+  const alter = altersSheet[n.alter] ?? '?'
+  const octaves = n.octave >= sheetOctave
+    ? "'".repeat(n.octave - sheetOctave)
+    : ','.repeat(sheetOctave - n.octave)
+
+  return n.name + alter + octaves + denom
+}
+
 export function addAccidental(note: Note, accidental: number): Note {
   return { ...note, alter: note.alter + accidental }
 }
