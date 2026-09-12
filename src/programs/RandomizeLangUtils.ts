@@ -607,9 +607,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   //   return pickTasks(name, block(name), n)
   // }
 
-  function pickBlockStateless(name: string, n: number | 'full'): RenderLine[] {
-    const lines = blockLines(name)
-    if (!lines) return [errorLine(`pickBlockStateless: cannot find ${name}`)]
+  function pickLinesStateless(lines: RenderLine[], n: number | 'full'): RenderLine[] {
     return pickTasksStateless(lines).slice(0, n == 'full' ? 10000 : n)
   }
 
@@ -660,8 +658,11 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     const parsed = parseScheduleBlocksSentence(sentence)
     if (typeof parsed == 'string') return [errorLine(parsed)]
     return parsed.flatMap(([name, amount, prefix]) => {
-      const lines = pickBlockStateless(name, amount)
-      return prefix === null ? lines : lines.map(rl => prefixRenderLine(prefix, rl))
+      const lines = blockLines(name)
+      // Prefix before scheduling: reviews are recorded under the rendered
+      // (prefixed) key, so the cards handed to the scheduler must carry it too.
+      const cards = prefix === null ? lines : lines.map(rl => prefixRenderLine(prefix, rl))
+      return pickLinesStateless(cards, amount)
     })
   }
 
