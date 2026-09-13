@@ -35,3 +35,9 @@ so you're not juggling a metronome app, a timer, and a notes file separately.
 
 - [ToneLib API](ToneLib.md) — the music-theory core: notes, keys, intervals, transposition.
 - [Randomize](Randomize.md) — the practice-list program: the `.rndl` language, timers, reviewing, tags, and the `next` programme.
+
+## Demos
+
+`exercises/demo.rndl`: source of a curated list of tasks
+
+`exercises/full.rndl`: sporadically updated document with a full session (you can do about half of it per day, some of it is supposed to be skipped)
