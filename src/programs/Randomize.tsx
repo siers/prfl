@@ -262,7 +262,7 @@ function Randomize(controls: any): JSX.Element {
     }
   }
 
-  function renderContentWithTags(item: RenderLine) {
+  function renderContentWithTags(item: RenderLine, isCurrent: boolean) {
     const [contentTags, lookupTag] = renderLineContentWithTags(item)
     return <>
       {
@@ -277,12 +277,15 @@ function Randomize(controls: any): JSX.Element {
           const content = string ? ct[1] : interpolate
           const recalcF = () => recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })
 
+          if (tag && !isCurrent) return null
+
           // `hide` feeds the sheet/image displays without printing the value.
           if (tag && isHidden(subst!)) return null
           const TagName = string || (subst && isInline(subst)) ? 'span' : 'div'
           const fontFamily = subst && monospace(subst) ? { fontFamily: 'monospace' } : {}
+          const fontSize = isCurrent ? string ? '2rem' : '1.5rem' : ''
 
-          return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && recalcF()} style={{ fontSize: string ? '2rem' : '1.5rem', ...fontFamily }} >
+          return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && recalcF()} style={{ fontSize, ...fontFamily }} >
             {content}
           </TagName>
         })
@@ -320,7 +323,7 @@ function Randomize(controls: any): JSX.Element {
         return <div key={index} className={`w-full text-center text-wrap rendered-item ${isCurrent ? 'current-item' : ''}`} onClick={_ => recalc({ advance: ['set', index] })} {...wipeHandlers}>
           {
             showCheckmark ? <>✅</> : <>
-              {isCurrent || !hideDone ? renderContentWithTags(item) : emptiedInterpolations(item).contents}
+              {renderContentWithTags(item, isCurrent)}
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'new' } })}>🔄</a>}
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn zipped deck" onClick={e => { e.stopPropagation(); spawn('zip') }}>⛓️</a>}
@@ -455,7 +458,7 @@ function Randomize(controls: any): JSX.Element {
   const linearize = (n: number, low: number, high: number) => (1 - Math.pow(1 - (n - low) / (high - low), 2)) * 1000
 
   function metroUI() {
-    return <div className="w-full top-0 left-0 p-3 flex-0 font-mono">
+    return <div className="w-full top-0 left-0 p-3 shrink-0 font-mono">
       <div className="text-center">
         <div><input type="range" className="w-[80%]" value={linearize(metroBpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
