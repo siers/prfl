@@ -4,7 +4,6 @@ import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
-import { NEXT_TAG } from './RandomizeNext'
 import type { ImageEntry } from '../lib/PrflAssets'
 
 // Extra, host-supplied bits the high-level evaluators thread down into the DSL
@@ -390,7 +389,7 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
 
   if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
     const rotated = (l.source.substitutions || []).map(s =>
-      !isComputed(s) && (!tag || tag == s.tag) && (tag != null || s.tag != NEXT_TAG)
+      !isComputed(s) && (!tag || tag == s.tag)
         ? { ...s, contents: rotateInterpolateSubst(s.contents) }
         : s
     )

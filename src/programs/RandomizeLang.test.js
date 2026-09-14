@@ -856,17 +856,20 @@ describe('rotateInterpolableLine and the `next` programme', () => {
 
   const sub = (item, tag) => item.source.substitutions.find(s => s.tag === tag).contents
 
-  test('a blanket rotation moves the fields but leaves the programme where it is', () => {
+  // ⏩ means "every field steps once", and the programme is a field like any
+  // other: it marches with its siblings rather than drifting out of step.
+  test('a blanket rotation moves the programme along with the other fields', () => {
     const rotated = rotateInterpolableLine(carded())
 
     expect(sub(rotated, 'tagS')).toStrictEqual(['2', '1'])
-    expect(sub(rotated, 'next')).toStrictEqual(['4f', '4r'])
+    expect(sub(rotated, 'next')).toStrictEqual(['4r', '4f'])
   })
 
-  test('repeated rotations never advance the programme', () => {
+  test('repeated rotations walk the programme round', () => {
     let item = carded()
-    for (let i = 0; i < 5; i++) item = rotateInterpolableLine(item)
+    for (let i = 0; i < 4; i++) item = rotateInterpolableLine(item)
 
+    // two steps, so an even number of rotations lands back where it started
     expect(sub(item, 'next')).toStrictEqual(['4f', '4r'])
   })
 
@@ -874,7 +877,7 @@ describe('rotateInterpolableLine and the `next` programme', () => {
     expect(sub(rotateInterpolableLine(carded(), 'next'), 'next')).toStrictEqual(['4r', '4f'])
   })
 
-  test('rotating a sibling by name leaves both the programme and the other field', () => {
+  test('rotating a sibling by name leaves the programme alone', () => {
     const rotated = rotateInterpolableLine(carded(), 'tagS')
 
     expect(sub(rotated, 'tagS')).toStrictEqual(['2', '1'])
