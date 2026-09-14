@@ -139,13 +139,19 @@ describe('Randomize — spawn buttons', () => {
   // render tests assert membership, not order; deterministic order is covered in
   // the reducer tests via an injected identity scheduler.
   const ZIP_CHILDREN = ['Scale: play [C] [up]', 'Scale: play [D] [down]']
+  // Only the item under the cursor prints its interpolated values; siblings
+  // render the bare template with the tag segments omitted.
+  const ZIP_SIBLING = 'Scale: play  '
 
   test('⛓️ descends into the zipped deck (position-aligned children)', () => {
     const { container, getByText } = setupExecuting(SPAWNABLE)
     act(() => { fireEvent.click(getByText('⛓️')) })
-    // zip of [C,D]×[up,down] -> exactly these 2 children, cursor on one of them
-    expect(renderedItems(container).slice().sort()).toStrictEqual([...ZIP_CHILDREN].sort())
+    // zip of [C,D]×[up,down] -> exactly 2 children, cursor on one of them
+    const items = renderedItems(container)
+    expect(items).toHaveLength(2)
     expect(ZIP_CHILDREN).toContain(currentItemText(container))
+    // the other child is present, with its values hidden
+    expect(items.filter(t => t !== currentItemText(container))).toStrictEqual([ZIP_SIBLING])
   })
 
   test('🧬 descends into the cartesian deck (cursor on a combination)', () => {

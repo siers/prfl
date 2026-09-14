@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
-import { emptiedInterpolations, interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
+import { interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
 import { ContentOrTag, isCutSemi, isHidden, isInline, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
@@ -572,9 +572,14 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
+// TODO: 7RZH execution: make items just pointers, allowing for refreshing of cards while in the list, removing implementations from lists
 // TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
+// TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
+// TODO: keys: add bangs + errors to make sure that the pointers reference (7RZH)
+// TODO: next: don't skip forward
 
-// TODO: execution: (7RZH) make items just pointers, allowing for refreshing of cards while in the list
+//
+
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: subdecks: populate subdecks from blocks, if key shares the same name as the block
 // TODO: subdecks: blocks should take variables, no special subdeck syntax
@@ -591,36 +596,26 @@ export default Randomize
 // TODO: execution: swipe actions on the item to hide the stack
 // TODO: execution: param rotations take stuff out (what to do in case there are multiple params, then it's slightly weird)
 
-// TODO: evaluational: all cards are always present
-// TODO: evaluational: some blocks are dynamic, always rerendered
-
-// TODO: parametrization: subdecks should survive refresh (what was the usecase, again?)
-
-// TODO: content: scales: bowings/delete notes replace with pauses
+// TODO: swipe: add diagonal directions to make it more cancellable, + more minimal distance
+// TODO: review: accumulate review time in card
+// TODO: review: mark cards as in poor execution capability
+// TODO: execution: track reviews/freshness, leverage for scheduling
+// TODO: review: hierarchical dropping (droping respects items with an equal or -1 drop count)
 
 // TODO: metro: subdecks should use the bpm from the top card, if it's not defined yet
 // TODO: metro: subdecks should be able to start fresh metro times
 
-// TODO: swipe: add diagonal directions to make it more cancellable, + more minimal distance
-// TODO: review: accumulate review time in card
-// TODO: review: mark cards as in poor execution capability
-// TODO: review: conundrum: if you zip cards, you don't generate the full space, you can't problematic cards bump in front of the queue
-// TODO: execution: track reviews/freshness, leverage for scheduling
-// TODO: review: hierarchical dropping (droping respects items with an equal or -1 drop count)
+// ---
 
 // TODO: paramtrz: use the scheduler in interpolations mode (fw button = review)
 // TODO: paramtrz: spawning params: column subsets, subset per column
 // TODO: paramtrz: sample hyperspace (pretty unlikely to be done, requires order of items, are the tails sown together?)
+// TODO: review: conundrum: if you zip cards, you don't generate the full space, you can't problematic cards bump in front of the queue
 
 // TODO: paramtrz: either hierarchical or multiple keys
 
-// ---
-
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
-
 // TODO: boring: lang: add tags to block, only main blocks may have items without keys
-// TODO: boring: content: instead of warmup + aba(block(), block()), make warmup addable optionally (MD4F), then zipped priority cards + non-prio
-// TODO: boring: content: (MD4F) would require a special action for that would influence the deck
 
 // TODO: backlog: state: use a CRDT-storage server
 // TODO: backlog: state: check if I can read anki database locally
