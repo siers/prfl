@@ -173,6 +173,19 @@ describe('Randomize — spawn buttons', () => {
     expect(currentItemText(container)).toContain('Scale: play [C D] [up down]') // parent again (with its buttons)
   })
 
+  // The metro panel is open on arrival — the bpm controls are the common case,
+  // so they cost no click. 🥁 is a toggle, not an opener.
+  test('the metro panel starts open and 🥁 toggles it shut and back', () => {
+    const { getByText, queryByText } = setupExecuting(THREE_LINES)
+    expect(queryByText(/^@\d/)).toBeTruthy() // open without any click
+
+    act(() => { fireEvent.click(getByText('🥁')) })
+    expect(queryByText(/^@\d/)).toBeNull() // closed
+
+    act(() => { fireEvent.click(getByText('🥁')) })
+    expect(queryByText(/^@\d/)).toBeTruthy() // open again
+  })
+
   // The synth is gated on audibility alone: a `next` card is beat-driven, but a
   // beat it cannot hear must not spin up the Tone.js Transport and audio nodes.
   test('a next-tag item alone does not mount the synth; powering the metro does', () => {
@@ -182,8 +195,7 @@ describe('Randomize — spawn buttons', () => {
     // metro is unpowered and the item carries no tones.
     expect(container.querySelector('[data-testid="synth"]')).toBeNull()
 
-    // 🥁 opens the metro panel, @bpm powers it — now there is audio to make.
-    act(() => { fireEvent.click(getByText('🥁')) })
+    // The metro panel is open by default; @bpm powers it — now there is audio to make.
     act(() => { fireEvent.click(getByText(/^@\d/)) }) // the @bpm span is the power toggle
     expect(container.querySelector('[data-testid="synth"]')).toBeTruthy()
   })

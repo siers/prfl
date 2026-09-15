@@ -7,7 +7,7 @@ import * as ToneLib from '../lib/ToneLib.ts'
 import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
-  defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones,
+  defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -367,6 +367,11 @@ describe('reduceSetBpm / reduceMetro', () => {
     const out = reduceSetBpm(s, 123)
     const cards = Object.fromEntries(JSON.parse(out.memory!)).cards
     expect(cards['a'].bpm).toBe(123)
+  })
+
+  test('the panel defaults to open, and an explicit close survives later diffs', () => {
+    expect(recalcMetro({}, {}).opened).toBe(true)
+    expect(recalcMetro({ opened: false }, { bpm: 90 }).opened).toBe(false)
   })
 
   test('metro diff clamps bpm and re-stamps the current card (no nested setState)', () => {

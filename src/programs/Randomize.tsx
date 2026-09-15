@@ -439,7 +439,7 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
-  const metro: Metro = state?.metro || { bpm: defaultBpm }
+  const metro: Metro = state?.metro || { opened: true, bpm: defaultBpm }
   const metroBpm: number = metro.bpm || defaultBpm
 
   // Memoized on the item, not the parsed array: a fresh array every render

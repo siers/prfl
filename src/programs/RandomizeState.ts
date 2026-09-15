@@ -132,7 +132,7 @@ export function itemMetroTones(item?: UserItem): SheetNote[] {
 
 export function recalcMetro(old: Metro, diff: Metro): Metro {
   const diffFilt = Object.fromEntries(Object.entries(diff).filter(([_key, value]) => value != null && value != undefined))
-  const fresh = { opened: false, power: false, bpm: defaultBpm, ...old, ...diffFilt }
+  const fresh = { opened: true, power: false, bpm: defaultBpm, ...old, ...diffFilt }
   fresh.bpm = clamp(Math.floor(fresh.bpm), 20, 500)
   return fresh
 }
