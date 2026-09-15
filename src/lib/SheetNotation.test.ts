@@ -233,6 +233,66 @@ describe('colour', () => {
   })
 })
 
+describe('notehead shape', () => {
+  test('a bracketed x is a crossed notehead', () => {
+    const { measures, errors } = parseSheet('c4[x] d4')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => n.shape)).toStrictEqual(['x', undefined])
+  })
+
+  test('shape and colour are different kinds, so both fit in brackets', () => {
+    // the point of sorting a bracket by its content: `[x][G]` is two marks, not a repeat
+    const { measures, errors } = parseSheet('c4[x][G] d4[G][x]')
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => [n.shape, n.color])).toStrictEqual([
+      ['x', resolveColor('G')[0]], ['x', resolveColor('G')[0]],
+    ])
+  })
+
+  test('a repeated shape is still a repeat', () => {
+    expect(parseSheet('c4[x][x]').errors).toStrictEqual(['repeated shape: [x][x]'])
+    expect(parseSheet('c4[x][x]').measures[0][0].shape).toBe('x')
+  })
+
+  test('uppercase [X] stays the colour slot — [E] must remain the E string', () => {
+    // shapes are matched case-sensitively so they cannot shadow a violin string name
+    const { measures, errors } = parseSheet('c4[X]')
+
+    expect(measures[0][0].shape).toBeUndefined()
+    expect(errors).toStrictEqual(['unusable colour: X'])
+  })
+
+  test('shape composes with bowing, dots, accidentals and text', () => {
+    const { measures, errors } = parseSheet("bes'8.v[x][A](4)")
+
+    expect(errors).toStrictEqual([])
+    expect(measures[0][0]).toStrictEqual({
+      note: { name: 'b', alter: -1, octave: 5 },
+      duration: 3, bowing: 'up', color: resolveColor('A')[0], shape: 'x', text: '4',
+    })
+  })
+
+  test('shape does not carry over the way duration does', () => {
+    const { measures } = parseSheet('c8[x] d e')
+    expect(measures[0].map(n => [n.duration, n.shape])).toStrictEqual([
+      [2, 'x'], [2, undefined], [2, undefined],
+    ])
+  })
+
+  test('shape on a rest or a frequency has no notehead to draw', () => {
+    expect(parseSheet('r4[x]').errors).toStrictEqual(['shape on a rest: r4[x]'])
+    expect(parseSheet('<440hz>4[x]').errors).toStrictEqual(['shape on a frequency: <440hz>4[x]'])
+  })
+
+  test('parseMarks sorts a bracket into shape or colour by its content', () => {
+    expect(parseMarks('[x]')).toStrictEqual([{ shape: 'x' }, []])
+    expect(parseMarks('[G]')).toStrictEqual([{ color: 'G' }, []])
+    expect(parseMarks('[x][G](1)')).toStrictEqual([{ shape: 'x', color: 'G', text: '1' }, []])
+  })
+})
+
 describe('text', () => {
   test('parenthesised text rides along as a fingering', () => {
     const { measures, errors } = parseSheet('c4(1) d4(3) e4')

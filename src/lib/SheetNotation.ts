@@ -12,6 +12,10 @@
 //   bowing      trailing `v` up-bow, `n` down-bow (or the glyphs `V` / `Π`)
 //   colour      `[G]` `[D]` `[A]` `[E]` for the violin string of that name, a hex
 //               colour `[#ff8800]`, or a keyword `[red]`. Colours the notehead only.
+//   shape       `[x]` a crossed notehead. Shares the bracket with colour but is a
+//               kind of its own, so `c4[x][G]` is a crossed head in the G colour;
+//               it is `[x][x]` that repeats. `[X]` is not it — an uppercase letter
+//               in brackets is a violin string, and `[E]` must stay the E string.
 //   text        `(3)` a fingering, engraved beside the notehead. Any text is allowed —
 //               `(1)`, `(sul G)` — but it engraves as a fingering, so keep it short.
 //   rest        `r` in place of the letter (duration/dots still apply)
@@ -19,8 +23,8 @@
 // Brackets are used because every letter is already spoken for: a-g are notes, `r`
 // is a rest, `v`/`n` are bowings, `b` is a flat. Parentheses keep text out of the
 // colour's `[...]`, so the two can be written in either order — `c4[G](3)` and
-// `c4(3)[G]` are the same note. Unlike duration, neither carries over to the next
-// token — both are marks on one note, not running state.
+// `c4(3)[G]` are the same note. Unlike duration, none of them carry over to the
+// next token — all are marks on one note, not running state.
 //
 // `<442hz>` names a frequency directly, for training differences finer than the
 // 12-tone grid. Duration/dots follow the angle brackets — `<442hz>8.` — and the
@@ -37,12 +41,21 @@ export const DIVISIONS = 4
 
 export type Bowing = 'up' | 'down'
 
+// A MusicXML <notehead> glyph name, passed through to the engraver verbatim. Only
+// the cross is spellable so far; MusicXML lists many more, and each is one entry here.
+export type NoteheadShape = 'x'
+
+// Matched before the colour palette, and case-sensitively: `[E]` is the E string,
+// so a shape cannot claim an uppercase letter.
+const noteheadShapes: Record<string, NoteheadShape> = { x: 'x' }
+
 export type SheetNote = {
   note: ToneLib.Note | null // null = rest, or a pitch only `hz` can express
   hz?: number               // exact frequency, for synthesis; unengraveable
   duration: number          // in divisions
   bowing?: Bowing
   color?: string            // CSS colour for the notehead, already resolved from the palette
+  shape?: NoteheadShape     // notehead glyph; absent means the ordinary oval
   text?: string             // fingering text, engraved beside the notehead
 }
 
@@ -86,9 +99,9 @@ const accidentalNames: Record<string, string> = {
 // `v`/`n` mirror the engraved glyphs; `d`/`u` would clash with note letters.
 const bowings: Record<string, Bowing> = { v: 'up', '∨': 'up', n: 'down', 'Π': 'down' }
 
-// The trailing marks: a colour `[...]` and a text `(...)`, in either order and each at
-// most once. Matched as one repeatable group rather than a fixed sequence, so the pair
-// commutes; a repeat is caught when the marks are read, where it can be named in the error.
+// The trailing marks: brackets `[...]` and a text `(...)`, in any order and each kind at
+// most once. Matched as one repeatable group rather than a fixed sequence, so they
+// commute; a repeat is caught when the marks are read, where it can be named in the error.
 const marksSource = String.raw`(?<marks>(?:\[[^\][\s]*\]|\([^()]*\))*)`
 
 // `<NNNhz>` with the same trailing duration/dots/bowing; `'`/`,` tolerated and dropped.
@@ -100,18 +113,35 @@ const hzPattern = new RegExp(
 const tokenPattern = new RegExp(
   String.raw`^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + `$`, 'i')
 
-// One `[colour]` and one `(text)`, in whichever order they were written. A second of
-// either kind is an error rather than a silent last-one-wins: both spellings were
-// deliberate, and only the writer knows which they meant.
-export function parseMarks(marks: string): [{ color?: string, text?: string }, string[]] {
-  const out: { color?: string, text?: string } = {}
+export type Marks = { color?: string, shape?: NoteheadShape, text?: string }
+
+const markNames: Record<keyof Marks, string> = { color: 'colour', shape: 'shape', text: 'text' }
+
+// One of each kind, in whichever order they were written. A second of a kind is an
+// error rather than a silent last-one-wins: both spellings were deliberate, and only
+// the writer knows which they meant.
+//
+// Colour and shape share the `[...]` bracket, so which kind a bracket is depends on
+// its content: a known shape name is a shape, anything else is a colour to resolve.
+// That keeps `c4[x][G]` two marks rather than a repeat, at the price of `[x]` being
+// unavailable as a colour — no loss, there being no colour by that name.
+export function parseMarks(marks: string): [Marks, string[]] {
+  const out: Marks = {}
   const errors: string[] = []
 
-  for (const [, color, text] of marks.matchAll(/\[([^\][\s]*)\]|\(([^()]*)\)/g)) {
-    const [key, value] = color === undefined ? ['text', text] as const : ['color', color] as const
-
-    if (out[key] !== undefined) errors.push(`repeated ${key == 'color' ? 'colour' : 'text'}: ${marks}`)
+  // Assigned per branch rather than through a shared [key, value] pair: the union of
+  // pairs loses which value type goes with which key, and only `shape` is narrow.
+  const set = <K extends keyof Marks>(key: K, value: Marks[K]) => {
+    if (out[key] !== undefined) errors.push(`repeated ${markNames[key]}: ${marks}`)
     else out[key] = value
+  }
+
+  for (const [, bracket, text] of marks.matchAll(/\[([^\][\s]*)\]|\(([^()]*)\)/g)) {
+    if (bracket === undefined) set('text', text)
+    else {
+      const shape = noteheadShapes[bracket]
+      shape ? set('shape', shape) : set('color', bracket)
+    }
   }
 
   return [out, errors]
@@ -168,10 +198,11 @@ function parseHzToken(
   const bow = bowing ? bowings[bowing] ?? bowings[bowing.toLowerCase()] : undefined
 
   // An hz note has neither notehead nor staff position, so a colour has nothing to
-  // paint and a fingering nothing to hang off.
-  const [{ color, text }, markErrors] = parseMarks(marks || '')
+  // paint, a shape nothing to draw and a fingering nothing to hang off.
+  const [{ color, shape, text }, markErrors] = parseMarks(marks || '')
   const unengraveable = [
     color !== undefined && `colour on a frequency: ${token}`,
+    shape !== undefined && `shape on a frequency: ${token}`,
     text !== undefined && `text on a frequency: ${token}`,
   ].filter(e => typeof e == 'string')
 
@@ -199,10 +230,12 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const bow = bowing ? bowings[bowing] ?? bowings[bowing.toLowerCase()] : undefined
   const bowed = bow ? { bowing: bow } : {}
 
-  const [{ color, text }, markErrors] = parseMarks(marks || '')
+  const [{ color, shape, text }, markErrors] = parseMarks(marks || '')
 
   const [resolved, colorError] = color === undefined ? [null, null] : resolveColor(color)
   const colored = resolved ? { color: resolved } : {}
+
+  const shaped = shape ? { shape } : {}
 
   // Empty parentheses would engrave an empty fingering — a stray mark on the staff.
   const texted = text ? { text } : {}
@@ -215,6 +248,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
     const restErrors = [
       bow && `bowing on a rest: ${token}`,
       color !== undefined && `colour on a rest: ${token}`,
+      shape !== undefined && `shape on a rest: ${token}`,
       text !== undefined && `text on a rest: ${token}`,
     ].filter(e => typeof e == 'string')
 
@@ -229,7 +263,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const note = ToneLib.parseNote(`${letter.toLowerCase()}${accidental}`)
   if (!note) return [null, denomPrev, [`unparsable note: ${token}`]]
 
-  return [{ note: { ...note, octave }, duration, ...bowed, ...colored, ...texted }, denomNum, errors]
+  return [{ note: { ...note, octave }, duration, ...bowed, ...colored, ...shaped, ...texted }, denomNum, errors]
 }
 
 export function parseSheet(source: string): SheetParse {

@@ -7,7 +7,9 @@ import { note, rest, notesToMusic } from './MusicXML.tsx'
 function engrave(source: string): string {
   const { measures } = parseSheet(source)
   return notesToMusic(measures.map(m => m.map(n =>
-    n.note ? note(n.note, n.duration, { bowing: n.bowing, color: n.color, text: n.text }) : rest(n.duration))))
+    n.note
+      ? note(n.note, n.duration, { bowing: n.bowing, color: n.color, notehead: n.shape, text: n.text })
+      : rest(n.duration))))
 }
 
 // The <notehead> elements themselves, so an assertion can't pass off the back of
@@ -64,6 +66,38 @@ describe('engraved colour', () => {
       expect(heads[0], name).toMatch(/<notehead color="#[\dA-F]{6}">normal<\/notehead>/)
       expect(resolveColor(name)[0], name).toMatch(musicXmlColor)
     })
+  })
+})
+
+describe('engraved notehead shape', () => {
+  test('a crossed head reaches the notehead element as the glyph name', () => {
+    expect(noteheads('c4[x]')).toStrictEqual(['<notehead>x</notehead>'])
+  })
+
+  test('an unshaped note keeps the ordinary oval — no notehead element at all', () => {
+    expect(noteheads('c4')).toStrictEqual([])
+    // and a shape on one note does not leak onto its neighbours
+    expect(noteheads('c4[x] d4 e4')).toStrictEqual(['<notehead>x</notehead>'])
+  })
+
+  test('shape and colour engrave on the same notehead, not two', () => {
+    // one <notehead> per note: a second would be dropped, losing whichever came last
+    expect(noteheads('c4[x][G]')).toStrictEqual([
+      `<notehead color="${resolveColor('G')[0]}">x</notehead>`,
+    ])
+    expect(noteheads('c4[G][x]')).toStrictEqual([
+      `<notehead color="${resolveColor('G')[0]}">x</notehead>`,
+    ])
+  })
+
+  test('shape composes with a fingering, which stays in its own technical', () => {
+    expect(noteheads('c4[x](3)')).toStrictEqual(['<notehead>x</notehead>'])
+    expect(technicals('c4[x](3)')).toStrictEqual(['<technical><fingering>3</fingering></technical>'])
+  })
+
+  test('a rejected shape engraves nothing rather than a wrong glyph', () => {
+    // `[X]` is the colour slot, and no such colour exists — so no notehead, not a cross
+    expect(noteheads('c4[X]')).toStrictEqual([])
   })
 })
 
