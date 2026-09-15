@@ -126,3 +126,8 @@ export function fingerShiftIntervalShort(): string[] {
     return true
   })
 }
+
+// Extended intervals:
+// similar to Fb - A (altered scale): all of the end accidentals: Fb/Cb/E#/B# + all other notes
+// all #+b, all b+#, both directions
+//

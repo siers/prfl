@@ -2,3 +2,5 @@
 Scales: [keyz=keys().slice(0, 1)]
 {key=keyz.at(0);}
 Scales3: [key]key:freeze:inline [ss(`2 2+1 3 3+1 3+2 4 4+1 4+2 4+3`)]:show-2:inline [metroS(42, 4)]metro:show-2:inline [shuffle(modeShifts(fields.key.at(0), `dia chr arp hm mm +1 -1 sub pos`))]mode:cut-semi:maxlen-80 [shiftsMD(fields.mode.at(0), '1233-4:1-2-34', '0112223333')]:computed:show-2 [desMS(fields.mode.at(0)).additional]:computed
+
+Scales3: [key]key:freeze:inline [ss(`1 2 2+1 3 3+1 3+2 4 4+1 4+2 4+3`)]div:show-1:inline [metroS(42, 4)]metro:show-1:inline [shuffle(modeShifts(fields.key.at(0), zipLongestShuf(ss(`dia chr arp hm mm +1 -1 sub pos`), `,R`.split(`,`)).map(x=>x.join('')).join(' ')))]mode:cut-semi:maxlen-80:show-4 [shiftsMD(fields.mode.at(0), '1233-4:1-2-34', '011222233333')]:computed:show-1 [desMS(fields.mode.at(0)).additional]:computed [fields.div.at(0).match(/\d+/).at(0) * fields.metro.at(0)]:computed

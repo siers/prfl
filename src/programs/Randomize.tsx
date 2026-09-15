@@ -576,6 +576,7 @@ export default Randomize
 // TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
 // TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
 // TODO: keys: add bangs + errors to make sure that the pointers reference (7RZH)
+// TODO: parametrization: allow multiple tag output [Tag] from a single tag
 
 //
 

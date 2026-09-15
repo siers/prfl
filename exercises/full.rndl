@@ -136,7 +136,7 @@ WhenFallLove
 {scheduleBlocks(`St:StandardsT`)}
 
 -=- JazzBowingT
-ghost: [ss(`n-4th-x v-4th-x n-8th-x v-8th-x n-x-8th v-x-8th`)]
+ghost: [shuffleX(ss(`n-4th-x v-4th-x n-8th-x v-8th-x n-x-8th v-x-8th`), 4)]pattern [(p => { \[bow, a, b\] = p.split('-'); d = (a == 'x' ? b : a) == '4th' ? 4 : 8; return times(d == 4 ? 2 : 4, \[\[a, b\].map(r => r == 'x' ? `a${d}\[x\]` : `a${d}${bow}`).join(' ')\]).flat().join(' ') })(fields.pattern.at(0))]sheet:computed:hide [`4f`]next
 phrase0912
 cue-finger: don’t lift first finger
 cue-remain-UH
