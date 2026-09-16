@@ -3,20 +3,20 @@ import { cardMemory } from './RandomizeTypes'
 import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
-import { intersperse, interspersing, interleavingEvery, zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices, chunk } from '../lib/Array'
+import { zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
 import * as ToneLib from '../lib/ToneLib'
-import { chromaticSlide, frets, modeShifts, deserializeModeShift, ModeShift } from '../lib/ToneLibViolin'
+import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } from '../lib/ToneLibViolin'
 import * as ToneLibViolin from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
-import { shiftFormat, shifts, shiftsDistributed, shiftStrings, uniqueShiftsF } from '../lib/Combinatorics'
+import { shiftFormat, shifts as shiftsLib, shiftsDistributed } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
 import murmur from 'murmurhash3js'
 import { Picker } from 'bentools-picker'
 
-function s(s: string): string[] {
+export function s(s: string): string[] {
   let out: string[]
 
   if (s.indexOf(',') !== -1) out = s.split(/ *, */)
@@ -26,20 +26,20 @@ function s(s: string): string[] {
   return out.filter(x => x != '' && x != '-')
 }
 
-function ss(sentence: string): string[] {
+export function ss(sentence: string): string[] {
   return shuffle(s(sentence))
 }
 
-function j<A>(as: A[]): string {
+export function j<A>(as: A[]): string {
   return as.join(' ')
 }
 
 // inner join
-function ij<A>(i: string, as: A[][]): string[] {
+export function ij<A>(i: string, as: A[][]): string[] {
   return as.map(a => a.join(i))
 }
 
-function cross(sentence: string): string[] {
+export function cross(sentence: string): string[] {
   const arrays = sentence.split(/ *x */).map(s)
   if (arrays.length > 1) {
     const [first, ...rest] = arrays
@@ -49,46 +49,46 @@ function cross(sentence: string): string[] {
   }
 }
 
-function times<A>(n: number, a: A | ((idx?: number) => A)): A[] {
+export function times<A>(n: number, a: A | ((idx?: number) => A)): A[] {
   if (typeof a === 'function') return Array(n).fill(0).map((_, i) => (a as (idx?: number) => A)(i))
   else return Array(n).fill(a)
 }
 
-function timesUntil<A>(length: number, a: A[]): A[] {
+export function timesUntil<A>(length: number, a: A[]): A[] {
   return timesUntilLib(length, a)
 }
 
-function timesUntilShuf<A>(length: number, a: A[]): A[] {
+export function timesUntilShuf<A>(length: number, a: A[]): A[] {
   if (a.length == 1) return timesUntil(length, a)
   if (a.length == 2) a = shuffle([...a, ...a])
   const out = a.length < length ? shuffleX(a, Math.ceil(length / a.length)) : a
   return out.slice(0, length)
 }
 
-function product<A>(...arrays: A[][]): A[][] {
+export function product<A>(...arrays: A[][]): A[][] {
   if (arrays.length === 0) return [[]]
   const [first, ...rest] = arrays
   const restProduct = product(...rest)
   return first.flatMap(a => restProduct.map(rs => [a, ...rs]))
 }
 
-function indices(until: number): string[] {
+export function indices(until: number): string[] {
   return times(until, 0).map((_, i) => '' + (i + 1))
 }
 
-function parts(parts: number, offset?: number): string[] {
+export function parts(parts: number, offset?: number): string[] {
   return Array(parts).fill(null).map((_, i) => `${(i + (offset || 0)) % parts + 1}`)
   // return Array(parts).fill(null).map((_, i) => `${(i + (offset || 0)) % parts + 1}/${parts}`)
   // return Array(parts).fill(null).map((_, i) => `${100 * (i + (offset || 0) / 100 * parts) / parts}%`)
 }
 
-function partsShuf(ps: number, offset?: number): string[] {
+export function partsShuf(ps: number, offset?: number): string[] {
   return shuffle(parts(ps, offset))
 }
 
 // sublists aren't guaranteed to be of the same size
 // no elements should be lost
-function divide<A>(as: A[], parts: number): A[][] {
+export function divide<A>(as: A[], parts: number): A[][] {
   return Array(parts).fill(null).map((_, idx) => {
     const idxScaled = idx / parts
     const idxScaledP = (idx + 1) / parts
@@ -100,66 +100,66 @@ function divide<A>(as: A[], parts: number): A[][] {
   })
 }
 
-function partChunks(part: number, chunk: number, offset?: number): string[][] {
+export function partChunks(part: number, chunk: number, offset?: number): string[][] {
   return divide(parts(part, offset), chunk)
 }
 
 // Bug: offset screws it up
-function partChunksShuf(part: number, chunk: number, offset?: number): string[][] {
+export function partChunksShuf(part: number, chunk: number, offset?: number): string[][] {
   return divide(shuffle(parts(part, offset)), chunk)
 }
 
-function zipSep(ass: string[][], sep: string = ''): string[] {
+export function zipSep(ass: string[][], sep: string = ''): string[] {
   const minLength = ass.map(as => as.length).reduce((prev, next) => Math.min(prev, next), 100000)
   const width = Array(ass.length).fill(null).map((_, idx) => idx)
   return Array(minLength).fill(null).map((_, idx) => width.map(w => ass[w][idx]).join(sep))
 }
 
-function zip(...ass: string[][]): string[] {
+export function zip(...ass: string[][]): string[] {
   return zipSep(ass, '')
 }
 
-function zipSpace(...ass: string[][]): string[] {
+export function zipSpace(...ass: string[][]): string[] {
   return zipSep(ass, ' ')
 }
 
-function zipSlash(...ass: string[][]): string[] {
+export function zipSlash(...ass: string[][]): string[] {
   return zipSep(ass, '/')
 }
 
-function zipInterleave<A>(...args: A[][]): A[] {
+export function zipInterleave<A>(...args: A[][]): A[] {
   const lengths = args.map(l => l.length)
   const div = _.max(lengths) as number
   const zipped = zipT(...args.map(l => divide(l, div)))
   return zipped.flat().flat()
 }
 
-function zipLongestGen<A>(timesUntil: (a: number, as: A[]) => A[], ...args: A[][]): A[][] {
+export function zipLongestGen<A>(timesUntil: (a: number, as: A[]) => A[], ...args: A[][]): A[][] {
   const lengths = args.map(a => a.length)
   const longest = _.max(lengths) || 0
 
   return zipT(...args.map(a => timesUntil(longest, a)))
 }
 
-function zipLongest<A>(...args: A[][]): A[][] {
+export function zipLongest<A>(...args: A[][]): A[][] {
   return zipLongestLib(...args)
 }
 
-function zipLongestShuf<A>(...args: A[][]): A[][] {
+export function zipLongestShuf<A>(...args: A[][]): A[][] {
   return zipLongestGen(timesUntilShuf, ...args)
 }
 
 //
 
-function shuffleM<A>(a: A[]): A[] {
+export function shuffleM<A>(a: A[]): A[] {
   return shuffleMinDistance(a, 1)
 }
 
-function shuffle<A>(a: A[]): A[] {
+export function shuffle<A>(a: A[]): A[] {
   return shuffleArray(a)
 }
 
-function shuffleConstraintFirst<A>(shouldntBe: A[], b: A[]): A[] {
+export function shuffleConstraintFirst<A>(shouldntBe: A[], b: A[]): A[] {
   const [shouldnts, rests] = _.partition(b, x => shouldntBe.indexOf(x) !== -1)
   if (rests.length == 0) {
     return []
@@ -170,40 +170,40 @@ function shuffleConstraintFirst<A>(shouldntBe: A[], b: A[]): A[] {
   }
 }
 
-function shuffleX<A>(a: A[] | string, number: number): A[] {
+export function shuffleX<A>(a: A[] | string, number: number): A[] {
   const list: A[] = shuffle(typeof a === 'string' ? (s(a) as A[]) : a)
   return times(number, list).reduce((list, addition) => list.concat(shuffleConstraintFirst(list.slice(-1), addition)), [])
 }
 
-function comb<A>(a: A[], n: number): A[][] {
+export function comb<A>(a: A[], n: number): A[][] {
   return [... new Comb.Combination(a, n)]
 }
 
-function perm<A>(a: A[], size?: number): A[][] {
+export function perm<A>(a: A[], size?: number): A[][] {
   return [...new Comb.Permutation(a, size)]
 }
 
-function pick<A>(array: A[] | string): A | string {
+export function pick<A>(array: A[] | string): A | string {
   if (typeof array === 'string') return pickArray(ss(array))
   else return pickArray(array)
 }
 
-function powerBuckets<A>(a: A[]): A[][][] {
+export function powerBuckets<A>(a: A[]): A[][][] {
   return Object.values(_.groupBy([...(new Comb.PowerSet(a))], 'length'))
 }
 
-function power<A>(a: A[]): A[][] {
+export function power<A>(a: A[]): A[][] {
   return powerBuckets(a).flat()
 }
 
-function pickEarlyBias<A>(as: A[]): A {
+export function pickEarlyBias<A>(as: A[]): A {
   const weight = (index: number) => Math.max((as.length - index) - as.length / 1.5, 0)
   const weights: [A, number][] = as.map((a, index) => [a, weight(index)])
   const a: A | undefined = new Picker(as, { weights }).pick()
   return a as A
 }
 
-function picksEarlyBias<A>(as: A[]): A[] {
+export function picksEarlyBias<A>(as: A[]): A[] {
   if (as.length == 0) return []
 
   const [next, ...rest] = arrayMove(as, pickEarlyBias(arrayIndices(as)), 0)
@@ -214,15 +214,15 @@ function picksEarlyBias<A>(as: A[]): A[] {
 // scheduling
 
 // [0..modulo-1]
-function dayRandom(modulo?: number): number {
+export function dayRandom(modulo?: number): number {
   return murmur.x86.hash32(new Date().toISOString().slice(0, 10)) % (modulo || 100000)
 }
 
-function daysModulo(days: number, modulo: number): number {
+export function daysModulo(days: number, modulo: number): number {
   return Math.floor(Math.floor(Date.now() / 86400000) / days) % modulo
 }
 
-function maybeEvery(nthDayXOffset: number | string, itemsIn: string | string[]): string[] {
+export function maybeEvery(nthDayXOffset: number | string, itemsIn: string | string[]): string[] {
   let nthDay: number
   let offset: number = 0
   const match = typeof nthDayXOffset === 'string' ? nthDayXOffset.match(/^(\d+),(\d+)$/) : null
@@ -243,14 +243,14 @@ function maybeEvery(nthDayXOffset: number | string, itemsIn: string | string[]):
   return (dayRandom(nthDay) + offset) % nthDay == 0 ? items : []
 }
 
-function after(date: string, items: string | string[]): string[] {
+export function after(date: string, items: string | string[]): string[] {
   const list = typeof items === 'string' ? [items] : items
   return new Date() >= new Date(date) ? list : []
 }
 
 // percentages
 
-function progress(start: string, end: string) {
+export function progress(start: string, end: string) {
   const now = new Date().getTime()
   const startDate = new Date(start).getTime()
   const endDate = new Date(end).getTime()
@@ -260,14 +260,14 @@ function progress(start: string, end: string) {
   return roundToNaive(Math.max(0, Math.min(1, perc)), 3)
 }
 
-function progressClamp(start: string, end: string, from: number, to: number) {
+export function progressClamp(start: string, end: string, from: number, to: number) {
   const diff = to - from
   return from + progress(start, end) * diff
 }
 
 // progressive gluing
 
-function substringsIdxs(seqLen: number, maxLenIn?: number, minLenIn?: number): [number, number][] {
+export function substringsIdxs(seqLen: number, maxLenIn?: number, minLenIn?: number): [number, number][] {
   const maxLen = maxLenIn || seqLen
   const minLen = Math.max(minLenIn || 1)
 
@@ -278,7 +278,7 @@ function substringsIdxs(seqLen: number, maxLenIn?: number, minLenIn?: number): [
   })
 }
 
-function loopSubstringsG<A>(str: string | A[], maxLen?: number, minLen?: number): string[][] {
+export function loopSubstringsG<A>(str: string | A[], maxLen?: number, minLen?: number): string[][] {
   const a: string[] = typeof str === 'string' ? s(str) : str.map(s => `${s}`)
 
   return substringsIdxs(a.length, maxLen, minLen).map(([first, last_]) => {
@@ -287,15 +287,15 @@ function loopSubstringsG<A>(str: string | A[], maxLen?: number, minLen?: number)
   })
 }
 
-function loopSubstringsZ<A>(str: string | A[], z: string, maxLen?: number, minLen?: number): string[] {
+export function loopSubstringsZ<A>(str: string | A[], z: string, maxLen?: number, minLen?: number): string[] {
   return loopSubstringsG(str, maxLen, minLen).map(s => s.join(z))
 }
 
-function loopSubstrings<A>(str: string | A[], maxLen?: number, minLen?: number): string[] {
+export function loopSubstrings<A>(str: string | A[], maxLen?: number, minLen?: number): string[] {
   return loopSubstringsZ(str, '', maxLen, minLen)
 }
 
-function indexPyramid(seqLen: number, maxLenIn?: number): number[][][] {
+export function indexPyramid(seqLen: number, maxLenIn?: number): number[][][] {
   const maxLen = maxLenIn || seqLen
   return directRange(1, maxLen).map((_, length) => {
     return directRange(0, seqLen - 1).map((_, start) => {
@@ -304,7 +304,7 @@ function indexPyramid(seqLen: number, maxLenIn?: number): number[][][] {
   })
 }
 
-function phrasePyramid(phrasesIn: string | string[]): string[][] {
+export function phrasePyramid(phrasesIn: string | string[]): string[][] {
   const phrases = typeof phrasesIn === 'string' ? s(phrasesIn) : phrasesIn
 
   return indexPyramid(phrases.length).map(ofLength => ofLength.map(sequence => {
@@ -321,7 +321,7 @@ function phrasePyramid(phrasesIn: string | string[]): string[][] {
 
 // testable, just shuffled has to be passed
 // bug: roughness too low or high crashes
-function pyramid(phrasesIn: string | string[], roughness?: number): string[][] {
+export function pyramid(phrasesIn: string | string[], roughness?: number): string[][] {
   roughness ||= 1000
   const divisions = divide(phrasePyramid(phrasesIn), roughness)
   return divisions.map((division, index) => {
@@ -335,18 +335,18 @@ function pyramid(phrasesIn: string | string[], roughness?: number): string[][] {
 }
 
 // for scheduleBlocks
-function phraseKey(phrase: string): string {
+export function phraseKey(phrase: string): string {
   return `${phrase.replaceAll(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '')}: play`
 }
 
 // block utilities
 
-function aba<A>(as: A[], bs: A[]): A[] {
+export function aba<A>(as: A[], bs: A[]): A[] {
   const [a1, a2] = divide(as, 2)
   return [...a1, ...bs, ...a2]
 }
 
-function pickKeys(settings?: PickKeysInt): string[][] {
+export function pickKeys(settings?: PickKeysInt): string[][] {
   settings = settings || {}
 
   const keys = keyCenters(settings?.mode || 0)
@@ -369,15 +369,15 @@ function pickKeys(settings?: PickKeysInt): string[][] {
   return shufChunks.map(c => c.map(k => renderN(k)))
 }
 
-function pickKeysShuf(settings?: PickKeysInt): string[][] {
+export function pickKeysShuf(settings?: PickKeysInt): string[][] {
   return pickKeys({ ...settings, shuffle: true, split: parseInt(pick('34')) })
 }
 
-function allKeys(settings?: PickKeysInt): string[] {
+export function allKeys(settings?: PickKeysInt): string[] {
   return pickKeysShuf(settings).flat()
 }
 
-function letterKeys(): string[] {
+export function letterKeys(): string[] {
   return majorKeyCentersWeighted().map(([, ...chunks]) => {
     const weights = chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight))
     return new Picker(weights.map(x => x[0]), { weights: weights }).pick() as Note
@@ -386,21 +386,21 @@ function letterKeys(): string[] {
   )
 }
 
-function keys(): string[] {
+export function keys(): string[] {
   return shuffle(letterKeys())
 }
 
 // violin
 
-function scalePositions(): string[] {
+export function scalePositions(): string[] {
   return zip(ss('1234567'), shuffle(ij('', perm(s('GDAE'), 2))), shuffleX('∏V', 4)).flat()
 }
 
 // The seven diatonic mode names, index 0 = ionian, matching modeShifts' mode
 // field (0..6).
-const MODE_NAMES = 'ion dor phry lyd mix aeo loc'.split(' ')
+export const MODE_NAMES = 'ion dor phry lyd mix aeo loc'.split(' ')
 
-function modeName(mode: number): string {
+export function modeName(mode: number): string {
   return MODE_NAMES[mode] ?? `mode${mode}`
 }
 
@@ -413,115 +413,49 @@ type PickKeysInt = {
   shuffle?: boolean,
 }
 
-export type Interface = {
-  // DSL
-  s: (s: string) => string[],
-  ss: (s: string) => string[],
-  j: <A>(as: A[]) => string,
-  ij: <A>(i: string, as: A[][]) => string[],
+// Re-exported straight from the libs, and the small wrappers that give a
+// library function its DSL name. The whole module is spread into the DSL
+// context, so every export here is a name programs can call.
+export { zipT, intersperse, interspersing, interleavingEvery, chunk } from '../lib/Array'
+export { chromaticSlide } from '../lib/ToneLibViolin'
+export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
+export { shiftsDistributed }
+export { ToneLib, ToneLibViolin }
 
-  // array
-  times: <A>(n: number, a: A | ((idx?: number) => A)) => A[],
-  timesUntil: <A>(length: number, a: A[]) => A[],
-  timesUntilShuf: <A>(length: number, a: A[]) => A[],
-  indices: (until: number) => string[],
-  range: (start: number, stop: number) => string[],
-  parts: (n: number, m?: number) => string[],
-  partsShuf: (n: number, m?: number) => string[],
-  divide: <A>(as: A[], parts: number) => A[][],
-  chunk: <A>(as: A[], len: number) => A[][],
-  partChunks: (part: number, chunk: number, offset?: number) => string[][],
-  partChunksShuf: (part: number, chunk: number, offset?: number) => string[][],
-  zip: (...as: string[][]) => string[],
-  zipSpace: (...as: string[][]) => string[],
-  zipSlash: (...as: string[][]) => string[],
-  zipT: <A>(...ass: A[][]) => A[][],
-  zipInterleave: <A>(...args: A[][]) => A[],
-  zipLongest: <A>(...args: A[][]) => A[][],
-  zipLongestShuf: <A>(...args: A[][]) => A[][],
-  intersperse: <A>(arr: A[], sep: A) => A[],
-  interspersing: <A>(arr: A[], sep: A[]) => A[],
-  interleavingEvery: <A>(into: A[], what: A[], every: number) => A[],
-  arrayRotate<A>(arr: A[], count: number): A[],
-  uniq<A>(arr: A[]): A[],
+export const arrayRotate = arrayShift
+export const uniq = _.uniq
+export const desMS = deserializeModeShift
 
-  // combinatorics
-  cross: (sentence: string) => string[],
-  product: <A>(...arrays: A[][]) => A[][],
-  shuffle: <A>(a: A[]) => A[],
-  shuffleM: <A>(a: A[]) => A[],
-  shuffleX: <A>(a: A[] | string, number: number) => A[],
-  comb<A>(a: A[], n: number): A[][],
-  uniqueShifts(target?: number, inv?: number[]): string[],
-  shifts(target?: number, inv?: number[]): string[],
-  shiftStrings(distrib: string, shifts: number): string[],
-  shiftsDistributed(target: number, inv: number[], distrib: string): string[],
-  shiftsMD(serMS: string, invStr: string, distrib: string): string[],
-  perm<A>(a: A[], size?: number): A[][],
-  powerBuckets<A>(a: A[]): A[][][],
-  power<A>(a: A[]): A[][],
-  powerInnerBuckets<A>(a: A[]): A[][][],
-  powerInner<A>(a: A[]): A[][],
+export function range(f: number, t: number): string[] {
+  return directRange(f, t).map(n => `${n}`)
+}
 
-  pick: <A>(array: A[] | string) => A | string,
+export function shifts(target?: number, inv?: number[]): string[] {
+  return shiftFormat(shiftsLib(target, inv))
+}
 
-  dayRandom: (modulo?: number) => number,
-  daysModulo: (days: number, modulo: number) => number,
-  maybeEvery: (nthDayXOffset: number | string, item: string | string[]) => string[],
-  after: (date: string, items: string | string[]) => string[],
+export function powerInnerBuckets<A>(a: A[]): A[][][] {
+  return powerBuckets(a).slice(1, -1)
+}
 
-  // percentages
+export function powerInner<A>(a: A[]): A[][] {
+  return power(a).slice(1, -1)
+}
 
-  progress: (start: string, end: string) => number,
-  progressClamp: (start: string, end: string, from: number, to: number) => number,
+export function frets(upTo?: number): string[] {
+  return fretsLib(upTo).flat()
+}
 
-  // progressive gluing
+export function modeShifts(keyIn: Note | string, scales?: string): string[] {
+  return modeShiftsLib(parseNote(keyIn)!, scales)
+}
 
-  indexPyramid(seqLen: number, maxLen?: number): number[][][],
-  loopSubstringsG<A>(s: string | A[], max?: number, min?: number): string[][],
-  loopSubstringsZ<A>(s: string | A[], z: string, max?: number, min?: number): string[],
-  loopSubstrings<A>(s: string | A[], max?: number, min?: number): string[],
-  phrasePyramid(phrases: string | string[]): string[][],
-  pyramid(phrases: string | string[], roughness?: number): string[][],
-  phraseKey(phrase: string): string,
+export function metroS(base: number, diff: number): string[] {
+  return shuffle(metro(base, diff))
+}
 
-  // block operations
-  context: Map<string, any> | null,
-  block: (name: string, ...args: any) => any | undefined,
-  blockLines(name: string, ...args: any): RenderLine[],
-  aba<A>(as: A[], bs: A[]): A[],
-  scheduleBlocks: (sentence: string) => RenderLine[],
-  zipBlocksDiv: (names: string, div: number, ...args: any) => string[],
-  zipScheduleBlocks(sentence: string): RenderLine[],
-
-  pickKeys: (settings?: PickKeysInt) => string[][],
-  pickKeysShuf: (settings?: PickKeysInt) => string[][],
-  allKeys: (settings?: PickKeysInt) => string[],
-  letterKeys: () => string[],
-  keys: () => string[],
-
-  pickEarlyBias<A>(as: A[]): A,
-  picksEarlyBias<A>(as: A[]): A[],
-  pickTasksStateless<A extends RenderLine>(items: A[]): A[],
-
-  // state
-  glob: (pattern: string) => string[],
-
-  // domain specific
-  scalePositions: () => string[],
-  chromaticSlide: (tonic: Note | string, s: 'G' | 'D' | 'A' | 'E') => string,
-  frets: (upTo?: number) => string[],
-  modeShifts: (keyIn: string, scales?: string, startFinger?: number, endFinger?: number) => string[],
-  modeName: (mode: number) => string,
-  desMS(s: string): Omit<ModeShift, 'root'>,
-
-  metro(base: number, diff: number): string[],
-  metroS(base: number, diff: number): string[],
-
-  ToneLib: any,
-  ToneLibViolin: any,
-
-  forceSign: (a: number) => string,
+export function forceSign(a: number): string {
+  return a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`
 }
 
 // Glob the images gathered into the state (threaded in via additionalContext,
@@ -554,7 +488,7 @@ export function glob(pattern: string, images: ImageEntry[]): string[] {
   })[0] || basenames
 }
 
-function shiftsMD(serMS: string, invStr: string, distrib: string): string[] {
+export function shiftsMD(serMS: string, invStr: string, distrib: string): string[] {
   const ms = deserializeModeShift(serMS)
   const [invDia, invChrom] = invStr.split(':').map(inv => [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item)))
   const inv = ms.shifts < 16 ? invDia : invChrom
@@ -562,12 +496,12 @@ function shiftsMD(serMS: string, invStr: string, distrib: string): string[] {
   return shiftsDistributed(ms.shifts, inv, distrib)
 }
 
-function metro(base: number, diff: number): string[] {
+export function metro(base: number, diff: number): string[] {
   return directRange(base - diff, base + diff).map(s => `${s}`)
 
 }
 
-export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>): Interface {
+export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>) {
   // Note: uses memory
   function pickTasksStateless<A extends RenderLine>(items: A[]): A[] {
     if (items.length == 0) return []
@@ -667,103 +601,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   return {
-    s,
-    ss,
-    j,
-    ij,
-
-    times,
-    timesUntil,
-    timesUntilShuf,
-    indices,
-    range: (f: number, t: number) => directRange(f, t).map(n => `${n}`),
-    parts,
-    partsShuf,
-    divide,
-    chunk,
-    partChunks,
-    partChunksShuf,
-    zip,
-    zipSpace,
-    zipSlash,
-    zipT,
-    zipInterleave,
-    zipLongest,
-    zipLongestShuf,
-    intersperse,
-    interspersing,
-    interleavingEvery,
-    arrayRotate: arrayShift,
-    uniq: _.uniq,
-
-    cross,
-    product,
-    shuffle,
-    shuffleM,
-    shuffleX,
-    comb,
-    uniqueShifts: uniqueShiftsF,
-    shifts: (target?: number, inv?: number[]) => shiftFormat(shifts(target, inv)),
-    shiftsDistributed,
-    shiftStrings,
-    perm,
-    power,
-    powerBuckets,
-    powerInnerBuckets: <A>(a: A[]) => powerBuckets(a).slice(1, -1),
-    powerInner: <A>(a: A[]) => power(a).slice(1, -1),
-
-    pick,
-
-    dayRandom,
-    daysModulo,
-    maybeEvery,
-    after,
-
-    progress,
-    progressClamp,
-
-    indexPyramid,
-    loopSubstringsG,
-    loopSubstringsZ,
-    loopSubstrings,
-    phrasePyramid,
-    pyramid,
-    phraseKey,
-
     context,
     block,
     blockLines,
-    aba,
     scheduleBlocks,
     zipBlocksDiv,
     zipScheduleBlocks,
-
-    pickKeys,
-    pickKeysShuf,
-    allKeys,
-    letterKeys,
-    keys,
-
-    pickEarlyBias,
-    picksEarlyBias,
     pickTasksStateless,
-
     glob: (pattern: string) => glob(pattern, context.get('images') || []),
-
-    scalePositions,
-    chromaticSlide,
-    frets: (upTo?: number) => frets(upTo).flat(),
-    modeShifts: (keyIn: Note | string, scales?: string) => modeShifts(parseNote(keyIn)!, scales),
-    modeName,
-    desMS: deserializeModeShift,
-    shiftsMD,
-
-    metro,
-    metroS: (b: number, d: number) => shuffle(metro(b, d)),
-
-    ToneLib,
-    ToneLibViolin,
-
-    forceSign: (a: number) => a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`,
   }
 }

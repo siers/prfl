@@ -1,8 +1,6 @@
 import { expect, test } from 'vitest'
-import { randomizeLangUtils, glob } from './RandomizeLangUtils'
-import _ from 'lodash'
-
-const {
+import {
+  glob,
   s,
   cross,
   times,
@@ -27,7 +25,9 @@ const {
   powerInnerBuckets,
   interleavingEvery,
   after,
-} = randomizeLangUtils(new Map(), new Map())
+} from './RandomizeLangUtils'
+import _ from 'lodash'
+
 
 test('s', () => {
   expect(s('')).toStrictEqual([])

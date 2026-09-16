@@ -4,6 +4,7 @@ import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
 import { randomizeLangUtils } from './RandomizeLangUtils'
+import * as Utils from './RandomizeLangUtils'
 import type { ImageEntry } from '../lib/PrflAssets'
 
 // Extra, host-supplied bits the high-level evaluators thread down into the DSL
@@ -190,7 +191,7 @@ function executeCommand(command: string, context: Context, extra: Record<string,
     memory,
     evalItem: context.get('evalItem'),
   }
-  const fullContext = { ...randomizeLangUtils(context, memory), ...additionalContext, ...extra }
+  const fullContext = { ...Utils, ...randomizeLangUtils(context, memory), ...additionalContext, ...extra }
 
   return executeInContext(fullContext, command)
 }
