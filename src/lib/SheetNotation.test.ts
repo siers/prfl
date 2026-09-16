@@ -359,3 +359,42 @@ describe('text', () => {
     expect(parseMarks('')).toStrictEqual([{}, []])
   })
 })
+
+describe('ties', () => {
+  test('a trailing ~ marks the note as tied to the next', () => {
+    const { measures, errors } = parseSheet('c4~ c4')
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => [n.duration, !!n.tied])).toStrictEqual([[4, true], [4, false]])
+  })
+
+  test('the tie comes after the marks, and does not consume them', () => {
+    const { measures, errors } = parseSheet('c4[G](3)~ c4')
+    expect(errors).toStrictEqual([])
+    expect(measures[0][0]).toMatchObject({ color: stringColors.G.toUpperCase(), text: '3', tied: true })
+  })
+
+  test('a tie carries across a bar line', () => {
+    const { measures, errors } = parseSheet('c2 c2~ | c1')
+    expect(errors).toStrictEqual([])
+    expect(measures.map(m => m.map(n => !!n.tied))).toStrictEqual([[false, true], [false]])
+  })
+
+  test('a frequency can be tied too', () => {
+    const { measures, errors } = parseSheet('<442hz>8~ <442hz>8')
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => !!n.tied)).toStrictEqual([true, false])
+  })
+
+  test('a tie on a rest is an error — nothing is held through a rest', () => {
+    expect(parseSheet('r4~ c4').errors).toStrictEqual(['tie on a rest: r4~'])
+  })
+
+  test('a tie on the last note binds to nothing', () => {
+    expect(parseSheet('c4 c4~').errors).toStrictEqual(['tie on the last note, binding to nothing'])
+  })
+
+  test('an untied line has no tied notes', () => {
+    const { measures } = parseSheet('c4 c4')
+    expect(measures[0].every(n => n.tied === undefined)).toBe(true)
+  })
+})

@@ -26,12 +26,28 @@ type ToneEvent = {
 export function toneEvents(notes: SheetNote[]): [ToneEvent[], number] {
   let at = 0
   const events: ToneEvent[] = []
+  // The event a tie is still growing. A tie means one sustained note written as
+  // several, so the continuation must lengthen that event rather than re-attack the
+  // pitch — re-attacking is exactly what a tie exists to prevent.
+  let held: ToneEvent | null = null
 
   for (const n of notes) {
     const duration = n.duration / DIVISIONS
     // `hz` wins: it's the exact pitch, where a note name is only a grid position.
     const pitch = n.hz ?? (n.note ? ToneLib.render(n.note) : null)
-    if (pitch !== null) events.push({ pitch, time: at, duration })
+
+    if (pitch !== null) {
+      if (held && held.pitch === pitch) held.duration += duration
+      else {
+        const event: ToneEvent = { pitch, time: at, duration }
+        events.push(event)
+        held = event
+      }
+      // Only a tie carries into the next note; anything else ends the hold. A tie to a
+      // different pitch is not a tie (that is a slur), so the pitch check above stands.
+      held = n.tied ? held : null
+    } else held = null
+
     at += duration
   }
 

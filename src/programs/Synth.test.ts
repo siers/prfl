@@ -57,3 +57,41 @@ describe('toneEvents — absolute frequencies', () => {
     expect(total).toBe(4)
   })
 })
+
+// A tie is one sustained note written as several. The engraver draws a curve; the
+// synth has to actually hold the pitch, so the continuation lengthens the event that
+// is already sounding instead of pushing a second one that would re-attack it.
+describe('toneEvents — ties', () => {
+  test('two tied quarters sound as one half note', () => {
+    const [events, total] = toneEvents(notes('c4~ c4'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 2]])
+    expect(total).toBe(2)
+  })
+
+  test('a chain of ties accumulates into a single event', () => {
+    // 4 + 2 + 1 sixteenths = seven, a duration no single symbol can spell.
+    const [events] = toneEvents(notes('c4~ c8~ c16'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 1.75]])
+  })
+
+  test('a tie holds across a bar line', () => {
+    const [events, total] = toneEvents(notes('c2 c2~ | c1'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 2], ['C4', 2, 6]])
+    expect(total).toBe(8)
+  })
+
+  test('without the tie the same notes re-attack', () => {
+    const [events] = toneEvents(notes('c4 c4'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 1], ['C4', 1, 1]])
+  })
+
+  test('a tie to a different pitch does not merge — that would be a slur', () => {
+    const [events] = toneEvents(notes('c4~ d4'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 1], ['D4', 1, 1]])
+  })
+
+  test('the hold does not survive a rest', () => {
+    const [events] = toneEvents(notes('c4~ r4 c4'))
+    expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 1], ['C4', 2, 1]])
+  })
+})

@@ -19,6 +19,10 @@
 //   text        `(3)` a fingering, engraved beside the notehead. Any text is allowed —
 //               `(1)`, `(sul G)` — but it engraves as a fingering, so keep it short.
 //   rest        `r` in place of the letter (duration/dots still apply)
+//   tie         trailing `~` binds this note to the next, as in LilyPond — `c4~ c4` is
+//               one note held for two quarters. The tie is the last thing in the token,
+//               after the marks: `c4[G](3)~`. Durations that no single symbol can spell
+//               (5, 9, 10, 11, 13, 15 sixteenths) are written as tied pieces.
 //
 // Brackets are used because every letter is already spoken for: a-g are notes, `r`
 // is a rest, `v`/`n` are bowings, `b` is a flat. Parentheses keep text out of the
@@ -57,6 +61,7 @@ export type SheetNote = {
   color?: string            // CSS colour for the notehead, already resolved from the palette
   shape?: NoteheadShape     // notehead glyph; absent means the ordinary oval
   text?: string             // fingering text, engraved beside the notehead
+  tied?: boolean            // tied to the FOLLOWING note; the pair sounds as one
 }
 
 export type SheetMeasure = SheetNote[]
@@ -107,11 +112,11 @@ const marksSource = String.raw`(?<marks>(?:\[[^\][\s]*\]|\([^()]*\))*)`
 // `<NNNhz>` with the same trailing duration/dots/bowing; `'`/`,` tolerated and dropped.
 // The marks are matched so they can be reported, not silently treated as an unparsable token.
 const hzPattern = new RegExp(
-  String.raw`^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + `$`, 'i')
+  String.raw`^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + String.raw`(?<tie>~)?$`, 'i')
 
 // `<letter><accidentals><octaves><duration><dots><bowing><marks>` — every part but the letter optional.
 const tokenPattern = new RegExp(
-  String.raw`^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + `$`, 'i')
+  String.raw`^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + String.raw`(?<tie>~)?$`, 'i')
 
 export type Marks = { color?: string, shape?: NoteheadShape, text?: string }
 
@@ -186,7 +191,7 @@ export function denomToDuration(denom: number, dots: number): number | null {
 function parseHzToken(
   token: string, groups: Record<string, string>, denomPrev: number,
 ): [SheetNote | null, number, string[]] {
-  const { hz, denom, dots, bowing, marks } = groups
+  const { hz, denom, dots, bowing, marks, tie } = groups
 
   const denomNum = denom ? parseInt(denom, 10) : denomPrev
   const duration = denomToDuration(denomNum, (dots || '').length)
@@ -207,7 +212,7 @@ function parseHzToken(
   ].filter(e => typeof e == 'string')
 
   return [
-    { note: null, hz: freq, duration, ...(bow ? { bowing: bow } : {}) },
+    { note: null, hz: freq, duration, ...(bow ? { bowing: bow } : {}), ...(tie ? { tied: true } : {}) },
     denomNum,
     [...markErrors, ...unengraveable],
   ]
@@ -220,7 +225,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const match = token.match(tokenPattern)
   if (!match?.groups) return [null, denomPrev, [`unparsable token: ${token}`]]
 
-  const { letter, accidentals, octaves, denom, dots, bowing, marks } = match.groups
+  const { letter, accidentals, octaves, denom, dots, bowing, marks, tie } = match.groups
 
   const denomNum = denom ? parseInt(denom, 10) : denomPrev
   const duration = denomToDuration(denomNum, (dots || '').length)
@@ -250,6 +255,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
       color !== undefined && `colour on a rest: ${token}`,
       shape !== undefined && `shape on a rest: ${token}`,
       text !== undefined && `text on a rest: ${token}`,
+      tie && `tie on a rest: ${token}`,
     ].filter(e => typeof e == 'string')
 
     return [{ note: null, duration }, denomNum, [...markErrors, ...restErrors]]
@@ -263,7 +269,9 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const note = ToneLib.parseNote(`${letter.toLowerCase()}${accidental}`)
   if (!note) return [null, denomPrev, [`unparsable note: ${token}`]]
 
-  return [{ note: { ...note, octave }, duration, ...bowed, ...colored, ...shaped, ...texted }, denomNum, errors]
+  const tied = tie ? { tied: true } : {}
+
+  return [{ note: { ...note, octave }, duration, ...bowed, ...colored, ...shaped, ...texted, ...tied }, denomNum, errors]
 }
 
 export function parseSheet(source: string): SheetParse {
@@ -286,5 +294,13 @@ export function parseSheet(source: string): SheetParse {
     if (note) measures[measures.length - 1].push(note)
   }
 
-  return { measures: measures.filter(m => m.length > 0), errors }
+  const kept = measures.filter(m => m.length > 0)
+
+  // A `~` on the final note has nothing to bind to. It is the one tie error that can
+  // only be seen after the whole line is parsed, so it is checked here rather than in
+  // parseToken — which sees one token and cannot know it is the last.
+  const last = kept[kept.length - 1]?.at(-1)
+  if (last?.tied) errors.push('tie on the last note, binding to nothing')
+
+  return { measures: kept, errors }
 }

@@ -1,7 +1,7 @@
 import OpenSheetMusicDisplay from '../lib/OpenSheetMusicDisplay'
 import * as ToneLib from '../lib/ToneLib'
 import { pointwiseInterval, findMajor } from '../lib/ToneLib'
-import { note, rest, notesToMusic } from '../lib/MusicXML'
+import { note, notesToMusic, sheetToNotes } from '../lib/MusicXML'
 import { parseSheet } from '../lib/SheetNotation'
 import { chunk, transpose } from '../lib/Array'
 import { stringsAboveOpen } from '../lib/ToneLibViolin'
@@ -79,10 +79,7 @@ function serializedSheet(source: string): Note[][] {
 
   errors.length > 0 && console.warn('sheet notation:', errors)
 
-  return measures.map(m => m.map(n =>
-    n.note
-      ? note(n.note, n.duration, { bowing: n.bowing, color: n.color, notehead: n.shape, text: n.text })
-      : rest(n.duration)))
+  return sheetToNotes(measures)
 }
 
 export default function SheetOSMD(params_: { params: { sheet?: string, scale?: string, position?: string, key?: string, random?: string } }) {

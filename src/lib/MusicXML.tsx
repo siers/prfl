@@ -2,6 +2,7 @@
 // exact generated tuple shapes aren't worth chasing here.
 import { asserts, elements, MusicXML } from '@stringsync/musicxml'
 import * as ToneLib from '../lib/ToneLib'
+import type { SheetMeasure } from './SheetNotation'
 
 function attributes() {
   return new elements.Attributes({
@@ -83,7 +84,19 @@ export function rest(duration): elements.Note {
 export function note(note, duration, opts?): elements.Note {
   const o = opts || {}
 
-  const tie = o.tied && new elements.Chord || null
+  // A tie is two elements in two places, and MusicXML means different things by them:
+  // <tie> is the SOUND (one sustained note), <tied> inside <notations> is the printed
+  // slur. An engraver draws from <tied>, a player reads <tie>, so a tie needs both or
+  // it is silent in one of them. `tied` starts one here, `tieStop` ends the one before.
+  const ties = [
+    o.tieStop && new elements.Tie({ attributes: { type: 'stop' } }),
+    o.tied && new elements.Tie({ attributes: { type: 'start' } }),
+  ].filter(x => x)
+
+  const tieds = [
+    o.tieStop && new elements.Tied({ attributes: { type: 'stop' } }),
+    o.tied && new elements.Tied({ attributes: { type: 'start' } }),
+  ].filter(x => x)
 
   const noteheadContents = o.notehead ? [o.notehead] : ['normal']
   const notehead = (o.color || o.filled || o.notehead)
@@ -102,7 +115,7 @@ export function note(note, duration, opts?): elements.Note {
       contents: [
         null, // Footnote
         null, // Label
-        [o.slur, technical].filter(x => x),
+        [...tieds, o.slur, technical].filter(x => x),
       ]
     })
 
@@ -114,7 +127,7 @@ export function note(note, duration, opts?): elements.Note {
   return new elements.Note({
     contents: [
       [
-        tie, // elements.TiedNote
+        null, // elements.Chord
         new elements.Pitch({
           contents: [
             new elements.Step({
@@ -129,7 +142,7 @@ export function note(note, duration, opts?): elements.Note {
         new elements.Duration({
           contents: [duration],
         }),
-        [], // elements.Tie,
+        ties, // elements.Tie
       ],
       new Array<elements.Instrument>(),
       null, // elements.Footnote
@@ -159,6 +172,29 @@ export function measure(attr, notes, number = 1) {
       (attr ? [attributes()] : []).concat(notes)
     ],
   })
+}
+
+// Parsed notation to engraver elements, in one place because a tie spans two notes:
+// the `~` sits on the FIRST, but the second is the one that must carry <tie type="stop">.
+// Doing it per call site meant each of them re-deriving that pairing, so none did.
+//
+// A tie crosses bar lines — that is most of what ties are for — so the carry is tracked
+// across measures rather than reset per measure. A rest breaks it: `tied` is refused on
+// a rest upstream, and nothing can be held through one.
+export function sheetToNotes(measures: SheetMeasure[]): elements.Note[][] {
+  let carry = false
+
+  return measures.map(m => m.map(n => {
+    const tieStop = carry
+    carry = !!n.tied
+
+    return n.note
+      ? note(n.note, n.duration, {
+        bowing: n.bowing, color: n.color, notehead: n.shape, text: n.text,
+        tied: n.tied, tieStop,
+      })
+      : rest(n.duration)
+  }))
 }
 
 export function notesToMusic(measures) {

@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'vitest'
 import { OpenSheetMusicDisplay as OSMD } from 'opensheetmusicdisplay'
 import { parseSheet } from './SheetNotation'
-import { note, rest, notesToMusic } from './MusicXML'
+import { notesToMusic, sheetToNotes } from './MusicXML'
 
 // OSMD measures text and its sky/bottom lines through a 2d canvas context, which
 // jsdom does not implement. Only the measurements have to be plausible — the glyph
@@ -36,10 +36,7 @@ HTMLCanvasElement.prototype.getContext =
 
 function engrave(source: string): string {
   const { measures } = parseSheet(source)
-  return notesToMusic(measures.map(m => m.map(n =>
-    n.note
-      ? note(n.note, n.duration, { bowing: n.bowing, color: n.color, notehead: n.shape, text: n.text })
-      : rest(n.duration))))
+  return notesToMusic(sheetToNotes(measures))
 }
 
 async function draw(source: string): Promise<string> {
@@ -100,5 +97,44 @@ describe('rendered noteheads', () => {
     // moves no geometry — every path of the coloured rendering is one the uncoloured
     // crossed rendering already drew.
     expect(both.filter(d => !crossed.includes(d))).toStrictEqual([])
+  }, 60000)
+})
+
+// A tie is a curve, not a glyph: VexFlow draws it as its own <path>, so it shows up as
+// a path the untied rendering does not have. Ties are the reason durations like five
+// sixteenths can be written at all, so this is the test that the feature works end to
+// end — parse, <tie>/<tied>, engraver.
+describe('rendered ties', () => {
+  // The tie curve is a filled outline with no moveto-led notehead shape, so it is not
+  // in headPaths; comparing whole path sets is what catches it.
+  const allPaths = (svg: string): string[] =>
+    (svg.match(/<path[^>]*\bd="([^"]*)"/g) ?? []).map(p => (p.match(/d="([^"]*)"/) ?? [])[1])
+
+  test('a tie draws a curve the untied rendering does not have', async () => {
+    const untied = allPaths(await draw('c4 c4 d2'))
+    const tied = allPaths(await draw('c4~ c4 d2'))
+
+    expect(tied.length).toBeGreaterThan(untied.length)
+  }, 60000)
+
+  // headPaths() takes any moveto-led path, and the tie curve is one, so the tied
+  // rendering has the untied heads plus exactly the curve — not a different set of heads.
+  test('the noteheads are unchanged — a tie adds a curve, it does not restyle notes', async () => {
+    const untied = headPaths(await draw('c4 c4 d2'))
+    const tied = headPaths(await draw('c4~ c4 d2'))
+
+    expect(untied.every(d => tied.includes(d))).toBe(true)
+
+    // and what it added is a curve: quadratic segments, which no notehead glyph uses.
+    const added = tied.filter(d => !untied.includes(d))
+    expect(added.length).toBe(1)
+    expect(added[0]).toMatch(/Q/)
+  }, 60000)
+
+  test('a tie carries across a bar line', async () => {
+    const untied = allPaths(await draw('c2 c2 | c1'))
+    const tied = allPaths(await draw('c2 c2~ | c1'))
+
+    expect(tied.length).toBeGreaterThan(untied.length)
   }, 60000)
 })
