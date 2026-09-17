@@ -189,8 +189,8 @@ describe('ToneLib', () => {
   })
 
   test('renderSheet text', () => {
-    expect(renderSheet(parseNote('c6')!, 4, undefined, '3')).toBe("c''4(3)")
-    expect(renderSheet(parseNote('c6')!, 8, 'G', '3')).toBe("c''8[G](3)")
+    expect(renderSheet(parseNote('c6')!, 4, undefined, '3')).toBe("c''4{3}")
+    expect(renderSheet(parseNote('c6')!, 8, 'G', '3')).toBe("c''8[G]{3}")
   })
 
   test('a texted note round-trips with its fingering intact', () => {

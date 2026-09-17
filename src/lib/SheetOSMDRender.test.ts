@@ -138,3 +138,68 @@ describe('rendered ties', () => {
     expect(tied.length).toBeGreaterThan(untied.length)
   }, 60000)
 })
+
+// A slur is a phrase mark: a curve over notes of any pitch, changing no duration. Like
+// the tie it is drawn as its own path, so it shows up as one the unslurred rendering
+// lacks — and unlike the tie it must leave the rhythm alone.
+describe('rendered slurs', () => {
+  const allPaths = (svg: string): string[] =>
+    (svg.match(/<path[^>]*\bd="([^"]*)"/g) ?? []).map(p => (p.match(/d="([^"]*)"/) ?? [])[1])
+
+  test('a slur draws a curve the unslurred rendering does not have', async () => {
+    const plain = allPaths(await draw('c8 d8 e8 f8'))
+    const slurred = allPaths(await draw('c8( d8 e8 f8)'))
+
+    expect(slurred.length).toBeGreaterThan(plain.length)
+  }, 60000)
+
+  test('the noteheads are unchanged — a slur adds a curve, nothing else', async () => {
+    const plain = headPaths(await draw('c8 d8 e8 f8'))
+    const slurred = headPaths(await draw('c8( d8 e8 f8)'))
+
+    expect(plain.every(d => slurred.includes(d))).toBe(true)
+  }, 60000)
+
+  // Two slurs over the SAME span coincide, and the engraver draws them as one path — so
+  // nesting is asserted on the MusicXML, where the two numbered slurs are unambiguous,
+  // and the drawing only has to show a curve appeared at all.
+  test('nested slurs are numbered so the engraver can tell them apart', async () => {
+    const xml = engrave('c8(( d8 e8 f8))')
+    const slurs = xml.match(/<slur[^>]*\/>/g) ?? []
+
+    expect(slurs.length).toBe(4)
+    expect(slurs.filter(s => s.includes('number="1"')).length).toBe(2)
+    expect(slurs.filter(s => s.includes('number="2"')).length).toBe(2)
+
+    // innermost closes first
+    expect(slurs[2]).toContain('number="2"')
+    expect(slurs[3]).toContain('number="1"')
+  }, 60000)
+
+  test('a nested slur still draws', async () => {
+    const plain = allPaths(await draw('c8 d8 e8 f8'))
+    expect(allPaths(await draw('c8(( d8 e8 f8))')).length).toBeGreaterThan(plain.length)
+  }, 60000)
+
+  test('a slur spans a bar line', async () => {
+    const plain = allPaths(await draw('c2 c2 | c1'))
+    const slurred = allPaths(await draw('c2( c2 | c1)'))
+
+    expect(slurred.length).toBeGreaterThan(plain.length)
+  }, 60000)
+
+  // A tie and a slur can sit on one note, and mean different things: the tie holds the
+  // pitch, the slur phrases across the group. Tying merges two noteheads into one, so
+  // the path count is compared against the tied rendering, not the plain one.
+  test('a slur and a tie coexist on one note', async () => {
+    const tiedOnly = allPaths(await draw('c4~ c4 d4 e4'))
+    const both = allPaths(await draw('c4~( c4 d4 e4)'))
+
+    expect(both.length - tiedOnly.length).toBe(1)
+
+    // and both are in the XML, as their own kinds of element
+    const xml = engrave('c4~( c4 d4 e4)')
+    expect((xml.match(/<tied[^>]*\/>/g) ?? []).length).toBe(2)
+    expect((xml.match(/<slur[^>]*\/>/g) ?? []).length).toBe(2)
+  }, 60000)
+})

@@ -115,7 +115,7 @@ export function note(note, duration, opts?): elements.Note {
       contents: [
         null, // Footnote
         null, // Label
-        [...tieds, o.slur, technical].filter(x => x),
+        [...tieds, ...(o.slurs || []), o.slur, technical].filter(x => x),
       ]
     })
 
@@ -183,15 +183,47 @@ export function measure(attr, notes, number = 1) {
 // a rest upstream, and nothing can be held through one.
 export function sheetToNotes(measures: SheetMeasure[]): elements.Note[][] {
   let carry = false
+  // Slur numbers currently open, innermost last. MusicXML identifies a slur by a
+  // `number` shared between its start and stop, which is what lets slurs nest — so the
+  // stop has to reuse the number its own start was given, not just the next one free.
+  const open: number[] = []
 
   return measures.map(m => m.map(n => {
     const tieStop = carry
     carry = !!n.tied
 
+    // Written order again: `c8()` closes the slur it just opened, `c8)(` closes an outer
+    // one and opens a new one. Opening first in the former case puts the right number on
+    // the stop.
+    const slurs: elements.Slur[] = []
+    const openSlurs = (count: number) => {
+      for (let i = 0; i < count; i++) {
+        // Lowest number not in use: a slur that has closed frees its number for reuse.
+        let number = 1
+        while (open.includes(number)) number++
+        open.push(number)
+        slurs.push(new elements.Slur({ attributes: { type: 'start', number } }))
+      }
+    }
+    const closeSlurs = (count: number) => {
+      for (let i = 0; i < count; i++) {
+        const number = open.pop()
+        if (number !== undefined) slurs.push(new elements.Slur({ attributes: { type: 'stop', number } }))
+      }
+    }
+
+    if (n.slurOpensFirst) {
+      openSlurs(n.slurStart ?? 0)
+      closeSlurs(n.slurStop ?? 0)
+    } else {
+      closeSlurs(n.slurStop ?? 0)
+      openSlurs(n.slurStart ?? 0)
+    }
+
     return n.note
       ? note(n.note, n.duration, {
         bowing: n.bowing, color: n.color, notehead: n.shape, text: n.text,
-        tied: n.tied, tieStop,
+        tied: n.tied, tieStop, slurs,
       })
       : rest(n.duration)
   }))

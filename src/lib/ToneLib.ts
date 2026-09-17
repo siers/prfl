@@ -138,7 +138,7 @@ export function renderSheet(n: Note, denom: number = 4, color?: string, text?: s
     ? "'".repeat(n.octave - sheetOctave)
     : ','.repeat(sheetOctave - n.octave)
   const kolor = color ? `[${color}]` : ''
-  const teksts = text ? `(${text})` : ''
+  const teksts = text ? `{${text}}` : ''
 
   return n.name + alter + octaves + denom + kolor + teksts
 }

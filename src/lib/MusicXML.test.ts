@@ -91,8 +91,8 @@ describe('engraved notehead shape', () => {
   })
 
   test('shape composes with a fingering, which stays in its own technical', () => {
-    expect(noteheads('c4[x](3)')).toStrictEqual(['<notehead>x</notehead>'])
-    expect(technicals('c4[x](3)')).toStrictEqual(['<technical><fingering>3</fingering></technical>'])
+    expect(noteheads('c4[x]{3}')).toStrictEqual(['<notehead>x</notehead>'])
+    expect(technicals('c4[x]{3}')).toStrictEqual(['<technical><fingering>3</fingering></technical>'])
   })
 
   test('a rejected shape engraves nothing rather than a wrong glyph', () => {
@@ -103,7 +103,7 @@ describe('engraved notehead shape', () => {
 
 describe('engraved text', () => {
   test('text reaches a fingering element', () => {
-    expect(technicals('c4(3)')).toStrictEqual(['<technical><fingering>3</fingering></technical>'])
+    expect(technicals('c4{3}')).toStrictEqual(['<technical><fingering>3</fingering></technical>'])
   })
 
   test('an untexted note gets no technical at all', () => {
@@ -113,23 +113,23 @@ describe('engraved text', () => {
 
   test('bowing and fingering share one technical element', () => {
     // MusicXML permits a single <technical> per <notations>; a second would be dropped
-    expect(technicals('c4v(2)')).toStrictEqual([
+    expect(technicals('c4v{2}')).toStrictEqual([
       '<technical><up-bow/><fingering>2</fingering></technical>',
     ])
   })
 
   test('text and colour engrave independently of each other', () => {
-    expect(noteheads('c4[G](1)')).toStrictEqual([
+    expect(noteheads('c4[G]{1}')).toStrictEqual([
       `<notehead color="${resolveColor('G')[0]}">normal</notehead>`,
     ])
-    expect(technicals('c4[G](1)')).toStrictEqual(['<technical><fingering>1</fingering></technical>'])
+    expect(technicals('c4[G]{1}')).toStrictEqual(['<technical><fingering>1</fingering></technical>'])
   })
 
   test('non-numeric text survives verbatim', () => {
-    expect(technicals('c4(IV)')).toStrictEqual(['<technical><fingering>IV</fingering></technical>'])
+    expect(technicals('c4{IV}')).toStrictEqual(['<technical><fingering>IV</fingering></technical>'])
   })
 
   test('a rejected text engraves nothing rather than an empty fingering', () => {
-    expect(technicals('c4()')).toStrictEqual([])
+    expect(technicals('c4{}')).toStrictEqual([])
   })
 })

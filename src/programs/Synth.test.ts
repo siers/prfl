@@ -95,3 +95,19 @@ describe('toneEvents — ties', () => {
     expect(events.map(e => [e.pitch, e.time, e.duration])).toEqual([['C4', 0, 1], ['C4', 2, 1]])
   })
 })
+
+// A slur is a bowing/phrasing mark. It changes nothing about when or how long a note
+// sounds — that is exactly what separates it from a tie.
+describe('toneEvents — slurs do not change the sound', () => {
+  test('a slurred phrase sounds like the unslurred one', () => {
+    expect(toneEvents(notes('c8( d8 e8 f8)'))).toEqual(toneEvents(notes('c8 d8 e8 f8')))
+  })
+
+  test('a slur does not merge repeated pitches the way a tie does', () => {
+    const [slurred] = toneEvents(notes('c4( c4)'))
+    const [tied] = toneEvents(notes('c4~ c4'))
+
+    expect(slurred.map(e => e.duration)).toEqual([1, 1])
+    expect(tied.map(e => e.duration)).toEqual([2])
+  })
+})

@@ -16,19 +16,30 @@
 //               kind of its own, so `c4[x][G]` is a crossed head in the G colour;
 //               it is `[x][x]` that repeats. `[X]` is not it — an uppercase letter
 //               in brackets is a violin string, and `[E]` must stay the E string.
-//   text        `(3)` a fingering, engraved beside the notehead. Any text is allowed —
-//               `(1)`, `(sul G)` — but it engraves as a fingering, so keep it short.
+//   text        `{3}` a fingering, engraved beside the notehead. Any text without a
+//               space is allowed — `{1}`, `{sulG}` — but it engraves as a fingering,
+//               so keep it short. Tokens split on whitespace, so `{sul G}` is two
+//               tokens and parses as neither.
 //   rest        `r` in place of the letter (duration/dots still apply)
+//   slur        `(` after a note opens a slur, `)` after one closes it, as in LilyPond:
+//               `c8( d e f)` is four notes under one curve. A slur spans notes of any
+//               pitch and changes no duration — it is a bowing/phrasing mark, where a
+//               tie is one sustained note. Slurs nest, and both may sit on one note:
+//               `c8( d) e8( f)`, or `c8() d8` for a slur opened and closed at once.
 //   tie         trailing `~` binds this note to the next, as in LilyPond — `c4~ c4` is
 //               one note held for two quarters. The tie is the last thing in the token,
 //               after the marks: `c4[G](3)~`. Durations that no single symbol can spell
 //               (5, 9, 10, 11, 13, 15 sixteenths) are written as tied pieces.
 //
 // Brackets are used because every letter is already spoken for: a-g are notes, `r`
-// is a rest, `v`/`n` are bowings, `b` is a flat. Parentheses keep text out of the
-// colour's `[...]`, so the two can be written in either order — `c4[G](3)` and
-// `c4(3)[G]` are the same note. Unlike duration, none of them carry over to the
+// is a rest, `v`/`n` are bowings, `b` is a flat. Braces keep text out of the
+// colour's `[...]`, so the two can be written in either order — `c4[G]{3}` and
+// `c4{3}[G]` are the same note. Unlike duration, none of them carry over to the
 // next token — all are marks on one note, not running state.
+//
+// Parentheses are the slur, and so cannot also be the text mark: `c4(3)` would be
+// ambiguous between a fingering and a slur opening on a note. That is why the
+// fingering is `{3}` here where LilyPond writes a bare `-3`.
 //
 // `<442hz>` names a frequency directly, for training differences finer than the
 // 12-tone grid. Duration/dots follow the angle brackets — `<442hz>8.` — and the
@@ -62,6 +73,10 @@ export type SheetNote = {
   shape?: NoteheadShape     // notehead glyph; absent means the ordinary oval
   text?: string             // fingering text, engraved beside the notehead
   tied?: boolean            // tied to the FOLLOWING note; the pair sounds as one
+  slurStart?: number        // slurs opening on this note (`(`), for nesting
+  slurStop?: number         // slurs closing on this note (`)`)
+  slurOpensFirst?: boolean  // `c8()` — the opener was written before the closer, so the
+                            // closer may take the slur this same note opened
 }
 
 export type SheetMeasure = SheetNote[]
@@ -107,16 +122,23 @@ const bowings: Record<string, Bowing> = { v: 'up', '∨': 'up', n: 'down', 'Π':
 // The trailing marks: brackets `[...]` and a text `(...)`, in any order and each kind at
 // most once. Matched as one repeatable group rather than a fixed sequence, so they
 // commute; a repeat is caught when the marks are read, where it can be named in the error.
-const marksSource = String.raw`(?<marks>(?:\[[^\][\s]*\]|\([^()]*\))*)`
+const marksSource = String.raw`(?<marks>(?:\[[^\][\s]*\]|\{[^{}]*\})*)`
+
+// The tie and the slur brackets, after the marks. Matched as one class so they commute
+// — `c4~(` and `c4(~` are the same note, as LilyPond writes the first and the marks
+// before them already commute. Both slur kinds may appear, repeated: `c8)(` ends one
+// slur and opens the next, `c8((` opens two (a phrase inside a phrase), and `c8()`
+// opens and closes on the one note. The counting happens when the token is read.
+const slurSource = String.raw`(?<slurs>[()~]*)`
 
 // `<NNNhz>` with the same trailing duration/dots/bowing; `'`/`,` tolerated and dropped.
 // The marks are matched so they can be reported, not silently treated as an unparsable token.
 const hzPattern = new RegExp(
-  String.raw`^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + String.raw`(?<tie>~)?$`, 'i')
+  String.raw`^<(?<hz>\d+(?:\.\d+)?)hz>(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + slurSource + String.raw`$`, 'i')
 
 // `<letter><accidentals><octaves><duration><dots><bowing><marks>` — every part but the letter optional.
 const tokenPattern = new RegExp(
-  String.raw`^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + String.raw`(?<tie>~)?$`, 'i')
+  String.raw`^(?<letter>[a-gr])(?<accidentals>isis|is|eses|es|[#b]{1,2})?(?<octaves>['’,]*)(?<denom>\d+)?(?<dots>\.*)(?<bowing>[vn∨Π])?` + marksSource + slurSource + String.raw`$`, 'i')
 
 export type Marks = { color?: string, shape?: NoteheadShape, text?: string }
 
@@ -141,7 +163,7 @@ export function parseMarks(marks: string): [Marks, string[]] {
     else out[key] = value
   }
 
-  for (const [, bracket, text] of marks.matchAll(/\[([^\][\s]*)\]|\(([^()]*)\)/g)) {
+  for (const [, bracket, text] of marks.matchAll(/\[([^\][\s]*)\]|\{([^{}]*)\}/g)) {
     if (bracket === undefined) set('text', text)
     else {
       const shape = noteheadShapes[bracket]
@@ -188,10 +210,34 @@ export function denomToDuration(denom: number, dots: number): number | null {
 }
 
 // An absolute frequency: no letter, so nothing to engrave and no octave to apply.
+// Counts, not booleans: `c8((` opens two slurs, which is how a phrase inside a phrase
+// is written. Absent fields rather than zeroes, so an unslurred note stays plain.
+// A second `~` says nothing a first did not — and like a repeated mark, only the writer
+// knows which they meant, so it is an error rather than a silent last-one-wins.
+function tieError(slurs: string, token: string): string | null {
+  return (slurs.match(/~/g) || []).length > 1 ? `repeated tie: ${token}` : null
+}
+
+function slurred(slurs?: string) {
+  const written = slurs || ''
+  const starts = written.split('').filter(c => c == '(').length
+  const stops = written.split('').filter(c => c == ')').length
+
+  return {
+    ...(stops > 0 ? { slurStop: stops } : {}),
+    ...(starts > 0 ? { slurStart: starts } : {}),
+    // Only meaningful when the note has both kinds; recorded then, so the balance check
+    // can tell `c8()` (opens then closes itself) from `c8)(` (ends one, starts another).
+    ...(starts > 0 && stops > 0 && written.indexOf('(') < written.indexOf(')')
+      ? { slurOpensFirst: true } : {}),
+  }
+}
+
 function parseHzToken(
   token: string, groups: Record<string, string>, denomPrev: number,
 ): [SheetNote | null, number, string[]] {
-  const { hz, denom, dots, bowing, marks, tie } = groups
+  const { hz, denom, dots, bowing, marks, slurs } = groups
+  const tie = (slurs || '').includes('~')
 
   const denomNum = denom ? parseInt(denom, 10) : denomPrev
   const duration = denomToDuration(denomNum, (dots || '').length)
@@ -212,9 +258,13 @@ function parseHzToken(
   ].filter(e => typeof e == 'string')
 
   return [
-    { note: null, hz: freq, duration, ...(bow ? { bowing: bow } : {}), ...(tie ? { tied: true } : {}) },
+    {
+      note: null, hz: freq, duration,
+      ...(bow ? { bowing: bow } : {}), ...(tie ? { tied: true } : {}),
+      ...slurred(slurs),
+    },
     denomNum,
-    [...markErrors, ...unengraveable],
+    [...markErrors, ...unengraveable, ...[tieError(slurs || '', token)].filter(e => typeof e == 'string')],
   ]
 }
 
@@ -225,7 +275,8 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const match = token.match(tokenPattern)
   if (!match?.groups) return [null, denomPrev, [`unparsable token: ${token}`]]
 
-  const { letter, accidentals, octaves, denom, dots, bowing, marks, tie } = match.groups
+  const { letter, accidentals, octaves, denom, dots, bowing, marks, slurs } = match.groups
+  const tie = (slurs || '').includes('~')
 
   const denomNum = denom ? parseInt(denom, 10) : denomPrev
   const duration = denomToDuration(denomNum, (dots || '').length)
@@ -246,7 +297,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
   const texted = text ? { text } : {}
   const textError = text === '' ? `empty text: ${token}` : null
 
-  const errors = [...markErrors, colorError, textError].filter(e => typeof e == 'string')
+  const errors = [...markErrors, colorError, textError, tieError(slurs || '', token)].filter(e => typeof e == 'string')
 
   // A bow mark on a rest has nothing to engrave — say so rather than dropping it.
   if (letter.toLowerCase() == 'r') {
@@ -256,6 +307,7 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
       shape !== undefined && `shape on a rest: ${token}`,
       text !== undefined && `text on a rest: ${token}`,
       tie && `tie on a rest: ${token}`,
+      (slurs || '').match(/[()]/) && `slur on a rest: ${token}`,
     ].filter(e => typeof e == 'string')
 
     return [{ note: null, duration }, denomNum, [...markErrors, ...restErrors]]
@@ -271,7 +323,11 @@ function parseToken(token: string, denomPrev: number): [SheetNote | null, number
 
   const tied = tie ? { tied: true } : {}
 
-  return [{ note: { ...note, octave }, duration, ...bowed, ...colored, ...shaped, ...texted, ...tied }, denomNum, errors]
+  return [
+    { note: { ...note, octave }, duration, ...bowed, ...colored, ...shaped, ...texted, ...tied, ...slurred(slurs) },
+    denomNum,
+    errors,
+  ]
 }
 
 export function parseSheet(source: string): SheetParse {
@@ -301,6 +357,31 @@ export function parseSheet(source: string): SheetParse {
   // parseToken — which sees one token and cannot know it is the last.
   const last = kept[kept.length - 1]?.at(-1)
   if (last?.tied) errors.push('tie on the last note, binding to nothing')
+
+  // Slur balance is the same kind of whole-line property: a `)` with nothing open, or a
+  // `(` never closed. Counted across bar lines, since a slur may span them.
+  // Read in written order: `)` before `(` when both are on a note, since a note that
+  // ends one slur and starts another writes them that way. So a closer draws on slurs
+  // open BEFORE this note — except in `c8()`, where the note's own opener comes first
+  // and the closer takes it back. The `slurs` capture keeps the written order, and
+  // `slurred` re-derives the spelling from the counts it recorded.
+  let open = 0
+  for (const note of kept.flat()) {
+    const opened = note.slurStart ?? 0
+    const closed = note.slurStop ?? 0
+
+    // `c8()`: opener written first, so it is available to the closer on the same note.
+    const available = note.slurOpensFirst ? open + opened : open
+
+    if (closed > available) {
+      errors.push('slur closed that was never opened')
+      open = 0
+      continue
+    }
+
+    open += opened - closed
+  }
+  if (open > 0) errors.push(`slur never closed: ${open} left open`)
 
   return { measures: kept, errors }
 }

@@ -265,7 +265,7 @@ describe('notehead shape', () => {
   })
 
   test('shape composes with bowing, dots, accidentals and text', () => {
-    const { measures, errors } = parseSheet("bes'8.v[x][A](4)")
+    const { measures, errors } = parseSheet("bes'8.v[x][A]{4}")
 
     expect(errors).toStrictEqual([])
     expect(measures[0][0]).toStrictEqual({
@@ -289,13 +289,13 @@ describe('notehead shape', () => {
   test('parseMarks sorts a bracket into shape or colour by its content', () => {
     expect(parseMarks('[x]')).toStrictEqual([{ shape: 'x' }, []])
     expect(parseMarks('[G]')).toStrictEqual([{ color: 'G' }, []])
-    expect(parseMarks('[x][G](1)')).toStrictEqual([{ shape: 'x', color: 'G', text: '1' }, []])
+    expect(parseMarks('[x][G]{1}')).toStrictEqual([{ shape: 'x', color: 'G', text: '1' }, []])
   })
 })
 
 describe('text', () => {
   test('parenthesised text rides along as a fingering', () => {
-    const { measures, errors } = parseSheet('c4(1) d4(3) e4')
+    const { measures, errors } = parseSheet('c4{1} d4{3} e4')
 
     expect(errors).toStrictEqual([])
     expect(measures[0].map(n => n.text)).toStrictEqual(['1', '3', undefined])
@@ -303,14 +303,14 @@ describe('text', () => {
 
   test('text is not only digits', () => {
     // whatever is written engraves verbatim; the parser does not police it
-    const { measures, errors } = parseSheet('c4(2-3) d4(IV) e4(o)')
+    const { measures, errors } = parseSheet('c4{2-3} d4{IV} e4{o}')
 
     expect(errors).toStrictEqual([])
     expect(measures[0].map(n => n.text)).toStrictEqual(['2-3', 'IV', 'o'])
   })
 
   test('text and colour commute — parentheses keep them apart', () => {
-    const { measures, errors } = parseSheet('c4[G](1) d4(1)[G]')
+    const { measures, errors } = parseSheet('c4[G]{1} d4{1}[G]')
 
     expect(errors).toStrictEqual([])
     expect(measures[0].map(n => [n.color, n.text])).toStrictEqual([
@@ -319,7 +319,7 @@ describe('text', () => {
   })
 
   test('text composes with bowing, dots and accidentals', () => {
-    const { measures, errors } = parseSheet("bes'8.v[A](4)")
+    const { measures, errors } = parseSheet("bes'8.v[A]{4}")
 
     expect(errors).toStrictEqual([])
     expect(measures[0][0]).toStrictEqual({
@@ -329,33 +329,33 @@ describe('text', () => {
   })
 
   test('text does not carry over the way duration does', () => {
-    const { measures } = parseSheet('c8(1) d e')
+    const { measures } = parseSheet('c8{1} d e')
     expect(measures[0].map(n => [n.duration, n.text])).toStrictEqual([
       [2, '1'], [2, undefined], [2, undefined],
     ])
   })
 
   test('empty parentheses are an error, not an empty fingering on the staff', () => {
-    expect(parseSheet('c4()').errors).toStrictEqual(['empty text: c4()'])
-    expect(parseSheet('c4()').measures[0][0].text).toBeUndefined()
+    expect(parseSheet('c4{}').errors).toStrictEqual(['empty text: c4{}'])
+    expect(parseSheet('c4{}').measures[0][0].text).toBeUndefined()
   })
 
   test('a repeated mark is reported rather than silently last-one-wins', () => {
-    expect(parseSheet('c4(1)(2)').errors).toStrictEqual(['repeated text: (1)(2)'])
+    expect(parseSheet('c4{1}{2}').errors).toStrictEqual(['repeated text: {1}{2}'])
     expect(parseSheet('c4[G][E]').errors).toStrictEqual(['repeated colour: [G][E]'])
 
     // the first spelling is what lands, and the note still lands
-    expect(parseSheet('c4(1)(2)').measures[0][0].text).toBe('1')
+    expect(parseSheet('c4{1}{2}').measures[0][0].text).toBe('1')
   })
 
   test('text on a rest or a frequency has nothing to hang off', () => {
-    expect(parseSheet('r4(1)').errors).toStrictEqual(['text on a rest: r4(1)'])
-    expect(parseSheet('<440hz>4(1)').errors).toStrictEqual(['text on a frequency: <440hz>4(1)'])
+    expect(parseSheet('r4{1}').errors).toStrictEqual(['text on a rest: r4{1}'])
+    expect(parseSheet('<440hz>4{1}').errors).toStrictEqual(['text on a frequency: <440hz>4{1}'])
   })
 
   test('parseMarks reads either order and both kinds', () => {
-    expect(parseMarks('[G](1)')).toStrictEqual([{ color: 'G', text: '1' }, []])
-    expect(parseMarks('(1)[G]')).toStrictEqual([{ color: 'G', text: '1' }, []])
+    expect(parseMarks('[G]{1}')).toStrictEqual([{ color: 'G', text: '1' }, []])
+    expect(parseMarks('{1}[G]')).toStrictEqual([{ color: 'G', text: '1' }, []])
     expect(parseMarks('')).toStrictEqual([{}, []])
   })
 })
@@ -368,7 +368,7 @@ describe('ties', () => {
   })
 
   test('the tie comes after the marks, and does not consume them', () => {
-    const { measures, errors } = parseSheet('c4[G](3)~ c4')
+    const { measures, errors } = parseSheet('c4[G]{3}~ c4')
     expect(errors).toStrictEqual([])
     expect(measures[0][0]).toMatchObject({ color: stringColors.G.toUpperCase(), text: '3', tied: true })
   })
@@ -396,5 +396,77 @@ describe('ties', () => {
   test('an untied line has no tied notes', () => {
     const { measures } = parseSheet('c4 c4')
     expect(measures[0].every(n => n.tied === undefined)).toBe(true)
+  })
+})
+
+describe('slurs', () => {
+  test('( opens and ) closes, LilyPond-style', () => {
+    const { measures, errors } = parseSheet('c8( d e f)')
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => [n.slurStart ?? 0, n.slurStop ?? 0]))
+      .toStrictEqual([[1, 0], [0, 0], [0, 0], [0, 1]])
+  })
+
+  test('a slur changes no duration — it is a phrase mark, not a tie', () => {
+    expect(parseSheet('c8( d e f)').measures[0].map(n => n.duration))
+      .toStrictEqual(parseSheet('c8 d e f').measures[0].map(n => n.duration))
+  })
+
+  test('slurs nest', () => {
+    const { measures, errors } = parseSheet('c8(( d f))')
+    expect(errors).toStrictEqual([])
+    expect(measures[0].map(n => [n.slurStart ?? 0, n.slurStop ?? 0]))
+      .toStrictEqual([[2, 0], [0, 0], [0, 2]])
+  })
+
+  test('one note can end a slur and open the next', () => {
+    const { errors, measures } = parseSheet('c8( d8)( e8)')
+    expect(errors).toStrictEqual([])
+    expect(measures[0][1]).toMatchObject({ slurStart: 1, slurStop: 1 })
+  })
+
+  test('a slur opened and closed on one note is written ()', () => {
+    const { errors, measures } = parseSheet('c8() d8')
+    expect(errors).toStrictEqual([])
+    expect(measures[0][0]).toMatchObject({ slurStart: 1, slurStop: 1, slurOpensFirst: true })
+  })
+
+  test('the order tells () from )( — the latter closes nothing', () => {
+    expect(parseSheet('c8() d8').errors).toStrictEqual([])
+    expect(parseSheet('c8)( d8').errors).toStrictEqual(['slur closed that was never opened'])
+  })
+
+  test('an unclosed slur is reported', () => {
+    expect(parseSheet('c8( d e f').errors).toStrictEqual(['slur never closed: 1 left open'])
+  })
+
+  test('a slur closed that was never opened is reported', () => {
+    expect(parseSheet('c8 d) e').errors).toStrictEqual(['slur closed that was never opened'])
+  })
+
+  test('a slur spans a bar line', () => {
+    expect(parseSheet('c2( c2 | c1)').errors).toStrictEqual([])
+  })
+
+  test('a slur on a rest is an error', () => {
+    expect(parseSheet('r4( c4)').errors).toContain('slur on a rest: r4(')
+  })
+
+  test('slur and tie commute, and both may sit on one note', () => {
+    for (const src of ['c4~( c4)', 'c4(~ c4)']) {
+      const { measures, errors } = parseSheet(src)
+      expect(errors, src).toStrictEqual([])
+      expect(measures[0][0], src).toMatchObject({ tied: true, slurStart: 1 })
+    }
+  })
+
+  test('a repeated tie is reported rather than silently accepted', () => {
+    expect(parseSheet('c4~~ c4').errors).toStrictEqual(['repeated tie: c4~~'])
+  })
+
+  test('slurs ride along with the other marks in any order', () => {
+    const { measures, errors } = parseSheet('c4[G]{1}( d4)')
+    expect(errors).toStrictEqual([])
+    expect(measures[0][0]).toMatchObject({ color: stringColors.G.toUpperCase(), text: '1', slurStart: 1 })
   })
 })
