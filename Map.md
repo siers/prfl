@@ -74,6 +74,13 @@ most common way to lose an hour here.
 field via `fields.<name>` — which is what lets one field on a line derive from
 another.
 
+**The two buttons are not the same axis.** 🔄 re-evaluates a line; ⏩ rotates each
+field's value list by one. Four tags cut across them, and three of the pairings
+are reachable: `freeze` survives a re-eval but still rotates, `nonrotated` is
+re-rolled but held still by ⏩, and `computed` is re-derived by both rather than
+holding a list of its own. Reaching for `freeze` when the intent was "don't step
+this" is the easy mistake — it is the other one.
+
 **The helper surface** is assembled in `randomizeLangUtils()` and returned as one
 object; the tail of that return is the fastest way to see everything callable.
 Grouped roughly: list building (`s`, `ss`, `times`, `range`, `indices`),

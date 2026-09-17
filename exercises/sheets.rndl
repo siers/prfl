@@ -2,10 +2,12 @@ SheetDemo: play it [`c4n d4v e8n f8v | g2n r4 a'4.v`]sheet:hide
 # a `tones` tag sounds the pitches; nothing is engraved from it
 SheetTones: play it [`c4 d4 e8 f8 | g2 r4 a'4`]tones:hide [60]metro
 # a `sheet` tag is silent unless it opts in with a `tones` modifier
-SheetHeard: play it [`c4 d4 e8 f8 | g2 r4 a'4`]sheet:hide:tones [60]metro
+SheetHeard: play it [`c4 d4 e8 f8 | g2 r4 a'4`]sheet:hide [60]metro
 # engraved line and sounded pitches, kept separate — here a drone under the written line
 SheetDrone: play it [`c4 d4 e8 f8 | g2`]sheet:hide [`c,1 g,1`]tones:hide [60]metro
 ScalesSheet: play it [ss(`galamian markov`)]scale
 # ScalesDS: [ss(`123456`)]position [s('markov, ')]scale [keyPlain]key [ss(`–, v, h, r`)]random [ss(`12`)]
 
-# Rot-{indices(16)}: [(x=>x\[(x.i=(x.i??0),x.i++%16)\].grid)(globalThis.rotEx||(globalThis.rotEx=rotationExercise(`d`)))]grid:freeze:mono [globalThis.rotEx.find(r=>r.grid==fields.grid.at(0)).sheet]sheet:computed:tones:mono:maxlen-80 [60]metro [`16f`]next:hide
+# one 4/4 bar of eighths: two distinct arrangements of 1110 / 1100 / 0001, bowing alternating note to note.
+# a `0` engraves as a crossed notehead; every pitch is c.
+BowedTies: play it [pick(ExBowedTies.gen())]sheet:mono [60]metro

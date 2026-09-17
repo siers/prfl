@@ -143,6 +143,11 @@ export type Tagged = { tags: string[] | null }
 
 export const isFrozen = (x: Tagged): boolean => (x.tags || []).includes('freeze')
 export const isComputed = (x: Tagged): boolean => (x.tags || []).includes('computed')
+// Held still by `⏩` but re-rolled by `🔄` — the opposite trade-off to `freeze`,
+// which survives a re-roll but does rotate. For a field whose values are a set to
+// pick from rather than a sequence to step through, so stepping the line should
+// not walk it.
+export const isNonrotated = (x: Tagged): boolean => (x.tags || []).includes('nonrotated')
 export const isInline = (x: Tagged): boolean => (x.tags || []).includes('inline')
 export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')

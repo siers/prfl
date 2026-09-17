@@ -16,11 +16,6 @@ import _ from 'lodash'
 import murmur from 'murmurhash3js'
 import { Picker } from 'bentools-picker'
 
-// Generated exercises. Re-exported rather than defined here: RandomizeLang splices this
-// module wholesale into the DSL scope, so a re-export is what makes them callable from
-// a `.rndl` line.
-export { rotationExercise, renderSlots, splitRun, bindRuns, rotations, randomSlots } from './Exercies'
-
 export function s(s: string): string[] {
   let out: string[]
 
@@ -421,7 +416,9 @@ type PickKeysInt = {
 // Re-exported straight from the libs, and the small wrappers that give a
 // library function its DSL name. The whole module is spread into the DSL
 // context, so every export here is a name programs can call.
-export { zipT, intersperse, interspersing, interleavingEvery, chunk } from '../lib/Array'
+export { zipT, intersperse, interspersing, interleavingEvery, chunk, take } from '../lib/Array'
+export * as ExExample from './Exercise20260919Example'
+export * as ExBowedTies from './ExerciseBowedTies'
 export { chromaticSlide } from '../lib/ToneLibViolin'
 export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
 export { shiftsDistributed }

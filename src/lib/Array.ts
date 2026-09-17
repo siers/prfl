@@ -35,6 +35,11 @@ export function reorderIndices<A>(lines: A[], indices: number[]) {
   return indices.map(i => lines[i])
 }
 
+// The first `n` — a name for `.slice(0, n)`, so a line reads left to right.
+export function take<A>(n: number, as: A[]): A[] {
+  return as.slice(0, n)
+}
+
 export const intersperse = <A>(arr: A[], sep: A) => arr.reduce((a, v) => [...a, v, sep], [] as A[]).slice(0, -1)
 export const interspersing = <A>(arr: A[], sep: A[]) => arr.reduce((a, v) => [...a, v, ...sep], [] as A[]).slice(0, -(sep.length))
 

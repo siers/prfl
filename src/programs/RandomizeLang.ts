@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -390,7 +390,7 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
 
   if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
     const rotated = (l.source.substitutions || []).map(s =>
-      !isComputed(s) && (!tag || tag == s.tag)
+      !isComputed(s) && !isNonrotated(s) && (!tag || tag == s.tag)
         ? { ...s, contents: rotateInterpolateSubst(s.contents) }
         : s
     )

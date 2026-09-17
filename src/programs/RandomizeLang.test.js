@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { initSequences, evalContentsS, evalContents, evalContentsMem, evalContentsDecks, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
-import { isFrozen, isComputed, isHidden, showCount } from './RandomizeLangTypes.js'
+import { isNonrotated, isFrozen, isComputed, isHidden, showCount } from './RandomizeLangTypes.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -836,6 +836,42 @@ describe('computed rotation', () => {
 
     const rotated = rotateInterpolableLine(item, 'mirror')
     expect(rotated.contents).toBe("Line: [A B] [A B]")
+  })
+})
+
+describe('nonrotated tag', () => {
+  test('a nonrotated field holds still while its neighbours rotate', () => {
+    const item = evalContents("Line: [s('A B')]a [s('1 2')]b:nonrotated")[0]
+    expect(item.contents).toBe("Line: [A B] [1 2]")
+
+    expect(rotateInterpolableLine(item).contents).toBe("Line: [B A] [1 2]")
+  })
+
+  test('rotating it by its own tag is still a no-op', () => {
+    const item = evalContents("Line: [s('A B')]a [s('1 2')]b:nonrotated")[0]
+    expect(rotateInterpolableLine(item, 'b').contents).toBe("Line: [A B] [1 2]")
+  })
+
+  test('it keeps every value — it is held, not truncated', () => {
+    const item = evalContents("Line: [s('1 2 3')]b:nonrotated")[0]
+    const subst = rotateInterpolableLine(item).source.substitutions.find(s => s.tag == 'b')
+    expect(subst.contents).toStrictEqual(['1', '2', '3'])
+  })
+
+  test('a computed field reading it sees the same value after rotation', () => {
+    const item = evalContents("Line: [s('A B')]a:nonrotated [j(fields.a)]mirror:computed")[0]
+    expect(item.contents).toBe("Line: [A B] [A B]")
+    expect(rotateInterpolableLine(item).contents).toBe("Line: [A B] [A B]")
+  })
+
+  test('unlike freeze, it is re-rolled by a recalc', () => {
+    // freeze and nonrotated are opposite trade-offs: freeze survives re-eval but
+    // rotates, nonrotated rotates not at all but is re-derived like any other.
+    const item = evalContents("Line: [s('A B')]a:nonrotated")[0]
+    const recalced = evalRenderLine(item, new Map())
+
+    expect(isNonrotated(item.source.interpols[0])).toBe(true)
+    expect(recalced.contents).toBe("Line: [A B]")
   })
 })
 
