@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { denomToDuration, parseMarks, parseSheet, resolveColor, stringColors } from './SheetNotation'
+import { denomToDuration, parseMarks, parseSheet, redivide, resolveColor, rotate, rotateSheet, SheetMeasure, stringColors } from './SheetNotation'
+import { sumsTo } from './Combinatorics'
 
 describe('denomToDuration', () => {
   test('lilypond denominators', () => {
@@ -468,5 +469,221 @@ describe('slurs', () => {
     const { measures, errors } = parseSheet('c4[G]{1}( d4)')
     expect(errors).toStrictEqual([])
     expect(measures[0][0]).toMatchObject({ color: stringColors.G.toUpperCase(), text: '1', slurStart: 1 })
+  })
+})
+
+// Reads a line back as notation, so a rotation can be asserted as the text a player
+// would see rather than as a tree of objects.
+const denoms: Record<number, string> = {
+  1: '16', 2: '8', 3: '8.', 4: '4', 6: '4.', 7: '4..', 8: '2', 12: '2.', 14: '2..', 16: '1',
+}
+
+const show = (measures: SheetMeasure[]): string =>
+  measures.map(m => m.map(n => {
+    const alter = n.note ? (n.note.alter > 0 ? '#'.repeat(n.note.alter) : 'b'.repeat(-n.note.alter)) : ''
+    const octave = n.note ? (n.note.octave > 4 ? "'".repeat(n.note.octave - 4) : ','.repeat(4 - n.note.octave)) : ''
+    return (n.note ? n.note.name + alter + octave : 'r') + denoms[n.duration] + (n.tied ? '~' : '')
+  }).join(' ')).join(' | ')
+
+const rot = (src: string, by: number) => show(rotateSheet(parseSheet(src).measures, by))
+
+describe('rotateSheet', () => {
+  test('notes move by the given number of sixteenths, wrapping round the line', () => {
+    expect(rot('c4 d4 e4 f4 | g4 a4 b4 c4', 4)).toBe('c4 c4 d4 e4 | f4 g4 a4 b4')
+  })
+
+  test('the bar lines stay put — only the material moves', () => {
+    const src = 'c4 d4 e4 f4 | g2'
+    const lengths = (s: string) =>
+      parseSheet(s).measures.map(m => m.reduce((a, n) => a + n.duration, 0))
+
+    expect(lengths(src)).toStrictEqual([16, 8])
+    for (let by = -24; by <= 24; by++)
+      expect(rotateSheet(parseSheet(src).measures, by).map(m => m.reduce((a, n) => a + n.duration, 0)))
+        .toStrictEqual([16, 8])
+  })
+
+  test('a rotation of the whole length is the identity', () => {
+    const src = 'c4 d8 e8 f2 | g4 a4 b2'   // 16 + 16 sixteenths
+    expect(rot(src, 0)).toBe(show(parseSheet(src).measures))
+    expect(rot(src, 32)).toBe(show(parseSheet(src).measures))
+  })
+
+  test('negative rotates backwards', () => {
+    expect(rot('c4 d4 e4 f4', -4)).toBe('d4 e4 f4 c4')
+    expect(rot('c4 d4 e4 f4', 4)).toBe('f4 c4 d4 e4')
+  })
+
+  test('a note cut by a beat line comes back tied, not re-articulated', () => {
+    // One quarter landing off the beat is an eighth tied to an eighth, not two eighths.
+    // The final f8 is NOT tied: its other half wrapped to the front of the line, and a
+    // tie across the wrap is the one thing a rotation cannot keep.
+    expect(rot('c4 d4 e4 f4', 2)).toBe('f8 c8~ c8 d8~ d8 e8~ e8 f8')
+  })
+
+  test('a held note stays held when it moves', () => {
+    // The written tie makes one c of two on the grid, so it re-spells as one note.
+    expect(rot('c4~ c4 d2', 8)).toBe('d2 c2')
+  })
+
+  test('a note the wrap cuts in half becomes two notes', () => {
+    // The d spans the wrap and becomes two notes; the c, moved across the bar line, is
+    // still one note and comes back tied.
+    expect(rot('c1 | d1', 4)).toBe('d4 c2.~ | c4 d2.')
+  })
+
+  test('the first note loses a tie it had into the previous note — the wrap breaks it', () => {
+    // `d2~` held into the following bar; rotated to the front there is nothing behind it.
+    const out = rotateSheet(parseSheet('c2 d2~ | d1').measures, 0)
+    expect(out[0][1].tied).toBe(true)
+
+    const rotated = rotateSheet(parseSheet('c2 d2~ | d1').measures, 8)
+    expect(rotated[0][0].tied).toBeUndefined()
+  })
+
+  test('rests move like anything else', () => {
+    expect(rot('c4 r4 d4 r4', 4)).toBe('r4 c4 r4 d4')
+  })
+
+  test('slurs do not survive — their spans no longer mean anything', () => {
+    const out = rotateSheet(parseSheet('c8( d8 e8 f8) g2').measures, 4)
+    expect(out.flat().every(n => n.slurStart === undefined && n.slurStop === undefined)).toBe(true)
+  })
+
+  test('the sounding content is the grid, rotated — nothing is gained or lost', () => {
+    const pitches = (ms: SheetMeasure[]) =>
+      redivide(ms).map(s => s.note ? `${s.note.note!.name}${s.note.note!.octave}` : 'r')
+
+    const src = parseSheet('c4 d8 e8 f2 | g4 r4 b2').measures
+    for (let by = -24; by <= 24; by++)
+      expect(pitches(rotateSheet(src, by)), `by ${by}`).toStrictEqual(rotate(redivide(src), by)
+        .map(s => s.note ? `${s.note.note!.name}${s.note.note!.octave}` : 'r'))
+  })
+
+  test('every rotation is legible against the beat', () => {
+    const src = parseSheet('c16 d16 e8 f4 g2 | a8. b16 c4 d2').measures
+
+    for (let by = -32; by <= 32; by++) {
+      for (const measure of rotateSheet(src, by)) {
+        let at = 0
+        for (const note of measure) {
+          const crosses = Math.floor(at / 4) != Math.floor((at + note.duration - 1) / 4)
+          if (crosses) expect([at % 4, note.duration], `by ${by}`).toStrictEqual([0, note.duration])
+          at += note.duration
+        }
+      }
+    }
+  })
+
+  test('every rotation parses back, so a rotation is always writable', () => {
+    const src = parseSheet('c8. d16 e4 f2 | g4 a4 b2').measures
+    for (let by = -24; by <= 24; by++) {
+      const text = show(rotateSheet(src, by)).replace(/ \| /g, ' | ')
+      expect(parseSheet(text).errors, `by ${by}: ${text}`).toStrictEqual([])
+    }
+  })
+})
+
+// On the grid rotation is addition, so any barrage of steps summing to the length is the
+// identity — `sumsTo` enumerates every such splitting.
+describe('rotate — a barrage summing to the length is the identity', () => {
+  const content = (slots: ReturnType<typeof redivide>) =>
+    slots.map(s => s.note ? `${s.note.note!.name}${s.note.note!.octave}` : 'r').join(' ')
+
+  test.each([
+    'c4 d4 e4 f4',
+    'c16 d16 e8 f4 g2',
+    'c8. d16 e4 f2',
+    'c4~ c4 d2',
+    'c4 r8 d8 e4 f4',
+    'c4 d8 e8 f2 | g4 r4 b2',
+    'c4 d4 e4 f4 | g2',
+  ])('%s', src => {
+    const grid = redivide(parseSheet(src).measures)
+    const original = content(grid)
+
+    const barrages = sumsTo(grid.length, grid.length > 16 ? [-4, -5, -7] : [-1, -2, -3])
+    expect(barrages.length).toBeGreaterThan(10)
+
+    for (const steps of barrages) {
+      expect(steps.reduce((a, b) => a + b, 0)).toBe(grid.length)
+      expect(content(steps.reduce((g, step) => rotate(g, step), grid)), steps.join('+')).toBe(original)
+    }
+  })
+
+  test('partial sums agree with one rotation by the running total', () => {
+    const grid = redivide(parseSheet('c4 d8 e8 f2 | g4 r4 b2').measures)
+    let running = grid
+    let total = 0
+
+    for (const step of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      running = rotate(running, step)
+      total += step
+      expect(content(running), `after ${total}`).toBe(content(rotate(grid, total)))
+    }
+  })
+})
+
+// Through notation it is not an identity: each wrap can cut one sounding, and nothing can
+// tie backwards across the start of a line. What holds is the timing, and a bound on the
+// damage — N rotations lose at most N ties.
+describe('rotateSheet — near-identity, and the bound on what is lost', () => {
+  const lines = [
+    'c4 d4 e4 f4',
+    'c8. d16 e4 f2',
+    'c4~ c4 d2',
+    'c16 d16 e8 f4 g2',
+    'c2 d2 | e2 f2',
+    'c4 d8 e8 f2 | g4 r4 b2',
+  ]
+
+  const sounding = (ms: SheetMeasure[]) =>
+    redivide(ms).map(s => s.note ? `${s.note.note!.name}${s.note.note!.octave}` : 'r').join(' ')
+  const attacks = (ms: SheetMeasure[]) => redivide(ms).filter(s => s.note && !s.tied).length
+
+  test.each(lines)('timing survives any number of rotations: %s', src => {
+    const base = parseSheet(src).measures
+    const grid = redivide(base)
+    let rotated = base
+
+    for (let n = 1; n <= 2 * grid.length; n++) {
+      rotated = rotateSheet(rotated, 1)
+      expect(sounding(rotated), `after ${n}`).toBe(
+        rotate(grid, n).map(s => s.note ? `${s.note.note!.name}${s.note.note!.octave}` : 'r').join(' '))
+    }
+  })
+
+  test.each(lines)('N rotations add at most N attacks: %s', src => {
+    const base = parseSheet(src).measures
+    const before = attacks(base)
+    let rotated = base
+
+    for (let n = 1; n <= 2 * redivide(base).length; n++) {
+      rotated = rotateSheet(rotated, 1)
+      expect(attacks(rotated) - before, `after ${n}`).toBeLessThanOrEqual(n)
+    }
+  })
+
+  test.each(lines)('bar lengths never move: %s', src => {
+    const base = parseSheet(src).measures
+    const lengths = base.map(m => m.reduce((a, n) => a + n.duration, 0))
+    let rotated = base
+
+    for (let n = 1; n <= redivide(base).length; n++) {
+      rotated = rotateSheet(rotated, 1)
+      expect(rotated.map(m => m.reduce((a, n) => a + n.duration, 0)), `after ${n}`).toStrictEqual(lengths)
+    }
+  })
+
+  // Up to normalisation: `c4~ c4` and `c2` are the same sounding, and the rebuild picks
+  // the canonical spelling, so the fixed point is reached after one turn and stays.
+  test('one rotation by the whole length is the identity, spelling included', () => {
+    for (const src of lines) {
+      const base = rotateSheet(parseSheet(src).measures, 0)
+      const length = redivide(base).length
+
+      expect(show(rotateSheet(base, length)), src).toBe(show(base))
+      expect(show(rotateSheet(base, -length)), src).toBe(show(base))
+    }
   })
 })

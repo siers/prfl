@@ -385,3 +385,134 @@ export function parseSheet(source: string): SheetParse {
 
   return { measures: kept, errors }
 }
+
+
+
+// Rotation: splat(rotate(redivide(ms), by), barLengths). Beat is assumed at BEAT, since
+// the notation carries no time signature.
+const BEAT = DIVISIONS
+
+// Durations one note can spell; 5, 9, 10, 11, 13, 15 are absent and need tied pieces.
+const spellable = [16, 14, 12, 8, 7, 6, 4, 3, 2, 1]
+
+// One sixteenth: the note sounding through it, and whether it continues the slot before.
+// `tied` points backwards, so a wrap breaks the chain with nothing to fix up.
+export type Slot = { note: SheetNote | null, tied: boolean }
+
+// Notation onto the grid; a written `~` becomes one unbroken run.
+export function redivide(measures: SheetMeasure[]): Slot[] {
+  const slots: Slot[] = []
+
+  for (const note of measures.flat()) {
+    const rest = note.note === null && note.hz === undefined
+    for (let i = 0; i < note.duration; i++)
+      slots.push({ note: rest ? null : note, tied: i > 0 || (!rest && !!slots[slots.length - 1]?.note?.tied) })
+  }
+
+  return slots
+}
+
+// Shift every slot `by` sixteenths, wrapping. Negative rotates backwards.
+export function rotate(slots: Slot[], by: number): Slot[] {
+  if (slots.length == 0) return []
+
+  const shift = ((by % slots.length) + slots.length) % slots.length
+  return slots.map((_, i) => slots[(i - shift + slots.length) % slots.length])
+}
+
+// Grid back into bars, runs re-spelt and tied across beat cuts.
+export function splat(slots: Slot[], barLengths: number[]): SheetMeasure[] {
+  const measures: SheetMeasure[] = []
+  let at = 0
+
+  for (const length of barLengths) {
+    const bar: SheetNote[] = []
+    const end = Math.min(at + length, slots.length)
+    const barStart = at
+
+    while (at < end) {
+      const slot = slots[at]
+
+      let run = 1
+      while (at + run < end && continues(slot, slots[at + run])) run++
+
+      const heldOn = slot.note !== null && at + run < slots.length && continues(slot, slots[at + run])
+      const pieces = cutToBeats(at - barStart, run)
+
+      pieces.forEach((piece, i) => {
+        const last = i == pieces.length - 1
+        bar.push(slot.note === null
+          ? { note: null, duration: piece }
+          : { ...slot.note, duration: piece, ...(last && !heldOn ? { tied: undefined } : { tied: true }) })
+      })
+
+      at += run
+    }
+
+    measures.push(bar.map(n => {
+      const out = { ...n }
+      if (out.tied === undefined) delete out.tied
+      return out
+    }))
+  }
+
+  return measures
+}
+
+// Follows the tie, not object identity: a note split into tied pieces is one sounding.
+// Pitch must match too, or a tie would swallow whatever note follows it.
+function continues(slot: Slot, next: Slot): boolean {
+  if (slot.note === null) return next.note === null
+  if (next.note === null || !next.tied) return false
+
+  return samePitch(slot.note, next.note)
+}
+
+// Same sounding pitch; `hz` notes compare by frequency, having no letter.
+function samePitch(a: SheetNote, b: SheetNote): boolean {
+  if (a.hz !== undefined || b.hz !== undefined) return a.hz === b.hz
+
+  return !!a.note && !!b.note
+    && a.note.name === b.note.name && a.note.alter === b.note.alter && a.note.octave === b.note.octave
+}
+
+// A note crosses a beat only when it starts on one and covers whole beats.
+function cutToBeats(start: number, length: number): number[] {
+  const pieces: number[] = []
+  let at = start
+  let left = length
+
+  while (left > 0) {
+    let take = at % BEAT == 0 && left >= BEAT
+      ? spellable.find(c => c <= left && c % BEAT == 0) ?? BEAT
+      : Math.min(left, BEAT - (at % BEAT))
+
+    while (!spellable.includes(take) && take > 0) take--
+
+    pieces.push(take)
+    at += take
+    left -= take
+  }
+
+  return pieces
+}
+
+// Bar lines stay; notes move `by` sixteenths and wrap. Slurs are dropped, and a note the
+// wrap cuts becomes two — so repeated calls do not compose; rotate once by the total.
+export function rotateSheet(measures: SheetMeasure[], by: number): SheetMeasure[] {
+  const barLengths = measures.map(m => m.reduce((sum, n) => sum + n.duration, 0))
+  const grid = redivide(measures)
+
+  return stripSlurs(splat(rotate(grid, by), barLengths))
+}
+
+// Slur spans point at notes that have moved, and half would no longer balance.
+function stripSlurs(measures: SheetMeasure[]): SheetMeasure[] {
+  return measures.map(m => m.map(n => {
+    const out = { ...n }
+    delete out.slurStart
+    delete out.slurStop
+    delete out.slurOpensFirst
+    return out
+  }))
+}
