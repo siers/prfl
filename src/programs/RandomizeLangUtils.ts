@@ -2,7 +2,7 @@ import { RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
 import type { ImageEntry } from '../lib/PrflAssets'
 
-import { pick as pickArray, shuffleArray, shuffleMinDistance } from '../lib/Random'
+import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
 import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
 import * as ToneLib from '../lib/ToneLib'
@@ -186,6 +186,17 @@ export function perm<A>(a: A[], size?: number): A[][] {
 export function pick<A>(array: A[] | string): A | string {
   if (typeof array === 'string') return pickArray(ss(array))
   else return pickArray(array)
+}
+
+// Rotate by a random amount, so the cycle keeps its order but starts anywhere.
+export function pickRotation<A>(array: A[] | string): A[] | string[] {
+  if (typeof array === 'string') return rotateRandomly(s(array))
+  else return rotateRandomly(array)
+}
+
+function rotateRandomly<A>(list: A[]): A[] {
+  if (list.length == 0) return []
+  return arrayRotate([...list], randInt(0, list.length - 1))
 }
 
 export function powerBuckets<A>(a: A[]): A[][][] {

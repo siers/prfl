@@ -17,6 +17,8 @@ import {
   zipInterleave,
   zipLongest,
   shuffle,
+  pickRotation,
+  arrayRotate,
   comb,
   perm,
   power,
@@ -393,4 +395,29 @@ test('metroHalves', () => {
   })
 
   expect(out).toContain('82.5')
+})
+
+test('pickRotation', () => {
+  const input = ['a', 'b', 'c', 'd']
+
+  const rotations = times(50, 0).map(() => pickRotation(input))
+
+  rotations.forEach(out => {
+    // a rotation keeps every item, and keeps them cyclically in order
+    expect([...out].sort()).toStrictEqual([...input].sort())
+    const start = input.indexOf(out[0])
+    expect(out).toStrictEqual(arrayRotate([...input], start))
+  })
+
+  // the input is left alone
+  expect(input).toStrictEqual(['a', 'b', 'c', 'd'])
+
+  // over enough draws, every starting point shows up
+  expect(_.uniq(rotations.map(out => out[0])).sort()).toStrictEqual(['a', 'b', 'c', 'd'])
+})
+
+test('pickRotation: strings and edge cases', () => {
+  expect(pickRotation('a b c').sort()).toStrictEqual(['a', 'b', 'c'])
+  expect(pickRotation([])).toStrictEqual([])
+  expect(pickRotation(['only'])).toStrictEqual(['only'])
 })
