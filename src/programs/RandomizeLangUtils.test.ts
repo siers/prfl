@@ -425,13 +425,11 @@ test('pickRotation: strings and edge cases', () => {
 
 test('nextHalves', () => {
   const metro = metroHalves(150, 30)
-  const out = nextHalves(metro)
+  const steps = nextHalves(metro)
 
   // the `1n` primer, then one step per tempo
-  expect(out.at(0)).toBe('1n')
-  expect(out.length).toBe(metro.length + 1)
+  expect(steps.length).toBe(metro.length)
 
-  const steps = out.slice(1)
 
   // the slower half of each group gets 4 clicks, the faster 8 — so each tempo
   // occupies the same wall time and each group is an even stretch
@@ -448,5 +446,5 @@ test('nextHalves', () => {
 
 test('nextHalves: counts are configurable', () => {
   expect(nextHalves(['100', '50', '100', '50'], 2, 4))
-    .toStrictEqual(['1n', '4f', '2f', '4f', '2f'])
+    .toStrictEqual(['4f', '2f', '4f', '2f'])
 })

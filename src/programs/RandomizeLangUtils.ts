@@ -481,12 +481,10 @@ export function metroHalves(base: number, diff: number): string[] {
 // click to absorb the start the first ⏩ would land one tempo early and every
 // step after it would describe the tempo before it.
 export function nextHalves(metro: string[], slow = 4, fast = 8): string[] {
-  const steps = _.chunk(metro, 4).flatMap(group => {
+  return _.chunk(metro, 4).flatMap(group => {
     const slowest = Math.min(...group.map(Number))
     return group.map(x => `${Number(x) === slowest ? slow : fast}f`)
   })
-
-  return [`1n`, ...steps]
 }
 
 export function forceSign(a: number): string {
