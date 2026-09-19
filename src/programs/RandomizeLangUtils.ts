@@ -471,6 +471,24 @@ export function metroHalves(base: number, diff: number): string[] {
   return metroS(base, diff).flatMap(x => shuffle([x, `${Number(x) / 2}`, x, `${Number(x) / 2}`]), 2)
 }
 
+// The `next` programme that walks a `metroHalves` list: one step per tempo, so
+// the card advances exactly when that tempo has had its turn. Within each group
+// of four the faster half gets `fast` clicks and the slower half `slow` — twice
+// the clicks at twice the speed, so every tempo lasts the same wall time and a
+// group is one even stretch however `metroHalves` shuffled it.
+//
+// The leading `1n` is the offset: a step fires *after* its clicks, so without a
+// click to absorb the start the first ⏩ would land one tempo early and every
+// step after it would describe the tempo before it.
+export function nextHalves(metro: string[], slow = 4, fast = 8): string[] {
+  const steps = _.chunk(metro, 4).flatMap(group => {
+    const slowest = Math.min(...group.map(Number))
+    return group.map(x => `${Number(x) === slowest ? slow : fast}f`)
+  })
+
+  return [`1n`, ...steps]
+}
+
 export function forceSign(a: number): string {
   return a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`
 }

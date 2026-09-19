@@ -174,7 +174,7 @@ diversity: compose, max 4 bound
 shuffle: long unaccented, short accented
 properties: [ss(`”legato (no tartantella)”, “loose wrist”, “up accent”`)]
 fast-swing: [metroS(150, 30)]metro:show-1:inline
-fast-swing-mix: [metroS(150, 30).flatMap(x => ss(`${x}, ${x/2}, ${x}, ${x/2}`))]metro:show-2:inline [s(`1n ` + timesUntil(50, `4f`).join(` `))]next:show-1
+fast-swing-mix: [metroHalves(150, 30)]metro:show-2:inline [nextHalves(fields.metro)]next:computed:show-1
 # substrings? # what about them?
 -=- JazzBowing::
 {scheduleBlocks(`JB:JazzBowingT`)}

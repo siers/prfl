@@ -28,6 +28,7 @@ import {
   interleavingEvery,
   after,
   metroHalves,
+  nextHalves,
 } from './RandomizeLangUtils'
 import _ from 'lodash'
 
@@ -420,4 +421,32 @@ test('pickRotation: strings and edge cases', () => {
   expect(pickRotation('a b c').sort()).toStrictEqual(['a', 'b', 'c'])
   expect(pickRotation([])).toStrictEqual([])
   expect(pickRotation(['only'])).toStrictEqual(['only'])
+})
+
+test('nextHalves', () => {
+  const metro = metroHalves(150, 30)
+  const out = nextHalves(metro)
+
+  // the `1n` primer, then one step per tempo
+  expect(out.at(0)).toBe('1n')
+  expect(out.length).toBe(metro.length + 1)
+
+  const steps = out.slice(1)
+
+  // the slower half of each group gets 4 clicks, the faster 8 — so each tempo
+  // occupies the same wall time and each group is an even stretch
+  _.chunk(_.zip(metro, steps), 4).forEach(group => {
+    group.forEach(([tempo, step]) => {
+      const slowest = Math.min(...group.map(([t]) => Number(t)))
+      expect(step).toBe(Number(tempo) === slowest ? '4f' : '8f')
+    })
+
+    const durations = group.map(([tempo, step]) => parseInt(step!, 10) / Number(tempo))
+    expect(_.uniq(durations).length).toBe(1)
+  })
+})
+
+test('nextHalves: counts are configurable', () => {
+  expect(nextHalves(['100', '50', '100', '50'], 2, 4))
+    .toStrictEqual(['1n', '4f', '2f', '4f', '2f'])
 })
