@@ -70,6 +70,25 @@ describe('parsing steps', () => {
     ])
   })
 
+  test('a value holding several steps is split on whitespace', () => {
+    // a command may return whole phrases rather than one token per element
+    expect(parseNextSteps(['1n 4f 8f'])).toEqual(parseNextSteps(['1n', '4f', '8f']))
+    expect(parseNextSteps(['1n', '4f 8f'])).toEqual(parseNextSteps(['1n', '4f', '8f']))
+    expect(parseNextSteps(['  2f   2r  '])).toEqual(parseNextSteps(['2f', '2r']))
+  })
+
+  test('splitting does not resurrect junk between the tokens', () => {
+    expect(parseNextSteps(['4f nonsense 0f'])).toEqual([
+      { total: 4, spent: 0, action: 'f' },
+    ])
+    expect(parseNextSteps([''])).toEqual([])
+    expect(parseNextSteps(['   '])).toEqual([])
+  })
+
+  test('a spent step survives the split, so a stored programme round-trips', () => {
+    expect(parseNextSteps(['1:3f 4r'])).toEqual(parseNextSteps(['1:3f', '4r']))
+  })
+
   test('an explicit zero count is still rejected, bare letters notwithstanding', () => {
     expect(parseNextStep('0f')).toBe(null)
     expect(parseNextStep('0s')).toBe(null)

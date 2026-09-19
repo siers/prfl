@@ -14,6 +14,10 @@
 // A programme rotates forever unless it ends in `s`, the halt: `[4f 4r s]next`
 // steps twice, then parks for good on the `s` and stops driving the item. This
 // is the sequence's terminus — without it there is no end.
+//
+// The steps may arrive one per value or several to a value: `[`4f 4r`]next` and
+// `[s(`4f 4r`)]next` are the same programme, since parseNextSteps splits on
+// whitespace. Stepping rewrites the field one token per value regardless.
 
 import { Substitution } from './RandomizeLangTypes'
 
@@ -60,11 +64,15 @@ export function renderNextStep(s: NextStep): string {
   return s.spent === 0 ? `${s.total}${s.action}` : `${s.total - s.spent}:${s.spent}${s.action}`
 }
 
+// A value may hold several steps — `[`1n 4f 4f`]next` is one string, and a
+// command is free to return whole phrases rather than one token per element —
+// so each value is split on whitespace before parsing. Unparseable tokens are
+// dropped, which keeps a stray word from taking the programme down with it.
 export function parseNextSteps(contents: string[]): NextStep[] {
-  return contents.flatMap(c => {
-    const step = parseNextStep(c)
+  return contents.flatMap(c => c.trim().split(/\s+/).flatMap(token => {
+    const step = parseNextStep(token)
     return step ? [step] : []
-  })
+  }))
 }
 
 export function renderNextSteps(steps: NextStep[]): string[] {
