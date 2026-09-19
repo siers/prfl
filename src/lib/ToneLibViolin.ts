@@ -5,6 +5,39 @@ import _ from 'lodash'
 
 // TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
 
+/* Report, positions on D:
+ *
+ * semi, name,          name_ab, tone
+ *    0, open,          open,    D
+ *    1, half position, 1a,      D#/Eb
+ *    2, 1st,           1b,      E
+ *    3, low 2nd,       2a,      F
+ *    4, 2nd,           2b,      F#
+ *    5, 3rd,           3a,      G
+ *    6, high 3rd,      3b,      G#
+ *    7, 4th,           4a,      A
+ *    8, low 5th,       4b,      A#/Bb
+ *    9, 5th,           5a,      B
+ *   10, low 6th,       5b,      C
+ *   11, 6th,           6a,      C#
+ *   12, 7th,           6b,      D
+ *
+ *   13, 8th,           7a,      D#/Eb
+ *   14, ,              7b,      E
+ *   15, 9th,           8a,      F
+ *   16, 10th,          8b,      F#
+ *   17, ,              9a,      G
+ *   18, 11th,          9b,      G#
+ *   19, 12th,          10a,     A
+ *   20, ,              10b,     A#/Bb
+ *   21, 13th,          11a,     B
+ *   22, ,              11b,     C
+ *   23, 14th,          12a,     C#
+ *   24, 15th,          12b,     D
+ *
+ *   Note that there is only one fourth position in this case.
+ */
+
 export type StringName = 'G' | 'D' | 'A' | 'E'
 export const stringNames: StringName[] = ['G', 'D', 'A', 'E']
 
