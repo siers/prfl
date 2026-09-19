@@ -25,6 +25,7 @@ import {
   powerInnerBuckets,
   interleavingEvery,
   after,
+  metroHalves,
 } from './RandomizeLangUtils'
 import _ from 'lodash'
 
@@ -378,4 +379,18 @@ test('glob', () => {
     'entertainer-aaa',
     'entertainer-abcd',
   ])
+})
+
+test('metroHalves', () => {
+  const out = metroHalves(150, 30)
+
+  expect(out.length).toBe(61 * 4)
+
+  const groups = _.chunk(out, 4)
+  groups.forEach(group => {
+    const [fast, slow] = _.uniq(group).map(Number).sort((a, b) => b - a)
+    expect(slow).toBe(fast / 2)
+  })
+
+  expect(out).toContain('82.5')
 })

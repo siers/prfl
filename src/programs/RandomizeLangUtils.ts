@@ -456,6 +456,10 @@ export function metroS(base: number, diff: number): string[] {
   return shuffle(metro(base, diff))
 }
 
+export function metroHalves(base: number, diff: number): string[] {
+  return metroS(base, diff).flatMap(x => shuffle([x, `${Number(x) / 2}`, x, `${Number(x) / 2}`]), 2)
+}
+
 export function forceSign(a: number): string {
   return a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`
 }

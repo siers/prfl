@@ -572,17 +572,17 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: 7RZH execution: make items just pointers, allowing for refreshing of cards while in the list, removing implementations from lists
+// TODO: execution(7RZH): make items just pointers, allowing for refreshing of cards while in the list, removing implementations from lists
 // TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
 // TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
-// TODO  subdecks: make these simply generatable from named blocks
+// TODO  subdecks(K4FP): make these simply generatable from named blocks
 // TODO: blocks: code for decorating the tasks
 // TODO: keys: add bangs + errors to make sure that the pointers reference (7RZH)
 // TODO: parametrization: allow multiple tag output [Tag] from a single tag
 // TODO: utils: combinatorial/sampling syntax with distribution control (for shuffled distinct unions)
 //              e.g. (GDAE)*2 (GD DA AE)*2 (G/D D/G D/A A/D A/E E/A)
 //              e.g. [GDAE [GD AE] perm2([GD DA AE])] equal probability within the same level of brackets
-
+// TODO: subdecks: double colon key for items to spawn an item directly into a block (post K4FP)
 //
 
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
