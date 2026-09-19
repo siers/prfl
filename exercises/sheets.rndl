@@ -8,6 +8,6 @@ SheetDrone: play it [`c4 d4 e8 f8 | g2`]sheet:hide [`c,1 g,1`]tones:hide [60]met
 ScalesSheet: play it [ss(`galamian markov`)]scale
 # ScalesDS: [ss(`123456`)]position [s('markov, ')]scale [keyPlain]key [ss(`–, v, h, r`)]random [ss(`12`)]
 
-# one 4/4 bar of eighths: two distinct arrangements of 1110 / 1100 / 0001, bowing alternating note to note.
-# a `0` engraves as a crossed notehead; every pitch is c.
-BowedTies: play it [pick(ExBowedTies.gen())]sheet:mono [60]metro
+# two 4/4 measures: eight beats shuffled from ten choices — eighth pairs, quarters, ghosts (crossed noteheads) and pauses.
+# the bow alternates across sounding notes only, so a pause does not consume one.
+BowedTies: play it [ExBowedTies.gen()]sheet:mono [60]metro

@@ -1,26 +1,42 @@
-import _ from 'lodash'
-import * as Comb from 'ts-combinatorics'
-import { chunk, zipLongest } from '../lib/Array'
+import { chunk, take } from '../lib/Array'
 import { shuffleArray } from '../lib/Random'
 
 export type Bowing = 'n' | 'v'
 
+type Hit = { duration: number, ghost: boolean, pause?: boolean }
+
 const BOWINGS: Bowing[] = ['n', 'v']
 
-const SETS = ['1110', '1100', '0001']
+const c = (duration: number): Hit => ({ duration, ghost: false })
+const x = (duration: number): Hit => ({ duration, ghost: true })
+const pause: Hit = { duration: 4, ghost: false, pause: true }
 
-const PER_BAR = 2
+const BEATS: Hit[][] = [
+  [c(8), c(8)], [c(8), x(8)], [x(8), c(8)], [x(8), x(8)],
+  [c(4)], [c(4)], [x(4)], [x(4)],
+  [pause], [pause],
+]
 
-const arrangements = (bits: string): string[] =>
-  _.uniq([...new Comb.Permutation([...bits])].map(p => p.join(''))).sort()
+const BEATS_PER_BAR = 4
 
-const bowedBar = (bits: string, bowings: Bowing[] = BOWINGS): string =>
-  [...bits].map((bit, i) =>
-    `c8${bowings[i % bowings.length]}${bit == '0' ? '[x]' : ''}`).join(' ')
+const LENGTH = 8
 
-export const gen = (sets: string[] = SETS): string[] =>
-  chunk(zipLongest(...sets.map(bits => shuffleArray(arrangements(bits)))).flat(), PER_BAR)
-    .filter(pair => pair.length == PER_BAR)
-    .map(pair => bowedBar(pair.join('')))
+const spell = (hit: Hit, bow: Bowing | null): string =>
+  hit.pause ? `r${hit.duration}` : `c${hit.duration}${bow ?? ''}${hit.ghost ? '[x]' : ''}`
 
-export const internals = { arrangements, bowedBar }
+const bowed = (hits: Hit[], bowings: Bowing[] = BOWINGS): string[] =>
+  hits.reduce<[string[], number]>(([out, i], hit) =>
+    hit.pause
+      ? [[...out, spell(hit, null)], i]
+      : [[...out, spell(hit, bowings[i % bowings.length])], i + 1],
+  [[], 0])[0]
+
+export const gen = (beats: Hit[][] = BEATS, length: number = LENGTH): string => {
+  const bars = chunk(take(length, shuffleArray(beats)), BEATS_PER_BAR).map(bar => bar.flat())
+  const line = bowed(bars.flat())
+
+  return bars
+    .reduce<[string[], number]>(([out, from], bar) =>
+      [[...out, line.slice(from, from + bar.length).join(' ')], from + bar.length], [[], 0])[0]
+    .join(' | ')
+}

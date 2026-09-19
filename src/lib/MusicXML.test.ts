@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { parseSheet, resolveColor, stringColors } from './SheetNotation.ts'
-import { note, rest, notesToMusic } from './MusicXML.tsx'
+import { note, rest, notesToMusic, sheetToNotes } from './MusicXML.tsx'
 
 // The parser producing a colour proves nothing on its own: the colour has to survive
 // into the serialized MusicXML, and the schema drops a malformed one without a word.
@@ -131,5 +131,40 @@ describe('engraved text', () => {
 
   test('a rejected text engraves nothing rather than an empty fingering', () => {
     expect(technicals('c4{}')).toStrictEqual([])
+  })
+})
+
+// Beams go on through `sheetToNotes`, the path the `sheet` tag actually takes — the
+// `engrave` helper above builds notes by hand and so never sees them.
+function beams(source: string): string[] {
+  const music = notesToMusic(sheetToNotes(parseSheet(source).measures))
+  return (music.toString().match(/<beam[^>]*>[^<]*<\/beam>/g) ?? [])
+    .map(b => b.replace(/<[^>]*>/g, ''))
+}
+
+describe('beaming', () => {
+  test('eighths beam in pairs, one group per beat', () => {
+    expect(beams('c8 c8 c8 c8 c8 c8 c8 c8'))
+      .toStrictEqual(['begin', 'end', 'begin', 'end', 'begin', 'end', 'begin', 'end'])
+  })
+
+  test('four sixteenths in a beat beam as one group', () => {
+    expect(beams('c16 c16 c16 c16 c2.')).toStrictEqual(['begin', 'continue', 'continue', 'end'])
+  })
+
+  test('a lone eighth keeps its flag', () => {
+    expect(beams('c4 c8 c4 c8 c4')).toStrictEqual([])
+  })
+
+  test('a rest breaks the group', () => {
+    expect(beams('c8 r8 c8 c8 c2')).toStrictEqual(['begin', 'end'])
+  })
+
+  test('a beam never crosses a beat line', () => {
+    expect(beams('c4. c8 c2')).toStrictEqual([])
+  })
+
+  test('quarters are never beamed', () => {
+    expect(beams('c4 c4 c4 c4')).toStrictEqual([])
   })
 })

@@ -2,7 +2,7 @@
 // exact generated tuple shapes aren't worth chasing here.
 import { asserts, elements, MusicXML } from '@stringsync/musicxml'
 import * as ToneLib from '../lib/ToneLib'
-import type { SheetMeasure } from './SheetNotation'
+import { DIVISIONS, type SheetMeasure } from './SheetNotation'
 
 function attributes() {
   return new elements.Attributes({
@@ -181,6 +181,33 @@ export function measure(attr, notes, number = 1) {
 // A tie crosses bar lines — that is most of what ties are for — so the carry is tracked
 // across measures rather than reset per measure. A rest breaks it: `tied` is refused on
 // a rest upstream, and nothing can be held through one.
+// Which beam each note carries, by index: eighths and shorter beam together within a
+// beat, so a bar reads as beats rather than a row of flagged notes. A group of one gets
+// no beam — a lone eighth keeps its flag. Rests and quarters break the group.
+function beamGroups(m: SheetMeasure): (string | undefined)[] {
+  const beams: (string | undefined)[] = Array(m.length).fill(undefined)
+  let at = 0
+  let group: number[] = []
+
+  const flush = () => {
+    if (group.length > 1)
+      group.forEach((j, i) =>
+        beams[j] = i == 0 ? 'begin' : i == group.length - 1 ? 'end' : 'continue')
+    group = []
+  }
+
+  m.forEach((n, i) => {
+    const beamable = n.note != null && n.duration < DIVISIONS
+    // A beam may not cross a beat line, so a note landing on one starts a fresh group.
+    if (at % DIVISIONS == 0) flush()
+    beamable ? group.push(i) : flush()
+    at += n.duration
+  })
+
+  flush()
+  return beams
+}
+
 export function sheetToNotes(measures: SheetMeasure[]): elements.Note[][] {
   let carry = false
   // Slur numbers currently open, innermost last. MusicXML identifies a slur by a
@@ -188,7 +215,10 @@ export function sheetToNotes(measures: SheetMeasure[]): elements.Note[][] {
   // stop has to reuse the number its own start was given, not just the next one free.
   const open: number[] = []
 
-  return measures.map(m => m.map(n => {
+  return measures.map(m => {
+    const beams = beamGroups(m)
+
+    return m.map((n, i) => {
     const tieStop = carry
     carry = !!n.tied
 
@@ -224,9 +254,11 @@ export function sheetToNotes(measures: SheetMeasure[]): elements.Note[][] {
       ? note(n.note, n.duration, {
         bowing: n.bowing, color: n.color, notehead: n.shape, text: n.text,
         tied: n.tied, tieStop, slurs,
+        ...(beams[i] ? { beam: beams[i], beamNumber: 1 } : {}),
       })
       : rest(n.duration)
-  }))
+    })
+  })
 }
 
 export function notesToMusic(measures) {
