@@ -19,6 +19,7 @@
     "bentools-picker": "github:bpolaszek/picker-js",
     "express": "^5.2.1",
     "immutable": "^5.1.4",
+    "lb-ratio": "^0.4.1",
     "lodash": "^4.17.21",
     "lowdb": "^7.0.1",
     "murmurhash3js": "^3.0.1",
