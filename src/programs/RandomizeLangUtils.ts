@@ -427,7 +427,7 @@ type PickKeysInt = {
 // Re-exported straight from the libs, and the small wrappers that give a
 // library function its DSL name. The whole module is spread into the DSL
 // context, so every export here is a name programs can call.
-export { zipT, intersperse, interspersing, interleavingEvery, chunk, take } from '../lib/Array'
+export { zipT, intersperse, interspersing, interleavingEvery, chunk, take, pairwiseDiffs, avgPairwiseDiff } from '../lib/Array'
 export * as ExExample from './Exercise20260919Example'
 export * as ExBowedTies from './ExerciseBowedTies'
 export { chromaticSlide } from '../lib/ToneLibViolin'
@@ -464,7 +464,7 @@ export function modeShifts(keyIn: Note | string, scales?: string): string[] {
 }
 
 export function metroS(base: number, diff: number): string[] {
-  return shuffle(metro(base, diff))
+  return zipInterleave(...zipInterleave(...divide(divide(metro(base, diff), 6).map(shuffle), 3)))
 }
 
 export function metroHalves(base: number, diff: number): string[] {

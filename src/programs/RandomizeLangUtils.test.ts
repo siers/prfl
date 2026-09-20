@@ -29,6 +29,9 @@ import {
   after,
   metroHalves,
   nextHalves,
+  metroS,
+  avgPairwiseDiff,
+  metro,
 } from './RandomizeLangUtils'
 import _ from 'lodash'
 
@@ -421,6 +424,21 @@ test('pickRotation: strings and edge cases', () => {
   expect(pickRotation('a b c').sort()).toStrictEqual(['a', 'b', 'c'])
   expect(pickRotation([])).toStrictEqual([])
   expect(pickRotation(['only'])).toStrictEqual(['only'])
+})
+
+test('metroS', () => {
+  const out = metroS(60, 20)
+  expect(out.length).toBe(41)
+  expect([...out].sort()).toStrictEqual([...metro(60, 20)].sort())
+  expect(avgPairwiseDiff(out.map(Number))).toBeGreaterThan(15)
+
+  // expect(metroS(60, 20)).toStrictEqual()
+  // [
+  //   "43", "58", "70", "51", "63", "79", "40", "57", "72", "50", "64",
+  //   "75", "42", "55", "71", "48", "65", "80", "44", "60", "68", "53",
+  //   "76", "45", "56", "73", "47", "66", "74", "46", "59", "69", "52",
+  //   "61", "78", "41", "54", "67", "49", "62", "77",
+  // ]
 })
 
 test('nextHalves', () => {

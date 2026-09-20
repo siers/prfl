@@ -126,6 +126,14 @@ export function transpose<A>(matrix: A[][]): A[][] {
   return matrix[0].map((_, index) => matrix.map(row => row[index]))
 }
 
+export function pairwiseDiffs(as: number[]): number[] {
+  return as.reduce((gaps, a, i) => [...gaps, Math.abs(as[(i + 1) % as.length] - a)], [] as number[])
+}
+
+export function avgPairwiseDiff(as: number[]): number {
+  return as.length === 0 ? 0 : _.sum(pairwiseDiffs(as)) / as.length
+}
+
 function shuffleConstraintFirst<A>(shouldntBe: A[], b: A[]): A[] {
   const [shouldnts, rests] = _.partition(b, x => shouldntBe.indexOf(x) !== -1)
   if (rests.length == 0) {
