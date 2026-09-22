@@ -41,3 +41,12 @@ so you're not juggling a metronome app, a timer, and a notes file separately.
 `exercises/demo.rndl`: source of a curated list of tasks
 
 `exercises/full.rndl`: sporadically updated document with a full session (you can do about half of it per day, some of it is supposed to be skipped)
+
+## License
+
+Copyright 2026 Raitis Veinbahs.
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.md): you may
+use, modify and share this for any noncommercial purpose — personal study,
+hobby projects, teaching and research at noncommercial institutions. Commercial
+use requires a separate license; open an issue or get in touch.
