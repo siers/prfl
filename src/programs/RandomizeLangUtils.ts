@@ -430,6 +430,7 @@ type PickKeysInt = {
 export { zipT, intersperse, interspersing, interleavingEvery, chunk, take, pairwiseDiffs, avgPairwiseDiff } from '../lib/Array'
 export * as ExExample from './Exercise20260919Example'
 export * as ExBowedTies from './ExerciseBowedTies'
+export * as ExScales from './Exercise20260929Scales'
 export { chromaticSlide } from '../lib/ToneLibViolin'
 export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
 export { shiftsDistributed }

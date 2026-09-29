@@ -84,7 +84,7 @@ function stringIndex(string: StringName): number {
   return 'GDAE'.indexOf(string)
 }
 
-function dropPositionsTranpose(positions: Note[][][]): Note[][] {
+export function dropPositionsTranpose(positions: Note[][][]): Note[][] {
   const firstUndroppedIndex = zipWithIndex(transpose(positions)).find(([_, position]) =>
     position.every(p => p.length != 0)
   )![0]
@@ -113,6 +113,13 @@ export function stringsForTonality(k: Key): String[] {
   return stringPositions.map((ps, idx) => {
     return { name: strings[idx].name, base: strings[idx].base, positions: ps, index: idx } satisfies String
   })
+}
+
+export function positionsForKey(k: Key): Note[][][] {
+  const strings = stringsAboveOpen(k)
+  const positions = strings.map(s => s.positions)
+
+  return directRange(0, Math.min(positions.at(0)!.length, 7)).map(p => positions.map(ps => ps.slice(p, p + 4)))
 }
 
 // @out guarantees four notes in output

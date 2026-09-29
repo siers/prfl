@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { embedNote, embedNotePlusMinus, renderSen, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
+import { embedNote, embedNotePlusMinus, renderSen, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, positionsForKey, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
 import { findMajor, Key, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose } from './Array.ts'
@@ -48,6 +48,21 @@ describe('ToneLibViolin', () => {
     const sao = transpose(strings.map(s => s.positions))[0].map(n => render(n)).join(' ')
 
     expect(sao).toBe('A3 E4 B4 F#5')
+  })
+
+  test('positionsForKey', () => {
+    const out = positionsForKey(findMajor(parseNote('D')!)!)
+
+    expect(out.map(p => p.map(s => s.map(n => render(n)).join(' ')).join(' | '))).toStrictEqual([
+      'A3 B3 C#4 D4 | E4 F#4 G4 A4 | B4 C#5 D5 E5 | F#5 G5 A5 B5',
+      'B3 C#4 D4 E4 | F#4 G4 A4 B4 | C#5 D5 E5 F#5 | G5 A5 B5 C#6',
+      'C#4 D4 E4 F#4 | G4 A4 B4 C#5 | D5 E5 F#5 G5 | A5 B5 C#6 D6',
+      'D4 E4 F#4 G4 | A4 B4 C#5 D5 | E5 F#5 G5 A5 | B5 C#6 D6 E6',
+      'E4 F#4 G4 A4 | B4 C#5 D5 E5 | F#5 G5 A5 B5 | C#6 D6 E6 F#6',
+      "F#4 G4 A4 B4 | C#5 D5 E5 F#5 | G5 A5 B5 C#6 | D6 E6 F#6 G6",
+      "G4 A4 B4 C#5 | D5 E5 F#5 G5 | A5 B5 C#6 D6 | E6 F#6 G6 A6",
+      "A4 B4 C#5 D5 | E5 F#5 G5 A5 | B5 C#6 D6 E6 | F#6 G6 A6 B6",
+    ])
   })
 
   describe('fingerPosition', () => {

@@ -585,6 +585,7 @@ export default Randomize
 // TODO: subdecks: blocks should take variables, no special subdeck syntax
 // TODO: subdecks: key prefixes should be shown in the ui
 // TODO: open: subdecks: if subdecks were a function, you couldn't update existing items any more. impact? (A: only top level items matter, everything dynamic has to be refreshed)
+// TODO: scheduling: scheduleBlocks: inline if there's just a single card
 
 // ======================
 
