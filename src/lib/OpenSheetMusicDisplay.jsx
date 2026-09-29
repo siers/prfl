@@ -51,6 +51,10 @@ const OpenSheetMusicDisplay = ({
     const osmd = osmdRef.current
     osmd.zoom = ZOOM
 
+    // After construction: the drawingParameters preset sets its own margins.
+    osmd.EngravingRules.PageLeftMargin = 0
+    osmd.EngravingRules.PageRightMargin = 2
+
     // load() is async: only the newest may draw, and not onto a dead node.
     let current = true
 

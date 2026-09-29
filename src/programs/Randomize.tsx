@@ -189,9 +189,6 @@ function Randomize(controls: any): JSX.Element {
       <span className="pr-3">
         {state?.outLineCount ? <>{state?.outLineCount} items</> : <></>}
       </span>
-      <span className="pr-3 text-[#f4f4f4]">
-        {state?.memory && Math.abs(murmur.x86.hash32(state.memory)) % 10000}
-      </span>
     </>
   }
 
@@ -238,7 +235,7 @@ function Randomize(controls: any): JSX.Element {
   function editor(): JSX.Element {
     const lines = items.map(rl => rl.contents).join('\n')
 
-    return <div className={"w-[100dvwh] flex flex-row selection:red text-sm "} style={({ height: "calc(90dvh)" })}>
+    return <div className={"w-full flex flex-row selection:red text-sm flex-grow"}>
       <div className="grow p-[10px]">
         <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => recalc({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
       </div>
@@ -460,7 +457,7 @@ function Randomize(controls: any): JSX.Element {
   function metroUI() {
     return <div className="w-full top-0 left-0 p-3 shrink-0 font-mono">
       <div className="text-center">
-        <div><input type="range" className="w-[80%]" value={linearize(metroBpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
+        <div className="leading-[0]"><input type="range" className="w-[80%]" value={linearize(metroBpm, 20, 500)} onChange={e => metroState({ bpm: delinearize(parseInt(e.target.value), 20, 500) })} min={1} max={1000} /></div>
         <div>
           <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm - 1 })}>-1</span>
           <span className="p-[1px]" onClick={_ => metroState({ bpm: metroBpm - 5 })}>-5</span>
@@ -520,7 +517,7 @@ function Randomize(controls: any): JSX.Element {
       return [t.tag, t.tag == 'sheet' ? plain : plain.split(' ')[0]]
     }))
 
-    return <div className="flex flex-col font-mono items-center grow">
+    return <div className="flex flex-col font-mono items-center grow min-h-0 overflow-y-auto">
       <div className="w-full">
         <ErrorBoundary fallback={<>sheet rendering crash</>}>
           <SheetOSMD params={params} />
@@ -530,10 +527,10 @@ function Randomize(controls: any): JSX.Element {
   }
 
   return (
-    <div className="w-full">
+    <>
       {inExecution && programSwitcher()}
 
-      <div className="pl-[10px]">
+      <div className="w-full" style={{ padding: "10px 0 0 10px" }}>
         <a className="pr-3 select-none" onClick={() => { unlockAudio(); recalc({ execute: !inExecution }); !inExecution && modifyTimer('start') }}>{state?.execute ? '↩️' : '▶️'}</a>
         {inPlanning && planningControlButtons()}
         {inExecution && executionControlButtons()}
@@ -542,29 +539,27 @@ function Randomize(controls: any): JSX.Element {
       {inPlanning && editor()}
 
       {inExecution &&
-        <div className="relative">
-          <div className={"w-[100dvw] flex flex-col"} style={({ height: "calc(90dvh)" })}>
-            {reviewStats()}
-            {breadcrumb()}
+        <div className={"w-[100dvw] flex-grow flex flex-col"}>
+          {reviewStats()}
+          {breadcrumb()}
 
-            <ErrorBoundary fallback={<>item render crash</>}>
-              <div className="relative w-full flex flex-col flex-grow min-h-0 select-none">
-                <div className="flex-1 content-center">
-                  {itemRender()}
-                </div>
-
-                {sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
-
-                {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
-
-                {metro.opened && metroUI()}
-                {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven && metroPower ? metroClick : undefined} />}
+          <ErrorBoundary fallback={<>item render crash</>}>
+            <div className="relative w-full flex flex-col flex-grow min-h-0 select-none">
+              <div className="flex-1 content-center">
+                {itemRender()}
               </div>
-            </ErrorBoundary>
-          </div>
+
+              {sheetDisplay(items[currentIndex]?.source?.substitutions || [])}
+
+              {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
+
+              {metro.opened && metroUI()}
+              {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven && metroPower ? metroClick : undefined} />}
+            </div>
+          </ErrorBoundary>
         </div>
       }
-    </div>
+    </>
   )
 }
 

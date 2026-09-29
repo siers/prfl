@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import './App.css'
-import Knob from './Knob'
-import programs from './Programs'
+import Randomize from './programs/Randomize'
 
 function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
@@ -25,14 +24,7 @@ function useLocalStorage(key, initialValue) {
 }
 
 function App() {
-  const [running, setRunning] = useLocalStorage('running', false)
-
-  const [speed, setSpeed] = useLocalStorage('speed', 1500)
-  const content = useRef()
-
-  const defaultProgram = 'randomize' // Object.keys(programs)[0]
   const [state, setState] = useLocalStorage('programState', {})
-  const [program, setProgram] = useLocalStorage('program', defaultProgram)
 
   const advanceRef = useRef(null)
 
@@ -45,14 +37,13 @@ function App() {
     }
   }, [])
 
+  const programName = 'randomize'
   const setProgramState = programName => nextProgramState => {
     setState(state => ({
       ...state,
       [programName]: nextProgramState instanceof Function ? nextProgramState(state[programName]) : nextProgramState
     }))
   }
-  const programName = (programs[program] && program) || defaultProgram
-  const ProgramComponent = programs[programName]
 
   const setItem = (advance, event) => {
     if (advanceRef.current) advanceRef.current(advance, event)
@@ -71,33 +62,13 @@ function App() {
   return (
     <div className="app">
       <div className="flex flex-col h-dvh">
-        <div className="wrap flex-1 flex flex-row items-center" data-mode={program}>
-          {
-            (program == "flash")
-              ? (
-                <div ref={content} className="content flash1">
-                  {<ProgramComponent state={state[programName]} setState={setProgramState(programName)} advance={false} />}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center grow">
-                  <div ref={content} className="content flash1">
-                    {<ProgramComponent
-                      state={state[programName]}
-                      setState={setProgramState(programName)}
-                      advanceRef={advanceRef}
-                    />}
-                  </div>
-                </div>
-              )
-          }
+        <div className="randomize wrap flex-1 flex flex-col items-center justify-between">
+          {<Randomize
+            state={state[programName]}
+            setState={setProgramState(programName)}
+            advanceRef={advanceRef}
+          />}
         </div>
-      </div>
-
-      <div className="log">
-      </div>
-
-      <div className="knob-wrapwrap hidden">
-        <Knob running={running} setRunning={setRunning} angle={speed} setAngle={setSpeed} gain={20} format={n => `${n / 1000} s\n / ${Math.round(60 / (n / 1000))} bpm`} />
       </div>
     </div>
   )

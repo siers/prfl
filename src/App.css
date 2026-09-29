@@ -2,14 +2,14 @@
 
 html, body { width: 100dvw; height: 100dvh; overflow: hidden; }
 
-/* late night debug dark-mode */
-/* html, body { background: #000; color: #bbb; } */
-
 * { touch-action: manipulation; } /* disable double-click zoom on tablet */
-
 a { color: #4796e6; }
 
-.knob-wrapwrap { position: absolute; top: 1.5em; left: 1.5em; }
+::selection { background: transparent; }
+
+.randomize { font-weight: 700; font-size: calc(0.75em + 2.5vmin); text-wrap: nowrap; }
+
+/* sidebar */
 
 .sidebar-toggle {
   position: fixed; top: 0; right: 0; z-index: 11;
@@ -31,50 +31,7 @@ a { color: #4796e6; }
 .sidebar-item:hover { background: #f0f0f0; }
 .sidebar-item-active { font-weight: 700; background: #e8e8ff; }
 
-.next        { position: absolute; bottom: .8em; right: 1em; font-size: 2em; }
-/* .clear-state { position: absolute; bottom: 1em; right: 4.18rem; font-size: 2em; } */
-.prev        { position: absolute; bottom: .8em; right: 2.5em; font-size: 2em; }
-
-/* .wrap { display: flex; align-items: center; justify-content: center; overflow: hidden; } */
-.content { font-weight: 700; font-size: calc(0.75em + 2.5vmin); text-wrap: nowrap; }
-sub { font-size: xx-large; } /* weird name, but renders as small */
-::selection { background: transparent; }
-
-.flash1 { animation: flash-bg1 0.3s ease; }
-.flash2 { animation: flash-bg2 0.3s ease; }
-@keyframes flash-bg1 { 0% { background-color: #ffffff18; } 100% { background-color: #00000000; } }
-@keyframes flash-bg2 { 0% { background-color: #ffffff18; } 100% { background-color: #00000000; } }
-
-.wrap select { padding: 5px; }
-
-.wrap[data-mode=violin] .content { font-family: monospace; font-size: 60px; }
-.wrap[data-mode=keys] .content { font-family: monospace; font-size: 60px; }
-
-.wrap[data-mode=positions] .content { background: #fff; padding: 1em 1em 0 1em; font-family: inherit; font-size: inherit; }
-.wrap[data-mode=positions] .content .position { display: inline-box; margin-left: 0.3em; }
-.wrap[data-mode=positions] div,
-.wrap[data-mode=positions] label { color: #333; }
-.wrap[data-mode=positions] .flash1 { animation: flash-light-bg1 0.3s ease; }
-.wrap[data-mode=positions] .flash2 { animation: flash-light-bg2 0.3s ease; }
-@keyframes flash-light-bg1 { 0% { background-color: #f0f0f0; } 100% { background-color: #ffffffff; } }
-@keyframes flash-light-bg2 { 0% { background-color: #f0f0f0; } 100% { background-color: #ffffffff; } }
-
-.wrap[data-mode=sheetosmd] .content { width: 50%; font-family: inherit; font-size: inherit; }
-.wrap[data-mode=sheetosmd] .flash1 { animation: flash-light-bg1 0.3s ease; }
-.wrap[data-mode=sheetosmd] .flash2 { animation: flash-light-bg2 0.3s ease; }
-
-.wrap[data-mode=jcuken] .letter { opacity: 0; }
-.wrap[data-mode=jcuken] .letter.correct { color: green; }
-.wrap[data-mode=jcuken] .letter.incorrect { color: red; }
-
-.wrap[data-mode=flash] { display: block; }
-.wrap[data-mode=flash] .content { display: block; height: 100%;  transform: none; }
-.wrap[data-mode=flash] .content .directory { margin-bottom: 5px; }
-.wrap[data-mode=flash] #card:not(:fullscreen) .progress { display: none; }
-
-.wrap[data-mode=randomize] ::selection { background: #eeeeff; }
-
-.wrap .content .controls { margin: 0 0 0.5em; text-align: left; font-size: calc(4vmin); }
+/* burst */
 
 .burst {
   position: absolute;
