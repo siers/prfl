@@ -153,6 +153,13 @@ export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')
 // Feeds the sheet/image displays and stays re-rollable, but renders no text.
 export const isHidden = (x: Tagged): boolean => (x.tags || []).includes('hide')
+// Prints a label in place of the value, which stays live for sheet/image displays
+// and re-rolls: `covered` shows the tag's name, `covered-xyz` shows "xyz".
+export const coverLabel = (x: Tagged & { tag: string | null }): string | null => {
+  const covered = (x.tags || []).find(t => t === 'covered' || t.startsWith('covered-'))
+  if (covered === undefined) return null
+  return covered === 'covered' ? x.tag || '' : covered.slice('covered-'.length)
+}
 // Opts a `sheet` tag into also being sounded by the metro; a `tones` tag sounds anyway.
 export const isSounded = (x: Tagged): boolean => (x.tags || []).includes('tones')
 export const showCount = (x: Tagged): number => {

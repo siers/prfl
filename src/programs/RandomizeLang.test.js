@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { initSequences, evalContentsS, evalContents, evalContentsMem, evalContentsDecks, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
-import { isNonrotated, isFrozen, isComputed, isHidden, showCount } from './RandomizeLangTypes.js'
+import { isNonrotated, isFrozen, isComputed, isHidden, coverLabel, showCount } from './RandomizeLangTypes.js'
 
 test('initSequences', () => {
   expect(initSequences('abbaccadddd'.split(''), s => !!s.match('a'))).toStrictEqual(
@@ -884,6 +884,16 @@ test('hide tag', () => {
   expect(subst.contents).toStrictEqual(['c4 d4 e8 f8'])
   expect(isHidden(subst)).toBe(true)
   expect(isHidden({ tags: null })).toBe(false)
+})
+
+test('covered tag', () => {
+  const [named, labelled] = evalContents("Line: [`c4 d4`]sheet:covered [`e4`]:covered-xyz").flat()[0].source.substitutions
+
+  // The value survives for the sheet display; only the printed text is swapped.
+  expect(named.contents).toStrictEqual(['c4 d4'])
+  expect(coverLabel(named)).toBe('sheet')
+  expect(coverLabel(labelled)).toBe('xyz')
+  expect(coverLabel({ tag: 'x', tags: null })).toBe(null)
 })
 
 
