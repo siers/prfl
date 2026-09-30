@@ -492,6 +492,10 @@ export function forceSign(a: number): string {
   return a == 0 ? `${a}` : a > 0 ? `+${a}` : `${a}`
 }
 
+export function forceSignZero(a: number): string {
+  return a == 0 ? `=${a}` : a > 0 ? `+${a}` : `${a}`
+}
+
 // Glob the images gathered into the state (threaded in via additionalContext,
 // read from `context`). A pattern with `*`/`?` is treated as a glob over the
 // whole filename; a plain pattern is a substring match. Returns the matching

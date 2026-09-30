@@ -281,6 +281,7 @@ back-compat alias for the same map.)
 |---|---|
 | `freeze` | resolves first and is **not re-executed** on re-roll — the prior value is reused |
 | `computed` | resolves last, sees every other field; on ⏩ it is **re-derived**, not rotated |
+| `nonrotated` | held still by ⏩ but re-rolled by 🔄; clicking its own tag still rotates it |
 | `hide` | renders nothing, but still exists — feeds sheet/tones/image and stays re-rollable |
 | `covered` / `covered-xyz` | prints `[name]` (or `[xyz]`) instead of the value — which still feeds sheet/tones/image and stays re-rollable |
 | `inline` | `<span>` instead of `<div>` — stays on the same visual line |

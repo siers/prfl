@@ -12,10 +12,10 @@ export function gen(fieldsIn: any = undefined) {
   const blocks = ((fields.blocks || []).at(0) || '') as string
   const flip = ((fields.flip || []).at(0) || '') as string
   const scramble = ((fields.scramble || []).at(0) || '') as string
+  const pos = ((fields.pos || []).map(x => parseInt(x) - 1).at(0) || 0) as number
 
   const psAll = positionsForKey(findMajor(parseNote(key)!)!)
 
-  const pos = fields.pos ? parseInt(fields.pos) - 1 : 0
   const psRaw = psAll[pos]
 
   const ps = pipe(

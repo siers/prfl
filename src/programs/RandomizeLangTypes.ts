@@ -146,7 +146,7 @@ export const isComputed = (x: Tagged): boolean => (x.tags || []).includes('compu
 // Held still by `⏩` but re-rolled by `🔄` — the opposite trade-off to `freeze`,
 // which survives a re-roll but does rotate. For a field whose values are a set to
 // pick from rather than a sequence to step through, so stepping the line should
-// not walk it.
+// not walk it. Clicking the field's own tag still rotates it.
 export const isNonrotated = (x: Tagged): boolean => (x.tags || []).includes('nonrotated')
 export const isInline = (x: Tagged): boolean => (x.tags || []).includes('inline')
 export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')

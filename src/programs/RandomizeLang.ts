@@ -390,7 +390,9 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
 
   if (l?.source?.substitutions && l?.source?.substitutions.length > 0) {
     const rotated = (l.source.substitutions || []).map(s =>
-      !isComputed(s) && !isNonrotated(s) && (!tag || tag == s.tag)
+      // A tag click rotates exactly that field, even a `nonrotated` one — the tag
+      // only holds it still against the whole-line ⏩.
+      !isComputed(s) && (tag ? tag == s.tag : !isNonrotated(s))
         ? { ...s, contents: rotateInterpolateSubst(s.contents) }
         : s
     )

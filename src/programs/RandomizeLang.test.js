@@ -847,9 +847,9 @@ describe('nonrotated tag', () => {
     expect(rotateInterpolableLine(item).contents).toBe("Line: [B A] [1 2]")
   })
 
-  test('rotating it by its own tag is still a no-op', () => {
+  test('rotating it by its own tag does rotate it', () => {
     const item = evalContents("Line: [s('A B')]a [s('1 2')]b:nonrotated")[0]
-    expect(rotateInterpolableLine(item, 'b').contents).toBe("Line: [A B] [1 2]")
+    expect(rotateInterpolableLine(item, 'b').contents).toBe("Line: [A B] [2 1]")
   })
 
   test('it keeps every value — it is held, not truncated', () => {
