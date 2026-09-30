@@ -8,7 +8,6 @@ import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Time
 
 import { mapParse } from '../lib/Map.js'
 
-import murmur from 'murmurhash3js'
 import { clamp, parseInt } from 'lodash'
 import { linearSeekPast } from './LinearSeek.ts'
 import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './Decks.ts'
@@ -22,8 +21,7 @@ import {
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
-import { burstEmojiNotif } from './Burst.tsx'
-import { SwipeDirection, useWipe } from './SwipeHandlers.tsx'
+import { useWipe } from './SwipeHandlers.tsx'
 import { DrivePicker } from './DrivePicker.tsx'
 
 function memoryFromString(mem?: string) {
@@ -114,11 +112,7 @@ function Randomize(controls: any): JSX.Element {
   // inject the bits the reducers need (bpm, now). All the actual state logic —
   // and its tests — live in that module.
   function recalc(a: Args) {
-    setState((s: RState | undefined) => {
-      const calc = reduceRecalc(s, a, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() })
-      a.burst && burstEmojiNotif(a.burst)
-      return calc
-    })
+    setState((s: RState | undefined) => reduceRecalc(s, a, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
   }
 
   function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
@@ -310,11 +304,11 @@ function Randomize(controls: any): JSX.Element {
         const showSpawn = isCurrent && isSpawnable(item) && !deckName
         const showCheckmark = isCurrent && itemSeekExcluded(item)
 
-        let wipeHandlers = useWipe((d: SwipeDirection) => {
-          if (d == 'E') itemReview()
-          if (d == 'W') itemSuspend()
-          if (d == 'N') itemSurface()
-          if (d == 'S') itemBury()
+        let wipeHandlers = useWipe({
+          E: { icon: '✅', run: itemReview },
+          W: [{ icon: '🔚', run: itemToLast }, { icon: '📚', run: itemSuspend }],
+          N: { icon: '🌟', run: itemSurface },
+          S: { icon: '✘', run: itemBury },
         })
         wipeHandlers.style = { ...wipeHandlers.style, ...itemStyle(item, index) }
 
@@ -370,19 +364,23 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemReview() {
-    recalc({ item: { reviewed: true, done: true, bury: false }, burst: '✅' })
+    recalc({ item: { reviewed: true, done: true, bury: false } })
   }
 
   function itemBury() {
-    recalc({ item: { reviewed: false, done: false, bury: true }, burst: '✘' })
+    recalc({ item: { reviewed: false, done: false, bury: true } })
   }
 
   function itemSuspend() {
-    recalc({ item: { reviewed: false, done: true, bury: false }, burst: '📚' })
+    recalc({ item: { reviewed: false, done: true, bury: false } })
+  }
+
+  function itemToLast() {
+    recalc({ item: { last: true } })
   }
 
   function itemSurface() {
-    recalc({ item: { unreview: true, done: false }, burst: '🌟' })
+    recalc({ item: { unreview: true, done: false } })
   }
 
   function reviewStats(): JSX.Element {
@@ -413,10 +411,13 @@ function Randomize(controls: any): JSX.Element {
     </span>
 
     let timerLock: number | undefined
-    const timerWipe = useWipe(d => {
-      timerLock = undefined
-      d == 'W' && modifyTimer('subtract-and-restart')
-      d == 'N' && modifyTimer('restart', 'local')
+    // Any registered swipe clears the lock, so mouseup doesn't also toggle the timer.
+    const unlocked = (f: () => void = () => { }) => ({ run: () => { timerLock = undefined; f() } })
+    const timerWipe = useWipe({
+      W: unlocked(() => modifyTimer('subtract-and-restart')),
+      N: unlocked(() => modifyTimer('restart', 'local')),
+      E: unlocked(),
+      S: unlocked(),
     })
     const localTimerMouseUp: MouseEventHandler<HTMLDivElement> = (_) => {
       if (timerLock != undefined) { unlockAudio(); modifyTimer(localTimer?.running ? 'stop' : 'start') }

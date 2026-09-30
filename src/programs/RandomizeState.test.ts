@@ -76,6 +76,14 @@ describe('reduceRecalc — item actions', () => {
     expect(s.items?.[DEFAULT_DECK]?.[0].done).toBe(true)
   })
 
+  test('last moves the current item to the end, cursor on what followed', () => {
+    let s = stateOf(['a', 'b', 'c'])
+    s = reduceRecalc(s, { item: { last: true } }, deps())
+    expect(labels(s)).toStrictEqual(['b', 'c', 'a'])
+    expect(at(s)).toBe('b')
+    expect(s.items?.[DEFAULT_DECK]?.[2].done).toBeFalsy() // still open, just last
+  })
+
   test('bury drops the current item three visible slots down (deck-local)', () => {
     let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
     s = reduceRecalc(s, { item: { bury: true } }, deps())

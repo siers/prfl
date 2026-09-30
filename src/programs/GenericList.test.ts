@@ -7,6 +7,7 @@ import {
   seek,
   setCurrent,
   toTop,
+  toBottom,
   visible,
   Exclude,
   ListState,
@@ -206,11 +207,27 @@ test('toTop moves the current item to the front and follows it', () => {
   expect(at(s)).toBe('c')
 })
 
+test('toBottom moves the current item to the end, cursor lands on what followed', () => {
+  let s = freshState(words('a b c d'))
+  s = setCurrent(s, 1, exclude) // on 'b'
+  s = toBottom(s, exclude)
+  expect(labels(s)).toStrictEqual(['a', 'c', 'd', 'b'])
+  expect(at(s)).toBe('c')
+})
+
+test('toBottom skips an excluded follower', () => {
+  let s = freshState([{ value: 'a' }, { value: 'b', done: true }, { value: 'c' }])
+  s = toBottom(s, exclude) // on 'a'; 'b' now sits at the cursor but is done
+  expect(labels(s)).toStrictEqual(['b', 'c', 'a'])
+  expect(at(s)).toBe('c')
+})
+
 test('empty list is a no-op for every action', () => {
   const empty = freshState<Word>([])
   expect(at(seek(empty, Forward, exclude))).toBeUndefined()
   expect(at(dropThree(empty, exclude))).toBeUndefined()
   expect(at(toTop(empty))).toBeUndefined()
+  expect(at(toBottom(empty, exclude))).toBeUndefined()
   expect(visible(empty, exclude)).toStrictEqual([])
 })
 

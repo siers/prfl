@@ -5,6 +5,7 @@ import { Direction, linearSeekFullNext, linearSeekPast } from './LinearSeek.ts'
 // No review/flashcard/timer/metro components — only:
 //   * drop down three — "bury": move the current item past the next visible ones
 //   * to top          — "star": move the current item to the front
+//   * to bottom       — move the current item to the end, cursor to what followed it
 //   * seeking         — linearSeek-based cursor that skips excluded items
 //
 // `A` is fully opaque. What counts as "excluded" (hidden + un-seekable) is the
@@ -83,6 +84,15 @@ export function toTop<A>(state: ListState<A>): ListState<A> {
 
   const items = arrayMove(state.items, state.current, 0)
   return { ...state, items, current: 0 }
+}
+
+// The cursor stays at the same index — now the item that followed — and
+// resolves forward off it if that one is excluded.
+export function toBottom<A>(state: ListState<A>, exclude: Exclude<A>): ListState<A> {
+  if (state.items.length === 0) return state
+
+  const items = arrayMove(state.items, state.current, state.items.length - 1)
+  return seek({ ...state, items }, 0, exclude)
 }
 
 export function visible<A>(state: ListState<A>, exclude: Exclude<A>): [A, number][] {

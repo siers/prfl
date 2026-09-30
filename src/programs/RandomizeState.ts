@@ -9,7 +9,7 @@ import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
-import { ListState, dropThree, bottomOfQueue, toTop, Exclude } from './GenericList.ts'
+import { ListState, dropThree, bottomOfQueue, toTop, toBottom, Exclude } from './GenericList.ts'
 import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './Decks.ts'
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 import { NextAction, findNextSubstitution, parseNextSteps, renderNextSteps, stepNext } from './RandomizeNext.ts'
@@ -66,7 +66,6 @@ export type Args = {
   advance?: Seek,
   hideDone?: boolean,
   item?: ItemActions,
-  burst?: string,
 }
 
 export type ItemActions = {
@@ -76,6 +75,7 @@ export type ItemActions = {
   regenerate?: 'new' | 'next',
   regenerateKey?: string,
   unreview?: boolean,
+  last?: boolean,
 }
 
 export type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
@@ -165,7 +165,7 @@ function itemsAndTimer(
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
-// index. Returns the new list, new memory, and — for reorders (bury/unreview)
+// index. Returns the new list, new memory, and — for reorders (bury/unreview/last)
 // that resolve the cursor themselves — the new in-deck index (else null).
 export function modifyItemState(
   inItems: UserItem[] | undefined,
@@ -206,7 +206,7 @@ export function modifyItemState(
   })
 
   const currentDroppedCount = (updatedItems[current] && updatedItems[current].dropped) || 0
-  // bury ("drop down three") and unreview ("to top") are GenericList reorders:
+  // bury ("drop down three"), unreview ("to top") and last are GenericList reorders:
   // they move the item and resolve the cursor themselves, so recalc skips its
   // own seek for them (signalled by returning a non-null new current).
   const excludeForBury: Exclude<UserItem> = it => exclude(it) || ((it.dropped || 0) + 2 <= currentDroppedCount)
@@ -215,7 +215,8 @@ export function modifyItemState(
   const reordered: ListState<UserItem> | null =
     controls.bury === true ? dropThree(list, excludeForBury, exclude, queueBottom)
       : controls.unreview === true ? toTop(list)
-        : null
+        : controls.last === true ? toBottom(list, exclude)
+          : null
 
   return reordered
     ? [reordered.items, newMemory, reordered.current]
