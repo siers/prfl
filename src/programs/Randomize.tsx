@@ -306,9 +306,9 @@ function Randomize(controls: any): JSX.Element {
 
         let wipeHandlers = useWipe({
           E: { icon: '✅', run: itemReview },
-          W: [{ icon: '🔚', run: itemToLast }, { icon: '📚', run: itemSuspend }],
+          W: { icon: '📚', run: itemSuspend },
           N: { icon: '🌟', run: itemSurface },
-          S: { icon: '✘', run: itemBury },
+          S: [{ icon: '✘', run: itemBury }, { icon: '🔚', run: itemToLast }],
         })
         wipeHandlers.style = { ...wipeHandlers.style, ...itemStyle(item, index) }
 
