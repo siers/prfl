@@ -448,6 +448,11 @@ export const arrayRotate = arrayShift
 export const uniq = _.uniq
 export const desMS = deserializeModeShift
 
+// Reversed half the time; never mutates the input.
+export function maybeReverse<A>(as: A[]): A[] {
+  return randInt(0, 1) == 0 ? [...as] : [...as].reverse()
+}
+
 export function range(f: number, t: number): string[] {
   return directRange(f, t).map(n => `${n}`)
 }
