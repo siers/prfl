@@ -145,12 +145,18 @@ bracket. Inside `[…]` you must escape brackets:
 {scheduleBlocks('scales scale-stops bowing shifting')}
 {scheduleBlocks(`WFL:jazz-piece`)}
 {scheduleBlocks('scales-0 shifting-0')}
+{scheduleBlocks('scales-3%50 shifting%0')}
 ```
 
-Each whitespace-separated token is `[prefix:]name[-count]`. Omitting the count
+Each whitespace-separated token is `[prefix:]name[-count][%shuffleFactor]`. Omitting the count
 takes the whole block; `-N` takes N after sorting least-recently-reviewed first;
 `-0` takes none. A `prefix:` prepends `prefix-` to both key and contents, so
 reviews record under the rendered key.
+
+The order is a weighted random walk over that sorted list: each pick comes from
+the first `shuffleFactor`% of what remains, weight falling off linearly from
+the head. The default is 33⅓ (only the oldest third is ever picked). `%0` is strict
+oldest-first; `%100` biases across the whole block; above 100 tends to uniform.
 
 ### The expression language
 

@@ -173,6 +173,32 @@ describe('scheduleBlocks', () => {
     expect(evalContentsS(text)).toStrictEqual([])
   })
 
+  test('percent suffix sets the shuffle factor, count still applies', () => {
+    const text = `
+      -=- tasks
+      t1: task one
+      t2: task two
+      t3: task three
+      -=-
+      {scheduleBlocks('tasks-2%50')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContentsS(text)).toHaveLength(2)
+  })
+
+  test('%0 shuffle factor is strict oldest-first, so the order never varies', () => {
+    const text = `
+      -=- tasks
+      ${[...Array(12).keys()].map(i => `t${i}: task ${i}`).join('\n')}
+      -=-
+      {scheduleBlocks('tasks%0')}
+    `.replaceAll(/^ */mg, '')
+
+    const first = evalContentsS(text)
+    expect(first).toHaveLength(12)
+    for (let i = 0; i < 20; i++) expect(evalContentsS(text)).toStrictEqual(first)
+  })
+
   test('digits without dash are part of name', () => {
     const text = `
       -=- tasks2

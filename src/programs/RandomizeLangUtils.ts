@@ -207,19 +207,27 @@ export function power<A>(a: A[]): A[][] {
   return powerBuckets(a).flat()
 }
 
-export function pickEarlyBias<A>(as: A[]): A {
-  const weight = (index: number) => Math.max((as.length - index) - as.length / 1.5, 0)
+// The default: only the first third of the list is ever picked.
+export const DEFAULT_SHUFFLE_FACTOR = 100 / 3
+
+// Picks from the first `shuffleFactor`% of `as`, weight falling off linearly
+// from the head. A factor too small to reach past the head (e.g. 0)
+// degenerates to always picking the head.
+export function pickEarlyBias<A>(as: A[], shuffleFactor: number = DEFAULT_SHUFFLE_FACTOR): A {
+  const shuffled = as.length * shuffleFactor / 100
+  const weight = (index: number) => Math.max(shuffled - index, 0)
+  if (weight(0) == 0) return as[0]
   const weights: [A, number][] = as.map((a, index) => [a, weight(index)])
   const a: A | undefined = new Picker(as, { weights }).pick()
   return a as A
 }
 
-export function picksEarlyBias<A>(as: A[]): A[] {
+export function picksEarlyBias<A>(as: A[], shuffleFactor: number = DEFAULT_SHUFFLE_FACTOR): A[] {
   if (as.length == 0) return []
 
-  const [next, ...rest] = arrayMove(as, pickEarlyBias(arrayIndices(as)), 0)
+  const [next, ...rest] = arrayMove(as, pickEarlyBias(arrayIndices(as), shuffleFactor), 0)
 
-  return [next, ...picksEarlyBias(rest)]
+  return [next, ...picksEarlyBias(rest, shuffleFactor)]
 }
 
 // scheduling
@@ -541,7 +549,7 @@ export function metro(base: number, diff: number): string[] {
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>) {
   // Note: uses memory
-  function pickTasksStateless<A extends RenderLine>(items: A[]): A[] {
+  function pickTasksStateless<A extends RenderLine>(items: A[], shuffleFactor?: number): A[] {
     if (items.length == 0) return []
 
     const sorted = (_.sortBy(items, item => {
@@ -551,7 +559,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
       return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
 
-    return picksEarlyBias(sorted)
+    return picksEarlyBias(sorted, shuffleFactor)
   }
 
   // state
@@ -579,29 +587,34 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   //   return pickTasks(name, block(name), n)
   // }
 
-  function pickLinesStateless(lines: RenderLine[], n: number | 'full'): RenderLine[] {
-    return pickTasksStateless(lines).slice(0, n == 'full' ? 10000 : n)
+  function pickLinesStateless(lines: RenderLine[], n: number | 'full', shuffleFactor?: number): RenderLine[] {
+    return pickTasksStateless(lines, shuffleFactor).slice(0, n == 'full' ? 10000 : n)
   }
 
   function zipScheduleBlocks(sentence: string): RenderLine[] {
     return zipInterleave(...s(sentence).map(x => scheduleBlocks(x)))
   }
 
-  // A token is `[prefix:]name[-count]`. The optional `prefix:` applies to that
-  // token only, so `scheduleBlocks('pre:tasks-2 other-1')` prefixes the tasks
-  // items and leaves `other`'s alone.
-  function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full', string | null][] {
+  // A token is `[prefix:]name[-count][%shuffleFactor]`. The optional `prefix:`
+  // applies to that token only, so `scheduleBlocks('pre:tasks-2 other-1')`
+  // prefixes the tasks items and leaves `other`'s alone. `%shuffleFactor` is
+  // the percentage of the least-recently-reviewed list the weighted random
+  // picks from (see pickEarlyBias): `%0` is strict oldest-first, `%100` biases
+  // across all items.
+  function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full', string | null, number | undefined][] {
     let err
 
     const parsed = [...sentence.matchAll(/[^ ]+/g)].map(x => x[0]).map(s => {
-      const match = s.match(/^(?:([a-z0-9-]+):)?([a-z0-9-]+?)(?:-(\d+|\*))?$/i)
+      const match = s.match(/^(?:([a-z0-9-]+):)?([a-z0-9-]+?)(?:-(\d+|\*))?(?:%(\d+(?:\.\d+)?))?$/i)
 
       if (!match) err = "block name not found"
       if (!match![2]) err = "cannot parse block name"
 
       const count: number | 'full' = match![3] === undefined ? 'full' : parseInt(match![3] || '1', 10)
 
-      return [match![2], count, match![1] ?? null] satisfies [string, number | 'full', string | null]
+      const shuffleFactor = match![4] === undefined ? undefined : parseFloat(match![4])
+
+      return [match![2], count, match![1] ?? null, shuffleFactor] satisfies [string, number | 'full', string | null, number | undefined]
     })
 
     if (err) return `scheduleBlockks: ${err}`
@@ -629,12 +642,12 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   function scheduleBlocks(sentence: string): RenderLine[] {
     const parsed = parseScheduleBlocksSentence(sentence)
     if (typeof parsed == 'string') return [errorLine(parsed)]
-    return parsed.flatMap(([name, amount, prefix]) => {
+    return parsed.flatMap(([name, amount, prefix, shuffleFactor]) => {
       const lines = blockLines(name)
       // Prefix before scheduling: reviews are recorded under the rendered
       // (prefixed) key, so the cards handed to the scheduler must carry it too.
       const cards = prefix === null ? lines : lines.map(rl => prefixRenderLine(prefix, rl))
-      return pickLinesStateless(cards, amount)
+      return pickLinesStateless(cards, amount, shuffleFactor)
     })
   }
 

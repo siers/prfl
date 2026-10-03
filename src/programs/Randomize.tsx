@@ -581,7 +581,6 @@ export default Randomize
 //              e.g. [GDAE [GD AE] perm2([GD DA AE])] equal probability within the same level of brackets
 // TODO: subdecks: double colon key for items to spawn an item directly into a block (post K4FP)
 
-// TODO: scheduling: scheduleBlocks with syntax for specifiying influence of weighted random
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: subdecks: populate subdecks from blocks, if key shares the same name as the block
 // TODO: subdecks: blocks should take variables, no special subdeck syntax
