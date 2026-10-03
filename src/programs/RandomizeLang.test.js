@@ -210,6 +210,22 @@ describe('scheduleBlocks', () => {
     expect(evalContentsS(text)).toHaveLength(1)
   })
 
+  test('a leading - opts a line out of prefixing and is stripped', () => {
+    const text = `
+      -=- tasks
+      -shared: shared one [s('12')]
+      t1: task one
+      -=-
+      {scheduleBlocks('pre:tasks%0')}
+    `.replaceAll(/^ */mg, '')
+
+    const lines = evalContents(text)
+    expect(lines.map(l => [l.key, l.contents, l.source?.contents]).sort()).toStrictEqual([
+      ["pre-t1", "pre-t1: task one", undefined],
+      ["shared", "shared: shared one [1 2]", "shared: shared one !!!1"],
+    ])
+  })
+
   test('a prefixed block prepends the prefix to key and contents, leaving other blocks alone', () => {
     const text = `
       -=- tasks

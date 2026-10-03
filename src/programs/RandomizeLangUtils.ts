@@ -628,14 +628,20 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   // `source.contents` is the pre-substitution template the re-roll path renders
   // from, so it is prefixed too: leaving it bare would make a re-rolled line
   // lose the prefix. Its markers are untouched, keeping the substitutions valid.
+  // Anti-prefix: a line starting with `-` opts out — the `-` is stripped
+  // instead, so `-shared: …` renders (and records reviews) as `shared` under
+  // any prefix.
   function prefixRenderLine(prefix: string, rl: RenderLine): RenderLine {
+    const apply = rl.contents.startsWith('-')
+      ? (x: string) => x.replace(/^-/, '')
+      : (x: string) => `${prefix}-${x}`
     return {
       ...rl,
-      contents: `${prefix}-${rl.contents}`,
-      key: rl.key === null ? null : `${prefix}-${rl.key}`,
+      contents: apply(rl.contents),
+      key: rl.key === null ? null : apply(rl.key),
       source: rl.source === null
         ? null
-        : { ...rl.source, contents: `${prefix}-${rl.source.contents}` },
+        : { ...rl.source, contents: apply(rl.source.contents) },
     }
   }
 

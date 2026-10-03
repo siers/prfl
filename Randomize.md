@@ -151,7 +151,8 @@ bracket. Inside `[…]` you must escape brackets:
 Each whitespace-separated token is `[prefix:]name[-count][%shuffleFactor]`. Omitting the count
 takes the whole block; `-N` takes N after sorting least-recently-reviewed first;
 `-0` takes none. A `prefix:` prepends `prefix-` to both key and contents, so
-reviews record under the rendered key.
+reviews record under the rendered key. A line starting with `-` opts out:
+instead of being prefixed, its leading `-` is stripped (`-shared: …` → `shared: …`).
 
 The order is a weighted random walk over that sorted list: each pick comes from
 the first `shuffleFactor`% of what remains, weight falling off linearly from
