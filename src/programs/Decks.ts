@@ -39,6 +39,11 @@ export function deckGet<A>(decks: Decks<A>, dc: DeckCursor | undefined): A | und
   return deckItems(decks, deck)[index]
 }
 
+// update(current) — replace the item the cursor points at with f(item).
+export function deckMapAt<A>(decks: Decks<A>, [deck, index]: DeckCursor, f: (item: A) => A): Decks<A> {
+  return { ...decks, [deck]: deckItems(decks, deck).map((it, i) => i === index ? f(it) : it) }
+}
+
 // Lift the cursor's deck into a ListState so a single-list op can run on it,
 // then fold the (possibly reordered) deck and resolved index back in. The deck
 // name rides along unchanged.

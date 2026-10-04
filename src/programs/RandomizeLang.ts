@@ -397,26 +397,42 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
         : s
     )
 
-    // Re-derive each `computed` field against the post-rotation values, reusing
-    // the command kept on its matching interpol (matched by marker).
-    const context = initContext(mem)
-    const byMarker = new Map((l.source.interpols || []).map(i => [i.marker, i]))
-    const newSubst = rotated.map(s => {
-      if (!isComputed(s)) return s
-      const command = byMarker.get(s.marker)?.command
-      if (!command) return s
-      const fields = fieldsContext(rotated.filter(o => !isComputed(o)))
-      const substOut: any = executeCommand(command, context, { fields, frozen: fields })
-      if (substOut?.kind === 'error') return s
-      return { ...s, contents: toInterpolateSubst(substOut) }
-    })
-
-    const resubst = newSubst.reduce<RenderLine>((l, s) =>
-      substituteInterpolate(l, s.marker, s.contents), { ...l, contents: l.source.contents }
-    )
-
-    return { ...resubst, source: { ...l.source, substitutions: newSubst } }
+    return refreshComputedSubstitutions(l, l.source, rotated, mem)
   } else return l
+}
+
+// Re-derive each `computed` field against the given values, reusing the
+// command kept on its matching interpol (matched by marker), then re-render.
+function refreshComputedSubstitutions(l: RenderLine, source: NonNullable<RenderLine['source']>, substitutions: Substitution[], mem: Memory): RenderLine {
+  const context = initContext(mem)
+  const byMarker = new Map((source.interpols || []).map(i => [i.marker, i]))
+  const newSubst = substitutions.map(s => {
+    if (!isComputed(s)) return s
+    const command = byMarker.get(s.marker)?.command
+    if (!command) return s
+    const fields = fieldsContext(substitutions.filter(o => !isComputed(o)))
+    const substOut: any = executeCommand(command, context, { fields, frozen: fields })
+    if (substOut?.kind === 'error') return s
+    return { ...s, contents: toInterpolateSubst(substOut) }
+  })
+
+  const resubst = newSubst.reduce<RenderLine>((l, s) =>
+    substituteInterpolate(l, s.marker, s.contents), { ...l, contents: source.contents }
+  )
+
+  return { ...resubst, source: { ...source, substitutions: newSubst } }
+}
+
+// Overwrite the front value of the substitution with `tag`, re-deriving the
+// `computed` fields that may read it. The overwritten value is lost.
+export function setSubstitutionHead(l_: RenderLine, tag: string, value: string, mem: Memory = new Map()): RenderLine {
+  const l = structuredClone(l_)
+  if (!l.source?.substitutions?.some(s => s.tag === tag)) return l
+
+  const substitutions = l.source.substitutions.map(s =>
+    s.tag === tag ? { ...s, contents: [value, ...s.contents.slice(1)] } : s
+  )
+  return refreshComputedSubstitutions(l, l.source, substitutions, mem)
 }
 
 export function emptiedInterpolations(l_: RenderLine): RenderLine {

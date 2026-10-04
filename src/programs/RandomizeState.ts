@@ -1,6 +1,6 @@
 // Pure state reducers for Randomize.
 
-import { evalContents, evalContentsDecks, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents } from './RandomizeLang.js'
+import { evalContents, evalContentsDecks, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
@@ -10,7 +10,7 @@ import type { ImageEntry } from '../lib/PrflAssets.ts'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
 import { ListState, dropThree, bottomOfQueue, toTop, toBottom, Exclude } from './GenericList.ts'
-import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckSeek, deckSetCurrent } from './Decks.ts'
+import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckMapAt, deckSeek, deckSetCurrent } from './Decks.ts'
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 import { NextAction, findNextSubstitution, parseNextSteps, renderNextSteps, stepNext } from './RandomizeNext.ts'
 
@@ -237,13 +237,7 @@ export function reduceMetroClick(s: RState | undefined): [RState, NextAction | n
   if (steps.length === 0) return [s, null]
 
   const [stepped, action] = stepNext(steps)
-  const newItem: UserItem = { ...item, ...setSubstitutionContents(item, subst.marker, renderNextSteps(stepped)) }
-
-  const [deck, index] = cursor
-  const items: Decks<UserItem> = {
-    ...(s.items || {}),
-    [deck]: deckItems(s.items || {}, deck).map((it, i) => i === index ? newItem : it),
-  }
+  const items = deckMapAt(s.items || {}, cursor, it => ({ ...it, ...setSubstitutionContents(it, subst.marker, renderNextSteps(stepped)) }))
 
   return [{ ...s, items }, action]
 }
@@ -331,10 +325,22 @@ export function reduceSetBpm(s: RState | undefined, bpm: number): RState {
 
 // Apply a metro diff and re-stamp the current card's bpm in memory. Folds in
 // what was previously a nested setState (metroState -> setItemBpm).
+// A `metro` tag on the current card is rewritten to the new bpm so it doesn't
+// go stale (and win over the tuned bpm on revisit); 🔄 recovers the authored one.
 export function reduceMetro(s: RState | undefined, diff: Metro): RState {
   const metro = recalcMetro(s?.metro || {}, diff)
+  const bpm = metro.bpm || defaultBpm
   const withMetro: RState = { version: currentStateVersion, ...s, metro }
-  return reduceSetBpm(withMetro, metro.bpm || defaultBpm)
+  return reduceSetBpm(withItemMetroTag(withMetro, bpm), bpm)
+}
+
+function withItemMetroTag(s: RState, bpm: number): RState {
+  const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
+  const item = deckGet(s.items || {}, cursor)
+  if (!item || itemMetroBpm(item) === null || itemMetroBpm(item) === bpm) return s
+
+  const items = deckMapAt(s.items || {}, cursor, it => ({ ...it, ...setSubstitutionHead(it, 'metro', String(bpm), memoryFromString(s.memory)) }))
+  return { ...s, items }
 }
 
 // ── recalc ─────────────────────────────────────────────────────────────────

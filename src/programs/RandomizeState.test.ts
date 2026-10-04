@@ -455,6 +455,33 @@ describe('metro tag — an item authors its own tempo', () => {
     expect(cards['Song'].bpm).toBe(500)
   })
 
+  test('a metro change rewrites the tag, so revisiting keeps the tuned bpm', () => {
+    let s = deckWith([tagged('Song: play [90]metro'), item('other')])
+    s = reduceMetro(s, { bpm: 104.7 })
+    expect(itemMetroBpm(deckGet(s.items!, [DEFAULT_DECK, 0]))).toBe(104)
+    expect(deckGet(s.items!, [DEFAULT_DECK, 0])?.contents).toBe(tagged('Song: play [104]metro').contents)
+    s = reduceRecalc(s, { advance: ['set', 1] }, deps())
+    const out = reduceRecalc(s, { advance: ['set', 0] }, deps())
+    expect(out.metro?.bpm).toBe(104)
+  })
+
+  test('a metro change overwrites only the front value of a multi-value tag', () => {
+    const s = reduceMetro(deckWith([tagged("Song: [s('80,100')]metro")]), { bpm: 70 })
+    const subst = deckGet(s.items!, [DEFAULT_DECK, 0])?.source?.substitutions?.find(x => x.tag === 'metro')
+    expect(subst?.contents).toStrictEqual(['70', '100'])
+  })
+
+  test('a metro change re-derives computed fields that read the tag', () => {
+    const s = reduceMetro(deckWith([tagged('Song: [90]metro [String(Number(fields.metro.at(0)) * 2)]double:computed')]), { bpm: 60 })
+    expect(deckGet(s.items!, [DEFAULT_DECK, 0])?.contents).toBe(tagged('Song: [60]metro [120]double').contents)
+  })
+
+  test('a metro change leaves a non-numeric tag alone', () => {
+    const before = tagged("Song: [s('fast')]metro")
+    const s = reduceMetro(deckWith([before]), { bpm: 104 })
+    expect(deckGet(s.items!, [DEFAULT_DECK, 0])).toStrictEqual(before)
+  })
+
   test('itemMetroBpm reads the tag directly, and is null without one', () => {
     expect(itemMetroBpm(tagged('Song: play [90]metro'))).toBe(90)
     expect(itemMetroBpm(tagged('Song: play [90]tempo'))).toBeNull()

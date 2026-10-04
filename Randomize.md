@@ -256,7 +256,8 @@ A tag is written immediately after a `]`:
 field *called* "freeze" and freezes nothing; you want `[x]key:freeze`. There is
 no validation, so a mistake here is silent.
 
-Tag names matter beyond identity: `metro` pins the bpm, `tones`/`sheet` feed the
+Tag names matter beyond identity: `metro` pins the bpm (and is
+overwritten when you change the tempo — 🔄 restores the authored value), `tones`/`sheet` feed the
 synth and engraver, a name containing `image` contributes an image, and `next`
 drives the programme in §5.
 
