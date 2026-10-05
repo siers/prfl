@@ -532,14 +532,22 @@ export function deckPath(s: RState | undefined): string[] {
 
 // Pop back to a breadcrumb level: level `i` corresponds to deckPath()[i]. The
 // last level is the current deck (a no-op). Climbing restores the cursor saved
-// for that level and trims the stack above it.
+// for that level and trims the stack above it. The levels left behind drop out
+// of reduceTimer's chain, so their timers are stopped here.
 export function reducePopTo(s: RState | undefined, level: number, now: number): RState {
   if (!s) return defaultState satisfies RState
   const stack = s.cursorStack || []
   if (level < 0 || level >= stack.length) return s // last level = current deck, nothing to pop
 
+  const leftBehind: DeckCursor[] = [...stack.slice(level + 1), s.current || [DEFAULT_DECK, 0]]
+  const items = leftBehind.reduce(
+    (acc, cursor) => deckMapAt(acc, cursor, it => ({ ...it, timer: it.timer && toStoppedTimer(it.timer, now) })),
+    s.items || {},
+  )
+
   const newState: RState = {
     ...s,
+    items,
     current: stack[level],
     cursorStack: stack.slice(0, level),
   }

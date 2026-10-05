@@ -3,6 +3,7 @@ import { UserItem, toUserItem } from './RandomizeTypes.ts'
 import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK, deckGet } from './Decks.ts'
 import { SpawnMode } from './RandomizeDecks.ts'
+import type { Timer } from './Timers.ts'
 import * as ToneLib from '../lib/ToneLib.ts'
 import {
   RState, RecalcDeps,
@@ -718,6 +719,31 @@ describe('breadcrumb / pop navigation', () => {
     s = reducePopOne(s, NOW)
     expect(s.current).toStrictEqual([DEFAULT_DECK, 0]) // back on the parent item
     expect(s.cursorStack).toStrictEqual([])
+  })
+
+  test('popOne stops the timer of the item left behind in the subdeck', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
+    s = reduceTimer(s, 'start', null, NOW)
+    expect(s.items!['Scale/zip'][0].timer?.running).toBe(true)
+    s = reducePopOne(s, NOW + 1000)
+    expect(s.items!['Scale/zip'][0].timer).toStrictEqual({ kind: 'stopped', length: 1000, running: false })
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true) // parent keeps running
+  })
+
+  test('popTo stops the timers of every level left behind', () => {
+    let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
+    const running = (start: number) => ({ kind: 'started', start, running: true }) satisfies Timer
+    s = {
+      ...s,
+      items: { ...s.items, mid: [item('m', { timer: running(NOW) })], leaf: [item('l', { timer: running(NOW) })] },
+      cursorStack: [[DEFAULT_DECK, 0], ['mid', 0]],
+      current: ['leaf', 0],
+    }
+    s = reduceTimer(s, 'start', null, NOW)
+    s = reducePopTo(s, 0, NOW + 1000)
+    expect(s.items!.mid[0].timer?.running).toBe(false)
+    expect(s.items!.leaf[0].timer?.running).toBe(false)
+    expect(s.items![DEFAULT_DECK][0].timer?.running).toBe(true)
   })
 
   test('popOne at the top level is a no-op', () => {
