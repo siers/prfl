@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, isSubdeckHeader, Subdecks, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -104,17 +104,19 @@ function extractEvals(l: string): [string, Evals] {
   return [template, evals]
 }
 
-function parseLine(lineRaw: string): Item[] {
+function parseHeader(lineRaw: string): Header | null {
   const headerMatch = lineRaw.match(/^-([-=])- ?(.*) *$/)
+  if (!headerMatch) return null
+  return header(headerMatch[1] == '-', (headerMatch[2] || '').trim() || null)
+}
+
+function parseLine(lineRaw: string): Item[] {
+  const parsedHeader = parseHeader(lineRaw)
 
   if (lineRaw.match(/^#/)) {
     return []
-  } else if (headerMatch) {
-    // `-=- name::` marks a subdeck block; the `::` is not part of the name.
-    const nameRaw = (headerMatch[2] || '').trim()
-    const subdeck = nameRaw.endsWith('::')
-    const name = (subdeck ? nameRaw.slice(0, -2).trim() : nameRaw) || null
-    return [header(headerMatch[1] == '-', name, subdeck && name !== null)]
+  } else if (parsedHeader) {
+    return [parsedHeader]
   } else {
     const timesMatch = lineRaw.match(/^(\d+)x /)
     const times = timesMatch ? parseInt(timesMatch[0], 10) : 1
@@ -137,6 +139,12 @@ export function parseContents(text: string): Parsed {
   const lines = text.split('\n').filter(x => !x.match(/^ *$/))
   const parsed = lines.flatMap(parseLine)
   return initSequences(parsed, i => i.kind! == 'header').map(parseBlock)
+}
+
+// The names of the text's named blocks — the keys an item can instantiate a
+// subdeck from. Scans headers only, without parsing (or evaluating) the lines.
+export function blockNames(text: string): Set<string> {
+  return new Set(text.split('\n').flatMap(l => parseHeader(l)?.name ?? []))
 }
 
 // evaluators
@@ -314,50 +322,54 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
   return ic
 }
 
-// The deck a `-=- name::` block fills. The trailing separator mirrors the
-// `Key/zip` shape spawned decks use, so an item whose key is the block name
-// reaches it through the same prefix match the spawned decks use
-// (see liveSubdeckName) — but writing that item is up to the deck's author.
-export function declaredDeckName(name: string): string {
-  return `${name}/`
-}
-
-// The full evaluation: the root deck's lines, the subdecks declared with
-// `-=- name::`, and the resulting memory.
-export function evalContentsDecks(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Subdecks, Memory] {
+// Evaluates the main blocks in file order, registering each named block as a
+// callable in the context as it is reached.
+function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext): EvaluationContext {
   const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const evaluationInit: EvaluationContext = [[], {}, initContext(memory, additionalContext)]
-  const [mainBlocks, subdecks, context]: EvaluationContext = blocks.reduce(([mainBlocks, subdecks, context], b) => {
+  const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext)]
+  return blocks.reduce(([mainBlocks, context], b) => {
     const name = b.header.name || 'impossiblè'
 
     if (isMainHeader(b.header))
       mainBlocks.push(evalBlock(b, context))
-    else if (isSubdeckHeader(b.header)) {
-      // Blocks sharing a subdeck name concatenate into that one deck. Nothing
-      // is emitted into the root deck — a subdeck contributes only its own items.
-      const deck = declaredDeckName(name)
-      subdecks[deck] = (subdecks[deck] || []).concat(evalBlock(b, context))
-    }
     else {
       context.set(name, () => evalBlock(b, context))
       context.set(`items-${name}`, () => b.items)
     }
 
-    return [mainBlocks, subdecks, context] satisfies EvaluationContext
+    return [mainBlocks, context] satisfies EvaluationContext
   }, evaluationInit)
+}
 
-  return [
-    intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(),
-    subdecks,
-    context.get('memory') as Memory,
-  ]
+// The deck an item keyed `name` instantiates from the block `name`. The
+// trailing separator mirrors the `Key/zip` shape spawned decks use, so it's
+// found through the same prefix match (see liveSubdeckName).
+export function blockDeckName(name: string): string {
+  return `${name}/`
+}
+
+// The items of the subdeck instantiated from block `name`, ordered as
+// `scheduleBlocks(name)` would. The whole text is re-evaluated first so the
+// block sees every block and global a call from the text would — which means
+// globals assigned randomly are re-rolled, not the ones the root deck saw.
+export function evalBlockDeck(text: string, name: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine[] {
+  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext)
+  const lookup = context.get(name)
+  if (!blockNames(text).has(name) || typeof lookup !== 'function') return []
+
+  const memory = context.get('memory') as Memory
+  return randomizeLangUtils(context, memory).pickTasksStateless(lookup() satisfies RenderLine[])
 }
 
 export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory] {
-  const [lines, _subdecks, memory] = evalContentsDecks(text, oldMemory, additionalContext)
-  return [lines, memory]
+  const [mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext)
+
+  return [
+    intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(),
+    context.get('memory') as Memory,
+  ]
 }
 
 export function evalContents(text: string, additionalContext: AdditionalContext = {}): RenderLine[] {

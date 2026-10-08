@@ -7,7 +7,7 @@ import type { Timer } from './Timers.ts'
 import * as ToneLib from '../lib/ToneLib.ts'
 import {
   RState, RecalcDeps,
-  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
+  reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
 } from './RandomizeState.ts'
 
@@ -179,78 +179,100 @@ describe('reduceRecalc — eval & deck wiring', () => {
   })
 })
 
-describe('declared subdecks — `-=- name::`', () => {
-  // The `scales` item is authored, not generated: a subdeck emits nothing into
-  // the root deck. Keying an item after the block is what makes the deck
-  // reachable from it.
-  const text = '-=-\nalpha\nscales: warm up first\n-=- scales::\nMAJ\nMIN'
+describe('block subdecks — an item keyed like a named block', () => {
+  const text = '-=-\nalpha\nscales: warm up first\n-=- scales\nMAJ\nMIN'
+  const evaluated = () => reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+  const onScales = () => reduceRecalc(evaluated(), { advance: ['set', 1] }, deps())
+  const scalesItem = (s: RState) => s.items![DEFAULT_DECK][1]
 
-  test('eval builds the declared deck alongside the root, adding nothing to it', () => {
-    const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+  test('eval instantiates nothing: the root deck alone, no block decks', () => {
+    const s = evaluated()
 
     expect(labels(s)).toStrictEqual(['alpha', 'scales: warm up first'])
-    expect(s.items!['scales/'].map(i => i.contents)).toStrictEqual(['MAJ', 'MIN'])
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
   })
 
-  test('a subdeck-only text yields an empty root deck', () => {
-    const s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=- scales::\nMAJ' }, deps())
+  test('the keyed item has a subdeck to enter, an unrelated one does not', () => {
+    const s = evaluated()
 
-    expect(labels(s)).toStrictEqual([])
-    expect(s.items!['scales/'].map(i => i.contents)).toStrictEqual(['MAJ'])
+    expect(hasSubdeck(s, scalesItem(s))).toBe(true)
+    expect(liveSubdeckName(s, scalesItem(s))).toBeNull() // not instantiated yet
+    expect(hasSubdeck(s, s.items![DEFAULT_DECK][0])).toBe(false)
   })
 
-  test('an item keyed after the block finds the deck, so the enter button appears', () => {
-    const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    const entry = s.items![DEFAULT_DECK][1]
+  test('entering instantiates the block as a deck and descends into it', () => {
+    let s = onScales()
+    s = reduceEnterSubdeck(s, scalesItem(s), NOW)
 
-    expect(entry.key).toBe('scales')
-    expect(liveSubdeckName(s, entry)).toBe('scales/')
-
-    // an unrelated item points at nothing
-    expect(liveSubdeckName(s, s.items![DEFAULT_DECK][0])).toBeNull()
-  })
-
-  test('entering the declared deck descends into it and the breadcrumb can climb back', () => {
-    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    s = reduceRecalc(s, { advance: ['set', 1] }, deps()) // onto the `scales` item
-
-    s = reduceEnterDeck(s, 'scales/', NOW)
     expect(s.current).toStrictEqual(['scales/', 0])
+    expect(s.items!['scales/'].map(i => i.contents).sort()).toStrictEqual(['MAJ', 'MIN'])
     expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'scales/'])
 
     s = reducePopOne(s, NOW)
     expect(s.current).toStrictEqual([DEFAULT_DECK, 1])
+    expect(liveSubdeckName(s, scalesItem(s))).toBe('scales/')
   })
 
-  test('items inside the declared deck advance deck-locally, leaving the root cursor alone', () => {
-    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    s = reduceEnterDeck(s, 'scales/', NOW)
+  test('re-entering a live deck keeps it as-is', () => {
+    let s = onScales()
+    s = reduceEnterSubdeck(s, scalesItem(s), NOW)
+    s = reduceRecalc(s, { item: { done: true } }, deps())
+    const deck = s.items!['scales/']
+    s = reducePopOne(s, NOW)
 
-    s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
-    expect(s.current).toStrictEqual(['scales/', 1])
-    expect(deckGet(s.items!, s.current!)!.contents).toBe('MIN')
-    expect(labels(s)).toStrictEqual(['alpha', 'scales: warm up first']) // root untouched
+    s = reduceEnterSubdeck(s, scalesItem(s), NOW)
+    expect(s.items!['scales/']).toStrictEqual(deck)
   })
 
-  test('re-eval rebuilds declared decks and clears the stack, like every other deck', () => {
-    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    s = reduceEnterDeck(s, 'scales/', NOW)
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+  test('an exhausted deck is instantiated fresh on enter', () => {
+    let s = onScales()
+    s = reduceEnterSubdeck(s, scalesItem(s), NOW)
+    s = reduceRecalc(s, { item: { done: true } }, deps())
+    s = reduceRecalc(s, { item: { done: true } }, deps())
+    s = reducePopOne(s, NOW)
+    expect(liveSubdeckName(s, scalesItem(s))).toBeNull()
 
-    s = reduceRecalc(s, { eval: true, contents: '-=-\nbeta\n-=- modes::\nDOR' }, deps())
-    expect(Object.keys(s.items!).sort()).toStrictEqual([DEFAULT_DECK, 'modes/'])
+    s = reduceEnterSubdeck(s, scalesItem(s), NOW)
+    expect(s.current![0]).toBe('scales/')
+    expect(s.items!['scales/'].every(i => !i.done)).toBe(true)
+  })
+
+  test('an item without a block or deck enters nothing', () => {
+    const s = evaluated()
+    expect(reduceEnterSubdeck(s, s.items![DEFAULT_DECK][0], NOW)).toBe(s)
+  })
+
+  test('an empty block enters nothing', () => {
+    const s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=-\nempty\n-=- empty' }, deps())
+    expect(reduceEnterSubdeck(s, s.items![DEFAULT_DECK][0], NOW)).toBe(s)
+  })
+
+  test('nested: an item inside a block deck instantiates its own block', () => {
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=-\nouter\n-=- outer\ninner\n-=- inner\nX' }, deps())
+    s = reduceEnterSubdeck(s, s.items![DEFAULT_DECK][0], NOW)
+    s = reduceEnterSubdeck(s, deckGet(s.items!, s.current!)!, NOW)
+
+    expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'outer/', 'inner/'])
+    expect(deckGet(s.items!, s.current!)!.contents).toBe('X')
+  })
+
+  test('re-eval drops instantiated decks and clears the stack', () => {
+    let s = onScales()
+    s = reduceEnterSubdeck(s, scalesItem(s), NOW)
+
+    s = reduceRecalc(s, { eval: true }, deps())
+    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
     expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
     expect(s.cursorStack).toStrictEqual([])
   })
 
-  test('cleaning from the keyed item drops its declared deck, same as a spawned one', () => {
-    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
-    const entry = s.items![DEFAULT_DECK][1]
+  test('cleaning from the keyed item drops its instantiated deck, same as a spawned one', () => {
+    let s = onScales()
+    s = reducePopOne(reduceEnterSubdeck(s, scalesItem(s), NOW), NOW)
 
-    s = reduceCleanSubdeck(s, entry)
+    s = reduceCleanSubdeck(s, scalesItem(s))
     expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
-    expect(liveSubdeckName(s, entry)).toBeNull()
+    expect(hasSubdeck(s, scalesItem(s))).toBe(true) // still instantiable
   })
 })
 

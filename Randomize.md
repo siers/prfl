@@ -36,17 +36,24 @@ difference is the single most important thing to remember:
 |---|---|---|---|
 | `-=-` | written order | root deck | — |
 | `---` | **shuffled** | root deck | — |
-| `-=- name` | written order | nowhere | `block('name')` |
-| `--- name` | **shuffled** | nowhere | `block('name')` |
-| `-=- name::` | written order | subdeck `name/` | no |
-| `--- name::` | **shuffled** | subdeck `name/` | no |
+| `-=- name` | written order | nowhere (or subdeck `name/`) | `block('name')` |
+| `--- name` | **shuffled** | nowhere (or subdeck `name/`) | `block('name')` |
 
 **`---` shuffles, `-=-` keeps order.** One character, inverted meaning, no
 mnemonic — this is the easiest thing in the language to get wrong.
 
 A *named* block goes nowhere on its own: it's a definition, called from an
-expression. A `::` block is a subdeck — it emits into its own deck and is **not**
-callable. Several `::` blocks sharing a name concatenate.
+expression.
+
+**Subdecks come from blocks.** An item whose key equals a named block's name
+gets a 📂: entering it instantiates the subdeck `name/` from that block, ordered
+like `scheduleBlocks('name')` (least-recently-reviewed first). It's lazy — the
+block is evaluated on 📂, not on 🔄. To do that the whole text is re-evaluated, so
+the block sees every block and global — but randomly assigned globals (e.g.
+`keyz`) are rolled again and can differ from what the root deck shows. A live deck
+is re-entered as-is; an exhausted or 🧹-cleaned one is instantiated fresh. Items
+inside a subdeck can open their own block subdecks the same way. A block whose
+lines need a `prefix:` keeps a wrapper: `-=- Standards` → `{scheduleBlocks('St:StandardsT')}`.
 
 Blocks are registered in file order, so a block must be defined **before** the
 block that calls it. Adjacent non-empty root blocks get a `---` separator line

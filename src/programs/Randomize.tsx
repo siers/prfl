@@ -17,7 +17,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, liveSubdeckName, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceInsertItem, reduceTimer,
+  deckPath, hasSubdeck, liveSubdeckName, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
@@ -135,8 +135,8 @@ function Randomize(controls: any): JSX.Element {
     setState((s: RState | undefined) => reduceCleanSubdeck(s, item))
   }
 
-  function enterDeck(deckName: string) {
-    setState((s: RState | undefined) => reduceEnterDeck(s, deckName, Date.now()))
+  function enterSubdeck(item: UserItem) {
+    setState((s: RState | undefined) => reduceEnterSubdeck(s, item, Date.now()))
   }
 
   function insertItem(dsl: string) {
@@ -301,6 +301,7 @@ function Randomize(controls: any): JSX.Element {
         const isCurrent = index == currentIndex
         const showReeval = isCurrent && (items[currentIndex]?.source?.interpols?.length || 0) > 0
         const deckName = isCurrent ? liveSubdeckName(state, item) : null
+        const showEnter = isCurrent && hasSubdeck(state, item)
         const showSpawn = isCurrent && isSpawnable(item) && !deckName
         const showCheckmark = isCurrent && itemSeekExcluded(item)
 
@@ -320,7 +321,7 @@ function Randomize(controls: any): JSX.Element {
               {showReeval && <a className="pl-3 select-none" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn zipped deck" onClick={e => { e.stopPropagation(); spawn('zip') }}>⛓️</a>}
               {showSpawn && <a className="pl-3 select-none" title="spawn cartesian deck" onClick={e => { e.stopPropagation(); spawn('cartesian') }}>🧬</a>}
-              {deckName && <a className="pl-3 select-none" title="enter subdeck" onClick={e => { e.stopPropagation(); enterDeck(deckName) }}>📂</a>}
+              {showEnter && <a className="pl-3 select-none" title="enter subdeck" onClick={e => { e.stopPropagation(); enterSubdeck(item) }}>📂</a>}
               {deckName && <a className="pl-3 select-none" title="clean this subdeck" onClick={e => { e.stopPropagation(); cleanSubdeck(item) }}>🧹</a>}
             </>
           }
@@ -572,7 +573,6 @@ export default Randomize
 // TODO: execution(7RZH): make items just pointers, allowing for refreshing of cards while in the list, removing implementations from lists
 // TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
 // TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
-// TODO  subdecks(K4FP): make these simply generatable from named blocks, if a block name corresponds to the key, make it spawn a scheduleBlocks automatically
 // TODO: blocks: code for decorating the tasks
 // TODO: keys: add bangs + errors to make sure that the pointers reference (7RZH)
 // TODO: parametrization: allow multiple tag output [Tag] from a single tag
@@ -582,8 +582,7 @@ export default Randomize
 // TODO: subdecks: double colon key for items to spawn an item directly into a block (post K4FP)
 
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
-// TODO: subdecks: populate subdecks from blocks, if key shares the same name as the block
-// TODO: subdecks: blocks should take variables, no special subdeck syntax
+// TODO: subdecks: blocks should take variables
 // TODO: subdecks: key prefixes should be shown in the ui
 // TODO: open: subdecks: if subdecks were a function, you couldn't update existing items any more. impact? (A: only top level items matter, everything dynamic has to be refreshed)
 // TODO: scheduling: scheduleBlocks: inline if there's just a single card

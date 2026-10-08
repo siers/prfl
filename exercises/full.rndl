@@ -10,7 +10,7 @@
 VlnChrom: [zipLongest(keys(), ss(`↑↓`))] [ss(`triads 4ads 6bdom`)] [ss(`base inv1 inv2`)] [ss(`straight flips`)] [ss(`p1,p2a,p2b,p3,p4a,p4b,p5a,p5b,p6a,p6b,p7`)] [metroS(50, 8)]metro:show-1:inline
 -=- scale-stops
 ScaleStopsString: [key] [ss(stops)] [zipLongest(ss(`DAE`), ':', ss(`0+H-W+H, 0+W-H`), ss(`1234`))]
--=- BowDistribution::
+-=- BowDistribution
 BowDistribution1: [ss(`12345678`)]:computed [\[...ss(`G D A E`), ...ss(`GD DA AE EA AD DG G D A E GD DA AE EA AD DG GDA DAE EAD ADE GDG DGD DAD ADA AEA EAE`)\]]:show-1 [metroS(50, 15)]metro:show-2:inline
 BowDistribution1B: [zipLongestShuf(ss(`12345678`), ss(`G D A E`))]:computed [metroS(50, 15)]metro:show-2:inline
 BowDistribution1BC: [zipLongestShuf(ss(`12345678`), ss(`G D A E`), s(`|p,`), ss(`12345`))]:computed [metroS(50, 15)]metro:show-2:inline
@@ -19,13 +19,11 @@ BowDistribution3: [zipT(ss(`12345678`), ss(`G D A E G D A E (GD) (DA) (AE) (GD) 
 BowDistribution4: [zipT(ss(`12345678`), zipLongest(ss(`GDAE`), ss(`(GD) (DA) (AE)`), ss(`G/D D/G D/A A/D A/E E/A`)).flatMap(x=>shuffle(x)), s(`:::::::::::::`), ss(`0/1 1/1 1/2 1/4 3/4 1/3 2/3`)).map(x=>x.join(``))]:maxlen-5000:computed [metroS(50, 15)]metro:show-1:inline
 # BD4 requires some guarantee of a minimal distance, split at the middle or pick by constraint
 # BowDistribution4H: [zipLongestShuf(ss(`12345678`), zipLongest(ss(`GDAE`), ss(`(GD) (DA) (AE)`), ss(`G/D D/G D/A A/D A/E E/A`)).flatMap(x=>shuffle(x)), shuffleX(`0/1 1/1 1/2 1/4 3/4 1/3 2/3`, 4)).map(x=>x.join(``))] 2+1  [metroHalves(100, 30)]metro:show-2:inline [nextHalves(fields.metro)]next:computed:show-1
--=- StrokesT
+-=- Strokes
 AsymDistr: [zipLongest(zipLongest(ss(`GDAE`), ss(`(GD) (DA) (AE)`), ss(`G/D D/G D/A A/D A/E E/A`)).flatMap(x=>shuffle(x)),  ss(`↑↓↑↓`)).map(x=>x.join(``))] 2+1 [metroS(60, 20)]metro:show-1:inline
 Ta-tada: over scale
 Dots: [ss(`4 dots per beat, angle`)]
--=- Strokes::
-{scheduleBlocks(`StrokesT`)}
--=- BowingT
+-=- BowingTasks
 BowingRainbow: [zipLongest(ss('33% 50% 66%'), `:`, zipLongest(ss('G Dd Du Ad Au E'), ss(`GD DAu DAd AE`)).flat(), `:`, ss('up down'))] [metroS(42, 4)]metro:show-1:inline [ss(`P1 P2 P3 P4 P5`)]:show-1
 BowDistribution
 # Entrances: [zipLongestShuf(ss(`GDAE`), ss(`0/1 1/1 1/2↑ 1/2↓ 1/4↑ 1/4↓ 3/4↑ 3/4↓ 1/3↑ 1/3↓ 2/3↑ 2/3↓`), ss(`Long Marc Spidey Fade SewMach`), ss(`airy crunchy normal ponti`))]:show-4
@@ -35,13 +33,9 @@ BowGym: [ss(`lowWrist seesaw minesweep frisbee rotate fwcircle bwcircle zigzagle
 FroschColle: [zipLongest(\[...ss(`GDAE`), ...ss(`GD DG DA AD AE EA`)\], ss(`↑↓↑↓`))] [ss(`Sweep, “no T (light)”, Pinky`)]
 Strokes
 BowBreath: in, out+[ss(`up down`)]
--=- BowingTasks::
-{scheduleBlocks(`BowingT`)}
--=- contact
+-=- ContactPoint
 ContactCircles: [zipLongestShuf(ss(`n, v`), `:`, ss(`GDAE`), `:`, perm(ss(`P1, P2, P3, P4, P5`),2).map(p=>p.join(``)))] [metroS(42, 4)]metro:show-1:inline
 ContactDirections: [zipLongestShuf(ss(`n, v`), `:`, ss(`+, –, +-, –+`), ss(`GDAE`))]
--=- ContactPoint::
-{scheduleBlocks(`contact`)}
 -=- shifting
 #{after('2026-03-16', '')}ShiftingFourth: [key] position 4 [(`octaves from 1st, shifts 1-4 ${ss(`0 -1 +1`).join(' ')}, shifts interleaved`)] [ss(`G D A E`)]
 0x ShiftingSlides: [key] [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')]
@@ -52,11 +46,9 @@ SemitoneFrame: [ss(`GDEA`)] +[ss(`1 2 3 4 5 6 7`)]sem [zip(ss(`lyd, maj, min, ph
 # SemitoneFrame: this can be easily cut with zip into faster execution
 # ShiftingAgainstWall: [ss(`snake, scale, ysaye`)]
 UnisonShifts: [ss(`GDAE`)] +[ss(`3 4 5 6 7`)]sem
--=- vibrato
+-=- VibratoTasks
 Vibrato: [ss(`12345678`)]:computed [zipT(zipT(...divide(frets(10), 4).map(shuffle)).map(shuffle).flat(), shuffleX(ss(`↑↓↑↓`), 4)).map(x=>x.join(''))]:show-4 spitze narrow [metroS(42, 4)]metro:show-1:inline [`14f`]nextDisable:hide
--=- VibratoTasks::
-{scheduleBlocks(`vibrato`)}
--=- recognition
+-=- RecognitionTasks
 ToneDiff: [zipLongest(shuffle(divide(range(ToneLib.semi(ToneLib.parseNote('c2')), ToneLib.semi(ToneLib.parseNote('e7'))), 5).map(pick)).map(s => ToneLib.semiToHertz(Number(s)).toFixed(2)), shuffle(\[50, 25, 12.5, 6.25, 3.125\]), shuffle(\[1, 1, -1, -1\])).flatMap(p => \[p, p, p\]).map(p => p.join('/'))]pairs:hide [fields.pairs.at(0).split('/').at(0)]base:computed:hide [(Number(fields.pairs.at(0).split('/').at(1)) * Number(fields.pairs.at(0).split('/').at(2))).toString()]cents:computed:hide [fields.pairs.map((p, i) => { const \[b, m, s\] = p.split('/'); return i % 3 == 0 ? `<${b}hz>2 <${(Number(b) * Math.pow(2, Number(m) * Number(s) / 1200)).toFixed(2)}hz>2` : `r1` })]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [fields.pairs.map((p, i) => { const \[b, m, s\] = p.split('/'); const c = Number(m) * Number(s); return i % 3 == 2 ? `${c > 0 ? 'HIGHER' : 'LOWER'} ${ToneLib.render(ToneLib.hertzCanonical(Number(b)))}/${forceSign(c)}c` : ` ` })]answer:show-2 [60]metro
 FretSearch: [ \[...chunk(chunk(zipT(...ToneLibViolin.strings.map(s => zipT(...shuffle(divide(s.positions.slice(0, 13).map(p => { sen = pick(ToneLibViolin.embedNotePlusMinus(p, \[s.name\])); return \['GDAE'.split('').at(s.index), sen.note, pick(sen.availFingers) || '0'\]}), 2).map(shuffle))).flat() )).flatMap(shuffle).map((\[c, t, f\]) => ToneLib.renderSheet(t, 4, c, f)), 8).map(m => m.join(' ')), 2).map(b => b.join(' | ')), ''\]]examples:hide [fields.examples.at(0)]sheet:computed:hide [s('1n ' + '16f '.repeat(fields.examples.length - 1) + '4r')]next:hide
 # StringIntervals: [ss(`3:31 3:41 3:42 4:11 4:12 4:13 4:14 4:21 4:22 4:23 4:24 4:31 4:32 4:33 4:34 4:41 4:42 4:43 4:44`)]
@@ -67,8 +59,6 @@ Directions: [shuffle(timesUntil(8, shuffle(uniq(loopSubstringsG(`G,:D:A:E'`.spli
 FindAllVln: [allKeys()] [ss(`GDAE`)]:computed
 FindAllVln2: [shuffle(range(40, 40+11).map(s => ToneLib.render(pick(ToneLib.enharmonics(s)),false)))]
 PositionSearch: [allKeys()]key:show-1:inline:nonrotated:covered [ss(`1234567`)]pos:show-1:inline:covered [ss(`seqBlocks mixBlocks`)]blocks:show-1:inline [ss(`norm ver`)]scramble:show-1:inline [s(`fw bw`)]flip:show-1:inline [` `] [ExScales.gen(fields)]sheet:hide:computed
--=- RecognitionTasks::
-{scheduleBlocks(`recognition`)}
 # V, Technique
 --- extensions
 # Ext1: 4 finger: [zip(shuffleX(`3rd/, 4th/, 4#/, 5th/`, 2), ss(scalePositions({arrows: false})))]
@@ -86,7 +76,7 @@ Entr1: bow ends clicks exercise [ss(`GDAE`)]
 # Entr2: entrances in tips [ss(`GDAE`)] # generalizable as entr1
 # Entr3: entrances down, with stability and power
 # V, Orchestra
--=- orchestra-items
+-=- orchestra
 K621: [ss(`0 A B C D E F`)]
 BhvnSym1: [ss(`Adag Alleg A B C D E `)]
 BrahmsSym1: [shuffle(range(1, 8))]
@@ -95,8 +85,6 @@ SchumannSym3: [ss(`1 9 18 25 39 50 A B C D E F`)]
 Lobgs: [shuffle(\[...pick(\[ss(`1:1+ 1:3+ 1:5+ 1:7+ 1:9+`), ss(`1:2- 1:4- 1:6- 1:8- 1:10-`)\]), ...ss(`2:1+ 2:4- 4 7:1+ 7:3- 8 10:1+ 10:3-`)\])]
 # [shuffle(range(1, 28))]
 SmSy: [s(`123`)]
--=- orchestra::
-{scheduleBlocks(`orchestra-items`)}
 # V, Pieces
 --- violin1
 --- violin-focus
@@ -114,75 +102,53 @@ shoehorn: [ss(`subs lyddom chromatics diminished`)]
 brush: [ss(`cut-descending, `)]
 composition: [ss(`dynamic-diversity,`)]
 rewrite-melody: guides vs not
--=- FiveBrothersT
+-=- FiveBrothers
 {scheduleBlocks(`FB:jazz-piece`)}
 FB-head
--=- FiveBrothers::
-{scheduleBlocks(`FiveBrothersT`)}
--=- LazyBirdT
+-=- LazyBird
 {scheduleBlocks(`LazyBird:jazz-piece`)}
 LazyBird-head
--=- LazyBird::
-{scheduleBlocks(`LazyBirdT`)}
--=- WhenFallLoveT
+-=- WhenFallLove
 {scheduleBlocks(`WFL:jazz-piece`)}
 WFL-head
--=- WhenFallLove::
-{scheduleBlocks(`WhenFallLoveT`)}
--=- MomentsNoticeT
+-=- MomentsNotice
 {scheduleBlocks(`MN:jazz-piece`)}
 MN-head
--=- MomentsNotice::
-{scheduleBlocks(`MomentsNoticeT`)}
--=- AllOfMeT
+-=- AllOfMe
 {scheduleBlocks(`AOM:jazz-piece`)}
 AOM-head
 AOM-transpose: [keys()]
--=- AllOfMe::
-{scheduleBlocks(`AllOfMeT`)}
--=- ILoveYouT
+-=- ILoveYou
 {scheduleBlocks(`ILY:jazz-piece`)}
 ILY-head
--=- ILoveYou::
-{scheduleBlocks(`ILoveYouT`)}
--=- SentimentalMoodT
+-=- SentimentalMood
 {scheduleBlocks(`SM:jazz-piece`)}
 SM-head
--=- SentimentalMood::
-{scheduleBlocks(`SentimentalMoodT`)}
--=- SeeYouMyDreamsT
+-=- SeeYouMyDreams
 {scheduleBlocks(`SYMD:jazz-piece`)}
 SYMD-head
--=- SeeYouMyDreams::
-{scheduleBlocks(`SeeYouMyDreamsT`)}
--=- JustFriendsT
+-=- JustFriends
 {scheduleBlocks(`JF:jazz-piece`)}
 JF-head
--=- JustFriends::
-{scheduleBlocks(`JustFriendsT`)}
---- 25s-Subs::
+--- 25s-Subs
 25s-Subs: resolve to other dominant
 25s-OutsideNotes: name [pickKeysShuf().flat()]
--=- 25sT
+-=- 25s
 25s-Minor: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 25s-Subs: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 25s-2b: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 25s-2b3b: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 25s-ChromaticCell: [`1, 7, 7b, 1`] [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
--=- 25s::
-{scheduleBlocks(`25sT`)}
--=- VL-Drop2::
+-=- VL-Drop2
 VL-Drop2-Bass: [ss(`52 25 22 55`)] [ss(`5 +c -c`)]
 VL-Drop2-Treble: [ss(`52 25 22 55`)]
 VL-Drop2-Both: [zipLongestShuf(ss(`B2 B5`), ss(`T5 T2`), ss(`bt, tb`))]
--=- VLT
+-=- VL
 VL-Major: [keys()] [ss(`25`)] [ss(`6 6b`)]
 VL-Minor: [keys()] [ss(`25`)]
 VL-Drop2: [keys()] [ss(`25`)] [ss(`6 6b`)]
 VL-BDom: [keys()]
 VL-MinThird: [keys()]
--=- VL::
-{scheduleBlocks(`VLT`)}
 -=- StandardsT
 AllOfMe
 ILoveYou
@@ -192,7 +158,7 @@ JustFriends
 WhenFallLove
 MomentsNotice
 LazyBird
--=- Standards::
+-=- Standards
 {scheduleBlocks(`St:StandardsT`)}
 
 -=- JazzBowingT
@@ -204,7 +170,7 @@ fast-swing-mix: [metroHalves(150, 30)]metro:show-2:inline [nextHalves(fields.met
 muffled-16ths: 4x scale paterns
 foot-on-2-4: keep going
 ghost-rhythmical: purely
--=- JazzBowing::
+-=- JazzBowing
 {scheduleBlocks(`JB:JazzBowingT`)}
 
 -=- JazzAuxT
@@ -215,7 +181,7 @@ C-maj-chromatic-chords
 ThematicDevelopment
 2b5b-25-1
 PentatonicShifting: [allKeys()]:nonrotated:show-1 [shuffle(perm(`12356`))]:show-1 [`4f `]next
--=- JazzAux::
+-=- JazzAux
 {scheduleBlocks(`JA:JazzAuxT`)}
 
 -=- SingingT
@@ -227,10 +193,10 @@ Breath3: out, out, ōut, in: side2side, off-snaps
 Attacas: with hand
 Choir: think
 
--=- Singing::
+-=- Singing
 {scheduleBlocks(`Sing:SingingT`)}
 
--=- Physio::
+-=- Physio
 ThrowRightArm: [zipLongest(ss(`H0 H45 H90`), `:`, ss(`V0 V45 V90 V135 V180`)).map(x=>x.join(``)).concat(s(`|`))]:show-1
 # P, Main
 -=- piano1
@@ -274,7 +240,7 @@ StartPlayingSmooth: record
 {zipT(...keyz.map(k => { keyR = k; key = keyR.replace(/^Key-/,''); return blockLines('warmup-key') \})).flat()}
 -=- warmup-tasks-after
 ScalesRecord
--=- warmup::
+-=- warmup
 {keyz}
 {scheduleBlocks(`warmup-tasks warmup-tasks-after`)}
 # Main

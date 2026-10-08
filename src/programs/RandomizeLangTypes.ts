@@ -106,16 +106,12 @@ export type Header = {
   kind: 'header',
   name: string | null,
   shuffle: boolean,
-  // `-=- name::` — the block's items are emitted into the subdeck `name`
-  // instead of into the root deck (and it stays non-callable, unlike `-=- name`).
-  subdeck: boolean,
 }
 
-// Blocks emitted into the root deck: the unnamed ones. A named block is either a
-// callable context block (`-=- a`) or a subdeck block (`-=- a::`); neither lands
-// in the root.
+// Blocks emitted into the root deck: the unnamed ones. A named block lands
+// nowhere on its own — it's callable, and an item keyed with its name can
+// instantiate it as a subdeck.
 export const isMainHeader: (h: Header) => boolean = (h: Header) => h.name === null
-export const isSubdeckHeader: (h: Header) => boolean = (h: Header) => h.subdeck && h.name !== null
 
 export type Item = Header | Line
 
@@ -175,17 +171,14 @@ export const maxLen = (x: Tagged, fallback: number): number => {
   return Number.isNaN(n) ? fallback : n
 }
 
-export const header = (shuffle: Boolean, name: string | null, subdeck: boolean = false) => ({ kind: 'header', name, shuffle, subdeck }) as Header
+export const header = (shuffle: Boolean, name: string | null) => ({ kind: 'header', name, shuffle }) as Header
 export const interpolate = (command: string, marker: string, tag: string | null, tags: string[] | null) => ({ kind: 'interpolate', command, marker, tag, tags }) as Interpolate
 export const explode = (command: string, marker: string) => ({ kind: 'explode', command, marker }) as Explode
 export const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
 export const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
 
 export type EvaluationResult = RenderLine[]
-// Subdeck blocks (`-=- name::`) accumulate here, keyed by deck name. Several
-// blocks may share a name; their items concatenate into the one deck.
-export type Subdecks = Record<string, RenderLine[]>
-export type EvaluationContext = [EvaluationResult[], Subdecks, Context]
+export type EvaluationContext = [EvaluationResult[], Context]
 
 export const interpolableLine: (contents: string, interpols: Interpolate[], substitutions?: Substitution[]) => InterpolableLine = (contents, interpols, substitutions) => ({ kind: 'interpolable-line', contents, interpols, substitutions })
 export const substitution: (contents: InterpolateSubstT, marker: string, tag: string | null, tags: string[] | null) => Substitution = (contents, marker, tag, tags) => ({ kind: 'substitution', contents, marker, tag, tags })

@@ -1,6 +1,6 @@
 // Pure state reducers for Randomize.
 
-import { evalContents, evalContentsDecks, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
+import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
@@ -152,16 +152,9 @@ function itemsAndTimer(
   if (!eval_) return [decks, total, stack]
 
   let memory: Map<any, any> = memoryFromString(m)
-  const [lines, subdecks, _] = evalContentsDecks(contents, memory, { images })
+  const [lines, _] = evalContentsMem(contents, memory, { images })
 
-  // `-=- name::` blocks land as decks of their own alongside the root deck, and
-  // the root card the lang emitted for each (keyed with the deck name) is what
-  // the "enter subdeck" button hangs off — same path spawned decks use.
-  const declared: Decks<UserItem> = Object.fromEntries(
-    Object.entries(subdecks).map(([name, items]) => [name, items.map(rl => toUserItem(rl))]),
-  )
-
-  return [{ ...decksOf(lines.map(rl => toUserItem(rl))), ...declared }, zeroedStoppedTimer(), []]
+  return [decksOf(lines.map(rl => toUserItem(rl))), zeroedStoppedTimer(), []]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
@@ -476,6 +469,38 @@ export function liveSubdeckName(s: RState | undefined, item: UserItem): string |
   const prefix = subdeckPrefix(item)
   const found = Object.entries(s?.items || {}).find(([deck, items]) => deck.startsWith(prefix) && items.some(i => !itemSkipped(i)))
   return found ? found[0] : null
+}
+
+// The block an item can instantiate a subdeck from: the named block sharing
+// the item's key.
+function subdeckBlock(s: RState | undefined, item: UserItem): string | null {
+  return item.key !== null && blockNames(s?.text || '').has(item.key) ? item.key : null
+}
+
+// Is there anything for the "enter subdeck" button to descend into — a live
+// deck already, or a block to instantiate one from?
+export function hasSubdeck(s: RState | undefined, item: UserItem): boolean {
+  return liveSubdeckName(s, item) !== null || subdeckBlock(s, item) !== null
+}
+
+// Descend into the item's subdeck. A live deck is entered as-is; otherwise the
+// block sharing the item's key is evaluated into a fresh deck, which replaces
+// an exhausted one the same way re-spawning does.
+export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: number): RState {
+  if (!s) return defaultState
+
+  const live = liveSubdeckName(s, item)
+  if (live) return reduceEnterDeck(s, live, now)
+
+  const name = subdeckBlock(s, item)
+  if (name === null) return s
+
+  const lines = evalBlockDeck(s.text || '', name, memoryFromString(s.memory), { images: s.images })
+  if (lines.length === 0) return s
+
+  const deckName = blockDeckName(name)
+  const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: lines.map(rl => toUserItem(rl)) }
+  return reduceEnterDeck({ ...s, items }, deckName, now)
 }
 
 // Descend into an existing deck by name. Pushes the current cursor on the stack.
