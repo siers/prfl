@@ -149,6 +149,33 @@ describe('reduceRecalc — item actions', () => {
   })
 })
 
+describe('reduceRecalc — ban', () => {
+  const cardsOf = (s: RState) => Object.fromEntries(JSON.parse(s.memory!)).cards
+
+  test('ban marks done without recording a review', () => {
+    let s = stateOf(['a', 'b'])
+    s = reduceRecalc(s, { item: { done: true, ban: true } }, deps())
+    expect(at(s)).toBe('b')
+    expect(cardsOf(s)['a']).toStrictEqual(expect.objectContaining({ banned: true }))
+    expect(cardsOf(s)['a'].reviewed).toBeUndefined()
+  })
+
+  test('a banned item starts out done after a re-eval and a refresh', () => {
+    let s = reduceRecalc({ version: 6 }, { eval: true, contents: '-=-\nalpha\nbravo' }, deps())
+    s = reduceRecalc(s, { item: { done: true, ban: true } }, deps())
+
+    const evald = reduceRecalc(s, { eval: true }, deps())
+    expect(resolveDecks(evald)[DEFAULT_DECK]?.map(i => [i.contents, !!i.done])).toStrictEqual([['alpha', true], ['bravo', false]])
+    expect(at(evald)).toBe('bravo')
+
+    const onAlpha = reduceRecalc({ ...s, hideDone: false }, { advance: ['set', 0] }, deps())
+    const surfaced = reduceRecalc(onAlpha, { item: { done: false, ban: false } }, deps())
+    const refreshed = reduceRefresh({ ...surfaced, items: { [DEFAULT_DECK]: [] } }, '-=-\nalpha\nbravo', NOW)
+    expect(resolveDecks(refreshed)[DEFAULT_DECK]?.map(i => !!i.done)).toStrictEqual([false, false])
+    expect(cardsOf(surfaced)['alpha'].banned).toBeUndefined()
+  })
+})
+
 describe('reduceRecalc — eval & deck wiring', () => {
   test('eval wraps the typed (unshuffled) text into the default deck and resets the cursor', () => {
     let s: RState = { version: 5 }

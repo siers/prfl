@@ -335,7 +335,7 @@ function Randomize(controls: any): JSX.Element {
 
         let wipeHandlers = useWipe({
           E: { icon: '✅', run: itemReview },
-          W: { icon: '📚', run: itemSuspend },
+          W: [{ icon: '📚', run: itemSuspend }, { icon: '🚫', run: itemBan }],
           N: { icon: '🌟', run: itemSurface },
           S: [{ icon: '✘', run: itemBury }, { icon: '🔚', run: itemToLast }],
         })
@@ -404,12 +404,16 @@ function Randomize(controls: any): JSX.Element {
     recalc({ item: { reviewed: false, done: true, bury: false } })
   }
 
+  function itemBan() {
+    recalc({ item: { done: true, ban: true } })
+  }
+
   function itemToLast() {
     recalc({ item: { last: true } })
   }
 
   function itemSurface() {
-    recalc({ item: { unreview: true, done: false } })
+    recalc({ item: { unreview: true, done: false, ban: false } })
   }
 
   function reviewStats(): JSX.Element {
@@ -617,8 +621,6 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: execution(7RZH): make items just pointers, allowing for refreshing of cards while in the list, removing implementations from lists
-// TODO: execution(7RZH): this will allow a new feature: refresh the list without destroying the track of the progress
 // TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
 // TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
 // TODO: blocks: code for decorating the tasks
@@ -663,7 +665,7 @@ export default Randomize
 // TODO: paramtrz: either hierarchical or multiple keys
 
 // TODO: content: anki flashcards for all interval pairs between strings or within a string (q: two notes, a: how many semitones apart if projected on to the same string)
-// TODO: boring: lang: add tags to block, only main blocks may have items without keys
+// TODO: blocks: syntax to enforce tags on all itesm
 
 // TODO: backlog: state: use a CRDT-storage server
 // TODO: backlog: state: check if I can read anki database locally

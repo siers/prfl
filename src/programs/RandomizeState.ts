@@ -2,7 +2,7 @@
 
 import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
-import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, resolveItem } from './RandomizeTypes.js'
+import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, markBanned, resolveItem } from './RandomizeTypes.js'
 import { Timer, timerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
@@ -85,6 +85,7 @@ export type ItemActions = {
   regenerateKey?: string,
   unreview?: boolean,
   last?: boolean,
+  ban?: boolean, // false lifts a ban
 }
 
 export type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
@@ -222,7 +223,7 @@ function itemsAndTimer(
   const [evaluated, _, newHeaders] = evalContentsMem(contents, memory, { images })
   const [newLines, refs] = storeLines({}, evaluated)
 
-  return [decksOf(refs), newLines, zeroedStoppedTimer(), [], newHeaders]
+  return [decksOf(markBanned(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
@@ -247,6 +248,9 @@ export function modifyItemState(
 
     if (controls.unreview === true && items[current].key)
       cardSet(memory, items[current].key, { reviewed: 0, })
+
+    if (controls.ban !== undefined && items[current].key)
+      cardSet(memory, items[current].key, { banned: controls.ban })
   })
 
   // A re-roll refreshes the line itself, so every pointer to it shows it.
@@ -455,7 +459,8 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   // auto-leave the deck on exhaustion. Leaving is explicit (back button /
   // breadcrumb), so finishing all items keeps you in the deck.
   const items = deckItems(resolvedDecks, deck)
-  const nextCursor: DeckCursor = a.eval ? [deck, 0] : resolvedCursor
+  // An eval starts over at the top — past any item that comes back banned.
+  const nextCursor: DeckCursor = a.eval ? deckSeek(resolvedDecks, [deck, 0], Direction.Zero, excludeSeek)[1] : resolvedCursor
 
   const newRef = deckGet(resolvedDecks, nextCursor)
   const newItem = newRef && resolveItem(lines, newRef)
@@ -516,7 +521,7 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   const reusable = existing && existing.some(i => !refSkipped(s.lines || {})(i))
   const [lines, scheduled] = reusable ? [s.lines || {}, existing] : storeLines(s.lines || {}, scheduler(children, s.memory))
 
-  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: scheduled }
+  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: markBanned(memoryFromString(s.memory), scheduled) }
   const newCursor: DeckCursor = descendCursor({ ...s, lines }, items, deckName)
 
   const newState: RState = {
@@ -576,7 +581,7 @@ export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: n
 
   const deckName = blockDeckName(name)
   const [stored, refs] = storeLines(s.lines || {}, lines)
-  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: refs }
+  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: markBanned(memoryFromString(s.memory), refs) }
   return reduceEnterDeck({ ...s, items, lines: stored }, deckName, now)
 }
 
@@ -612,7 +617,8 @@ export function reduceRefresh(s: RState | undefined, contents: string, now: numb
 
   const [evaluated, _, blockHeaders] = evalContentsMem(contents, memoryFromString(s.memory), { images: s.images })
   const [fresh, refs] = storeLines({}, evaluated)
-  const [root, sources] = carryProgress(deckItems(s.items || {}, DEFAULT_DECK), refs)
+  const [carried, sources] = carryProgress(deckItems(s.items || {}, DEFAULT_DECK), refs)
+  const root = markBanned(memoryFromString(s.memory), carried)
 
   const items: Decks<ItemRef> = { ...(s.items || {}), [DEFAULT_DECK]: root }
   const lines = pruneLines({ ...(s.lines || {}), ...fresh }, items)
@@ -655,7 +661,7 @@ export function reduceInsertItem(s: RState | undefined, dsl: string, now: number
   const [deck, index] = s.current || [DEFAULT_DECK, 0]
   const deckList = deckItems(s.items || {}, deck)
   const at = index + 1
-  const newDeckList = [...deckList.slice(0, at), ...inserted, ...deckList.slice(at)]
+  const newDeckList = [...deckList.slice(0, at), ...markBanned(memoryFromString(s.memory), inserted), ...deckList.slice(at)]
 
   const newState: RState = {
     ...s,

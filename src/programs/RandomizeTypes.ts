@@ -34,16 +34,20 @@ export function resolveItem(lines: Lines, ref: ItemRef): UserItem {
 export type CardData = {
   reviewed?: number, // Date.now()
   bpm?: number,
+  banned?: boolean, // starts out done wherever it shows up again
 }
 
 export function cardMemory(memory: any): Record<string, CardData> {
   return (memory.get('cards') as Record<string, CardData>) || {}
 }
 
-export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number }) {
+export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number, banned?: boolean }) {
   const cards = cardMemory(memory)
+  // Unbanning drops the flag instead of storing `banned: false`.
+  const { banned, ...card } = { ...cards[key], ...(settings.banned !== undefined && { banned: settings.banned }) }
   cards[key] = {
-    ...cards[key],
+    ...card,
+    ...(banned && { banned }),
     ...(settings.reviewed ? { reviewed: settings.reviewed } : {}),
     ...(settings.bpm ? { bpm: settings.bpm } : {}),
   }
@@ -52,4 +56,10 @@ export function cardSet(memory: any, key: string, settings: { reviewed?: number,
 
 export function findCard(memory: any, key: string): CardData | null {
   return cardMemory(memory)[key]
+}
+
+// Banned cards come back already done.
+export function markBanned(memory: any, refs: ItemRef[]): ItemRef[] {
+  const cards = cardMemory(memory)
+  return refs.map(ref => cards[ref.key]?.banned ? { ...ref, done: true } : ref)
 }

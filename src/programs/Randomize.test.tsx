@@ -214,3 +214,40 @@ describe('Randomize — spawn buttons', () => {
     expect(queryByText('Scale/zip')).toBeNull() // breadcrumb gone again
   })
 })
+
+describe('Randomize — item swipes', () => {
+  // A drag the way a browser delivers it: press, move through the near zone,
+  // on to the release point, release, then the click that may follow.
+  function drag(el: Element, dx: number) {
+    ;(el as any).setPointerCapture ??= () => {}
+    const at = (x: number) => ({ clientX: 500 + x, clientY: 100, pointerId: 1, bubbles: true })
+    act(() => { fireEvent.pointerDown(el, at(0)) })
+    for (const x of [Math.sign(dx) * 40, Math.sign(dx) * 100, dx])
+      act(() => { el.dispatchEvent(new MouseEvent('pointermove', at(x))) })
+    act(() => { el.dispatchEvent(new MouseEvent('pointerup', at(dx))) })
+    act(() => { fireEvent.click(el) })
+  }
+  const swipeCurrent = (container: HTMLElement, dx: number) => drag(container.querySelector('div.current-item')!, dx)
+
+  test('near W suspends: hides the item and moves on', () => {
+    const { container } = setupExecuting(THREE_LINES)
+    swipeCurrent(container, -100)
+    expect(currentItemText(container)).toBe('bravo')
+    expect(renderedItems(container)).not.toContain('alpha')
+  })
+
+  test('far W bans: hides the item and moves on', () => {
+    const { container } = setupExecuting(THREE_LINES)
+    swipeCurrent(container, -250)
+    expect(currentItemText(container)).toBe('bravo')
+    expect(renderedItems(container)).not.toContain('alpha')
+  })
+
+  test('far W bans a shuffled plain item too', () => {
+    const { container } = setupExecuting('a\nb\nc\nd')
+    const banned = currentItemText(container)
+    swipeCurrent(container, -250)
+    expect(currentItemText(container)).not.toBe(banned)
+    expect(renderedItems(container)).not.toContain(banned)
+  })
+})
