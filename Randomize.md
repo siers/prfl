@@ -78,8 +78,10 @@ lines need a `prefix:` keeps a wrapper: `-=- Standards` → `{scheduleBlocks('St
 **`name::` moves a line into a block.** `warmup::Thing: do this`, written
 anywhere, is appended to the end of the first block whose header is written
 `warmup` — as `Thing: do this`. The name is matched against the header as
-written, before evaluation, so a header named by `{}`/`[]` can't be targeted;
-without a match the line stays where it is, prefix and all. A multiplier goes
+written, before evaluation, so a header named by `{}`/`[]` can't be targeted.
+Without a written block, the lines make a `-=- name` block of their own, placed
+before everything else so any block can call it: `-=- block` holding
+`another::thing` gives `{scheduleBlocks('another')}` a block to schedule. A multiplier goes
 in front: `2x warmup::Thing`.
 
 Blocks are registered in file order, so a block must be defined **before** the

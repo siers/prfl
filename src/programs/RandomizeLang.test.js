@@ -407,9 +407,11 @@ describe('block subdecks', () => {
     expect(deckS(text, 'a')).toStrictEqual(['a', 'b', 'd', 'c'])
   })
 
-  test('name:: without a block written as name leaves the line in place', () => {
-    // A header-less block shuffles; `-=-` keeps the written order.
-    expect(evalContentsS("-=-\nnowhere::Thing\nroot")).toStrictEqual(['nowhere::Thing', 'root'])
+  test('name:: without a block written as name makes that block, callable from any block', () => {
+    const text = "-=- block\nanother::thing: do it\n-=-\n{scheduleBlocks('another')}"
+
+    expect(evalContentsS(text)).toStrictEqual(['thing: do it'])
+    expect(blockNames(headersOf(text))).toStrictEqual(new Set(['another', 'block']))
   })
 
   test('a #unscheduled header instantiates in written order, not schedule-sorted', () => {

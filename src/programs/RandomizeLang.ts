@@ -162,21 +162,30 @@ function writtenHeaderName(h: Header): string | null {
 
 // `name::rest` moves the line `rest` to the end of the first block whose header
 // is written `name`. Names are matched as written, so a header whose name is
-// only known after evaluation can't be targeted; the line then stays as it is.
+// only known after evaluation can't be targeted. Without a written block, the
+// lines make a `-=- name` block of their own, placed first so that every block
+// can call it.
 function relocateLines(blocks: Block[]): Block[] {
   const names = blocks.map(b => writtenHeaderName(b.header))
   const moved: Item[][] = blocks.map(_ => [])
+  const implicit = new Map<string, Item[]>()
 
   const kept = blocks.map(b => b.items.filter(item => {
     const m = item.kind == 'line' && item.contents.match(RelocatePattern)
-    const target = m ? names.indexOf(m[1]) : -1
-    if (!m || target == -1) return true
+    if (!m) return true
 
-    moved[target].push({ ...item, contents: m[2] } satisfies Line)
+    const relocated = { ...item, contents: m[2] } satisfies Line
+    const target = names.indexOf(m[1])
+    if (target != -1) moved[target].push(relocated)
+    else implicit.set(m[1], [...(implicit.get(m[1]) || []), relocated])
     return false
   }))
 
-  return blocks.map((b, i) => block(b.header, kept[i].concat(moved[i])))
+  const created = [...implicit].map(([name, items]) => {
+    const h = header(false, line(name, [], 1))
+    return block(h, [h, ...items])
+  })
+  return [...created, ...blocks.map((b, i) => block(b.header, kept[i].concat(moved[i])))]
 }
 
 // The names of the named blocks — the keys an item can instantiate a subdeck
