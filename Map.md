@@ -113,7 +113,11 @@ State is versioned (`currentStateVersion`) and persisted to `localStorage` by
 `App.jsx`. Decks hold pointers — a key plus progress (`done`, `timer`,
 `dropped`) — and each line lives once in `lines` under its key: a re-roll
 refreshes the line for every pointer to it. `resolveDecks` joins the two for
-reading; a version-5 state is split by `migrateV5` on load instead of wiped. Review memory is a serialized `key -> {reviewed, bpm}` map; items
+reading; a version-5 state is split by `migrateV5` on load instead of wiped.
+♻️ (`reduceRefresh`) reloads the items — from the Drive file they came from, if
+any — and carries each pointer's progress over by key, the nth copy the nth's,
+where 🔄 starts over. New text — typed, or loaded from Drive — does the same
+once the total timer is past 10 seconds (`reduceNewText`), and starts over before. Review memory is a serialized `key -> {reviewed, bpm}` map; items
 never seen fall back to a stable hash of their contents, so ordering is
 deterministic rather than arbitrary.
 

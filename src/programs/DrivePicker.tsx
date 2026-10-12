@@ -13,12 +13,13 @@ const DEFAULT_FOLDER_ID = import.meta.env.VITE_GDRIVE_FOLDER_ID || ''
 const LOAD_PARAM = 'load'
 
 type Props = {
-  // Called with the downloaded file text once the user picks a file.
-  onLoad: (text: string) => void
+  // Called with the downloaded file text once the user picks a file, and the
+  // file, so the host can fetch it again later.
+  onLoad: (text: string, file: DriveFile) => void
   // Optional: called instead of onLoad when the file came from `?load=`. Lets
   // the host treat an unattended load differently from a deliberate pick (we
   // start the program right away). Falls back to onLoad when absent.
-  onAutoLoad?: (text: string) => void
+  onAutoLoad?: (text: string, file: DriveFile) => void
   // Optional: called with the folder's images as [filename, rawUrl] tuples when
   // the user loads images. Omit to hide the image control.
   onImages?: (images: ImageEntry[]) => void
@@ -95,7 +96,7 @@ export function DrivePicker({ onLoad, onAutoLoad, onImages }: Props): JSX.Elemen
           return
         }
         const text = await fetchFileText(file.id, file.mimeType)
-        ;(onAutoLoad || onLoad)(text)
+        ;(onAutoLoad || onLoad)(text, file)
         stripLoadParam()
         setStatus({ kind: 'idle' })
       } catch (e) {
@@ -136,7 +137,7 @@ export function DrivePicker({ onLoad, onAutoLoad, onImages }: Props): JSX.Elemen
     setStatus({ kind: 'loading' })
     try {
       const text = await fetchFileText(file.id, file.mimeType)
-      onLoad(text)
+      onLoad(text, file)
       setOpen(false)
       setStatus({ kind: 'idle' })
     } catch (e) {

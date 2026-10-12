@@ -9,7 +9,7 @@ import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
-  migrateV5, resolveDecks, resolveAt,
+  migrateV5, resolveDecks, resolveAt, reduceRefresh, reduceNewText,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -945,5 +945,71 @@ describe('pointers', () => {
     expect(migrated.version).toBe(6)
     expect(migrated.items![DEFAULT_DECK]).toStrictEqual([{ key: 'a', done: true }, { key: 'b' }])
     expect(resolveDecks(migrated)[DEFAULT_DECK].map(i => i.contents)).toStrictEqual(['a', 'b'])
+  })
+})
+
+describe('reduceRefresh', () => {
+  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const keys = (s: RState) => s.items![DEFAULT_DECK].map(r => r.key)
+
+  test('progress carries over by key, in the new text order', () => {
+    let s = evaluated("-=-\nA: a\nB: b\nC: c")
+    s = reduceRecalc(s, { item: { done: true } }, deps()) // A done
+    s = reduceRefresh(s, "-=-\nC: c\nNew: n\nA: a2", NOW)
+
+    expect(keys(s)).toStrictEqual(['C', 'New', 'A'])
+    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined, true])
+    expect(resolveDecks(s)[DEFAULT_DECK][2].contents).toBe('A: a2') // the line is the new one
+  })
+
+  test('copies carry progress in order: the nth new copy takes the nth old one', () => {
+    let s = evaluated("-=-\n2x Foo: do it")
+    s = reduceRecalc(s, { item: { done: true } }, deps())
+    s = reduceRefresh(s, "-=-\n3x Foo: do it", NOW)
+    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined, undefined])
+  })
+
+  test('timers carry over, and so does the total timer', () => {
+    let s = evaluated("-=-\nA: a\nB: b")
+    s = reduceTimer(s, 'start', null, NOW)
+    const timerA = s.items![DEFAULT_DECK][0].timer
+    const total = s.totalTimer
+    s = reduceRefresh(s, "-=-\nB: b\nA: a", NOW)
+
+    expect(s.totalTimer).toStrictEqual(total)
+    expect(s.items![DEFAULT_DECK][1].timer).toStrictEqual(timerA)
+  })
+
+  test('the cursor follows its item to its new place', () => {
+    let s = evaluated("-=-\nA: a\nB: b\nC: c")
+    s = reduceRecalc(s, { advance: ['set', 1] }, deps()) // on B
+    s = reduceRefresh(s, "-=-\nC: c\nA: a\nB: b", NOW)
+    expect(resolveAt(s, s.current)?.key).toBe('B')
+  })
+
+  test('subdecks and the stack survive, with the stacked root cursor following its item', () => {
+    let s = stateOf(['Scale', 'other'], 0, decked({ [DEFAULT_DECK]: [item('Scale'), item('other')], 'Scale/zip': [item('z')] }))
+    s = reduceEnterDeck(s, 'Scale/zip', NOW)
+    s = reduceRefresh(s, "-=-\nother\nScale", NOW)
+
+    expect(s.current).toStrictEqual(['Scale/zip', 0])
+    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 1]])
+    expect(resolveDecks(s)['Scale/zip'].map(i => i.contents)).toStrictEqual(['z'])
+  })
+})
+
+describe('reduceNewText', () => {
+  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const doneA = () => reduceRecalc(evaluated("-=-\nA: a\nB: b"), { item: { done: true } }, deps())
+
+  test('within the first 10 seconds new text starts over', () => {
+    const s = reduceNewText({ ...doneA(), totalTimer: { kind: 'started', start: NOW - 5000, running: true } }, "-=-\nA: a\nB: b2", deps())
+    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined])
+  })
+
+  test('past 10 seconds new text keeps the progress', () => {
+    const s = reduceNewText({ ...doneA(), totalTimer: { kind: 'started', start: NOW - 11000, running: true } }, "-=-\nA: a\nB: b2", deps())
+    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined])
+    expect(resolveDecks(s)[DEFAULT_DECK][1].contents).toBe('B: b2')
   })
 })

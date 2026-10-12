@@ -17,12 +17,13 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, hasSubdeck, liveSubdeckName, migrateV5, resolveDecks, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
+  deckPath, hasSubdeck, liveSubdeckName, migrateV5, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
 import { useWipe } from './SwipeHandlers.tsx'
 import { DrivePicker } from './DrivePicker.tsx'
+import { DriveFile, fetchFileText } from '../lib/GoogleDrive.ts'
 
 function memoryFromString(mem?: string) {
   return (mem && mapParse(mem)) || makeEmptyMemory()
@@ -157,8 +158,25 @@ function Randomize(controls: any): JSX.Element {
 
   // Load contents and go into execution for the unattended `?load=` path.
   // The timer is deliberately left stopped to wait for user's input to unblock audio.
-  function startWith(text: string) {
-    recalc({ contents: text, eval: true, execute: true })
+  function newText(text: string) {
+    setState((s: RState | undefined) => reduceNewText(s, text, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
+  }
+
+  function loadFromDrive(text: string, file: DriveFile, execute?: boolean) {
+    newText(text)
+    setState((s: RState | undefined) => s && { ...s, driveFile: file, ...(execute && { execute }) })
+  }
+
+  // Reload the items without resetting progress: from Drive when the text came
+  // from there, else from the editor.
+  async function refreshItems() {
+    try {
+      const file = state?.driveFile
+      const text = file ? await fetchFileText(file.id, file.mimeType) : state?.text || ''
+      setState((s: RState | undefined) => reduceRefresh(s, text, Date.now()))
+    } catch (e) {
+      alert(`reload failed: ${e instanceof Error ? e.message : e}`)
+    }
   }
 
   function popToLevel(level: number) {
@@ -177,10 +195,11 @@ function Randomize(controls: any): JSX.Element {
     return <>
       { /* <a className="pr-3 select-none" style={state?.nextMemory ? {} : { opacity: '50%' }} onClick={() => recalc({ save: true })}>💾</a> */}
       <a className="pr-3 select-none" onClick={() => recalc({ eval: true, })}>🔄</a>
-      <a className="pr-3 select-none" onClick={() => confirm('delete?') && recalc({ eval: true, contents: '', execute: false })}>❌{/* right now this breaks history of textarea */}</a>
+      <a className="pr-3 select-none" title={state?.driveFile ? `reload ${state.driveFile.name}, keeping progress` : 'reload items, keeping progress'} onClick={() => refreshItems()}>♻️</a>
+      <a className="pr-3 select-none" onClick={() => confirm('delete?') && (recalc({ eval: true, contents: '', execute: false }), setState((s: RState | undefined) => s && { ...s, driveFile: undefined }))}>❌{/* right now this breaks history of textarea */}</a>
       <DrivePicker
-        onLoad={text => recalc({ contents: text, eval: true })}
-        onAutoLoad={text => startWith(text)}
+        onLoad={(text, file) => loadFromDrive(text, file)}
+        onAutoLoad={(text, file) => loadFromDrive(text, file, true)}
         onImages={images => setState((s: RState | undefined) => s && { ...s, images })}
       />
 
@@ -235,7 +254,7 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className={"w-full flex flex-row selection:red text-sm flex-grow"}>
       <div className="grow p-[10px]">
-        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => recalc({ contents: e.target.value, eval: true })} value={state?.text}></textarea>
+        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newText(e.target.value)} value={state?.text}></textarea>
       </div>
 
       <div className="grow p-[10px]">

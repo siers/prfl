@@ -3,10 +3,11 @@
 import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, resolveItem } from './RandomizeTypes.js'
-import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
+import { Timer, timerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
+import type { DriveFile } from '../lib/GoogleDrive.ts'
 import { clamp } from 'lodash'
 import { Direction } from './LinearSeek.ts'
 import { ListState, dropThree, bottomOfQueue, toTop, toBottom, Exclude } from './GenericList.ts'
@@ -50,6 +51,9 @@ export type RState = {
   totalTimer?: Timer,
 
   metro?: Metro,
+
+  // The Drive file the text was loaded from, for ♻️ to fetch again.
+  driveFile?: DriveFile,
 
   // Images gathered from the Drive folder, as [filename, rawUrl]. The URL is a frameless media URL with the key embedded.
   images?: ImageEntry[],
@@ -587,6 +591,59 @@ export function reduceEnterDeck(s: RState | undefined, deckName: string, now: nu
     cursorStack: [...(s.cursorStack || []), s.current || [DEFAULT_DECK, 0]],
   }
   return reduceTimer(newState, 'local-as-global', null, now)
+}
+
+// Each new pointer takes the progress of an old one with the same key, the nth
+// copy the nth's. Returns the old index each new pointer came from, or -1.
+function carryProgress(old: ItemRef[], fresh: ItemRef[]): [ItemRef[], number[]] {
+  const byKey = new Map<string, number[]>()
+  old.forEach((ref, i) => byKey.set(ref.key, [...(byKey.get(ref.key) || []), i]))
+
+  const sources = fresh.map(ref => byKey.get(ref.key)?.shift() ?? -1)
+  return [fresh.map((ref, j) => sources[j] == -1 ? ref : old[sources[j]]), sources]
+}
+
+// Re-evaluate the text without losing progress: the root deck is rebuilt from
+// the text in its new order, but done/timer/dropped carry over by key (see
+// carryProgress), and so does the total timer. Subdecks and the stack stay;
+// cursors into the root deck follow their item, or keep their index if it's gone.
+export function reduceRefresh(s: RState | undefined, contents: string, now: number): RState {
+  if (!s) return defaultState
+
+  const [evaluated, _, blockHeaders] = evalContentsMem(contents, memoryFromString(s.memory), { images: s.images })
+  const [fresh, refs] = storeLines({}, evaluated)
+  const [root, sources] = carryProgress(deckItems(s.items || {}, DEFAULT_DECK), refs)
+
+  const items: Decks<ItemRef> = { ...(s.items || {}), [DEFAULT_DECK]: root }
+  const lines = pruneLines({ ...(s.lines || {}), ...fresh }, items)
+
+  const follow = (cursor: DeckCursor): DeckCursor => {
+    if (cursor[0] !== DEFAULT_DECK) return cursor
+    const moved = sources.indexOf(cursor[1])
+    return [DEFAULT_DECK, moved !== -1 ? moved : cursor[1]]
+  }
+  const [, current] = deckSeek(items, follow(s.current || [DEFAULT_DECK, 0]), Direction.Zero, excludeFor(s.hideDone !== false, lines))
+
+  const newState: RState = {
+    ...s,
+    version: currentStateVersion,
+    text: contents,
+    items,
+    lines,
+    blockHeaders,
+    outLineCount: root.length,
+    current,
+    cursorStack: (s.cursorStack || []).map(follow),
+  }
+  return reduceTimer(newState, 'local-as-global', null, now)
+}
+
+// New text keeps the progress once a session is underway — the total timer past
+// 10 seconds; before that it starts over.
+export function reduceNewText(s: RState | undefined, contents: string, deps: RecalcDeps): RState {
+  return timerLength(s?.totalTimer ?? null, deps.now) > 10
+    ? reduceRefresh(s, contents, deps.now)
+    : reduceRecalc(s, { contents, eval: true }, deps)
 }
 
 export function reduceInsertItem(s: RState | undefined, dsl: string, now: number): RState {
