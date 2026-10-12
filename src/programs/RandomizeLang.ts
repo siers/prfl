@@ -3,6 +3,7 @@ import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
 import _ from 'lodash'
+import murmur from 'murmurhash3js'
 import { randomizeLangUtils } from './RandomizeLangUtils'
 import * as Utils from './RandomizeLangUtils'
 import type { ImageEntry } from '../lib/PrflAssets'
@@ -309,6 +310,12 @@ function evalInterpolates(
   }
 }
 
+// Every item has a key: a line without a `Key:` prefix gets `Nr` and 6 hex
+// digits of its hash.
+function hashKey(contents: string): string {
+  return `Nr${murmur.x86.hash32(contents).toString(16).padStart(8, '0').slice(0, 6)}`
+}
+
 function evalItem(item: Item, context: Context): RenderLine[] {
   if (item.kind == 'header') return []
   if (item.kind == 'line') {
@@ -323,14 +330,16 @@ function evalItem(item: Item, context: Context): RenderLine[] {
 
         return substituteExplode(l, e.marker, subst)
       }), lines),
+      // The fallback key hashes the line before its `[]` are rolled, so a
+      // re-roll keeps it. Lines a block explode yields keep their own.
       lines => lines.map(line => {
         if (line.source) return line
 
-        return evalInterpolates(line, is, context)
+        return { ...evalInterpolates(line, is, context), key: hashKey(line.contents) }
       }),
       lines => lines.map(line => {
         const key = line.contents.match(LineKeyPattern)
-        return { ...line, key: key && key[1] }
+        return { ...line, key: key ? key[1] : line.key }
       }),
     )
   }
@@ -339,12 +348,13 @@ function evalItem(item: Item, context: Context): RenderLine[] {
 }
 
 // A header evaluates like an item line, keeping only the first line an explode
-// yields; none drops the block. Without a `Key:` prefix, the first word is the key.
+// yields; none drops the block. Without a `Key:` prefix, the first word is the
+// key — not the item's `Nr` hash.
 function evalHeader(h: Header, context: Context): RenderLine | null {
   if (!h.line) return null
   const [first] = evalItem(h.line, context)
   if (!first) return null
-  return { ...first, key: first.key ?? first.contents.match(/^[^ ]*/)![0] }
+  return { ...first, key: first.contents.match(LineKeyPattern)?.[1] ?? first.contents.match(/^[^ ]*/)![0] }
 }
 
 function evalBlock(block: Block, context: Context): RenderLine[] {

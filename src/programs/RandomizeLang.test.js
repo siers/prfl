@@ -767,6 +767,24 @@ describe('keys', () => {
       }
     ])
   })
+
+  test('a line without a key gets Nr and 6 hex digits of its hash', () => {
+    const [item] = evalContents('do the laundry')
+
+    expect(item.key).toMatch(/^Nr[0-9a-f]{6}$/)
+    expect(evalContents('do the laundry')[0].key).toStrictEqual(item.key)
+    expect(evalContents('do the dishes')[0].key).not.toStrictEqual(item.key)
+  })
+
+  test('the hash key survives a re-roll, but exploded lines get their own', () => {
+    const [item] = evalContents("play [s('abcdef')] now")
+
+    expect(rotateInterpolableLine(item).key).toStrictEqual(item.key)
+    expect(evalRenderLine(item).key).toStrictEqual(item.key)
+
+    const exploded = evalContents("play {s('ab')} now").map(l => l.key)
+    expect(new Set(exploded).size).toStrictEqual(2)
+  })
 })
 
 describe('extractTagFunctions', () => {

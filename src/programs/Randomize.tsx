@@ -597,6 +597,7 @@ export default Randomize
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
 // TODO: execution(7RZH): make items just pointers, allowing for refreshing of cards while in the list, removing implementations from lists
+// TODO: execution(7RZH): this will allow a new feature: refresh the list without destroying the track of the progress
 // TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
 // TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
 // TODO: blocks: code for decorating the tasks

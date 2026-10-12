@@ -159,6 +159,12 @@ DoTheLaundry: do it     ->  key = DoTheLaundry
 Scales3: [key] ...      ->  key = Scales3
 ```
 
+Every item has a key. A line without one gets `Nr` and 6 hex digits of a hash
+of the line as written — after `{}` explodes, before `[]` rolls — so a re-roll
+keeps the key and each exploded line gets its own. Identical lines (`2x`
+included) share it. Headers don't take a hash key: their first word names the
+block.
+
 The key is the identity used for review memory, scheduler ordering, and subdeck
 prefixes. Keys are derived **after** substitution, so a key can contain an
 exploded value — `Key-{pickKeys().flat()}` yields `Key-C`, `Key-G`, …
