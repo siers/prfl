@@ -43,6 +43,8 @@ function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
 
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  // Clicking the sheet swaps the whole UI for the slim sheet view.
+  const [sheetFocus, setSheetFocus] = useState(false)
 
   const state: RState = controls.state || defaultState // this is no longer possibly any, so there are a lot of question marks still scattered around
   const stateVersion = state && state.version || 0
@@ -520,7 +522,7 @@ function Randomize(controls: any): JSX.Element {
       return [t.tag, t.tag == 'sheet' ? plain : plain.split(' ')[0]]
     }))
 
-    return <div className="flex flex-col font-mono items-center grow min-h-0 overflow-y-auto">
+    return <div className="flex flex-col font-mono items-center grow min-h-0 overflow-y-auto cursor-pointer" onClick={_ => setSheetFocus(f => !f)}>
       <div className="w-full">
         <ErrorBoundary fallback={<>sheet rendering crash</>}>
           <SheetOSMD params={params} />
@@ -529,8 +531,21 @@ function Randomize(controls: any): JSX.Element {
     </div>
   }
 
-  return (
-    <>
+  function slimUI(): JSX.Element {
+    const item = items[currentIndex]
+    return <div className="w-[100dvw] flex-grow flex flex-col select-none">
+      <div className="w-full shrink-0 pt-2 text-center text-wrap rendered-item current-item">
+        {item && renderContentWithTags(item, true)}
+        <a className="pl-3" onClick={() => recalc({ item: { regenerate: 'new' } })}>🔄</a>
+        <a className="pl-3" onClick={() => recalc({ item: { regenerate: 'next' } })}>⏩</a>
+      </div>
+
+      {sheetDisplay(item?.source?.substitutions || [])}
+    </div>
+  }
+
+  function fullUI(): JSX.Element {
+    return <>
       {inExecution && programSwitcher()}
 
       <div className="w-full" style={{ padding: "10px 0 0 10px" }}>
@@ -557,11 +572,17 @@ function Randomize(controls: any): JSX.Element {
               {imageDisplay(items[currentIndex]?.source?.substitutions || [])}
 
               {metro.opened && metroUI()}
-              {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven && metroPower ? metroClick : undefined} />}
             </div>
           </ErrorBoundary>
         </div>
       }
+    </>
+  }
+
+  return (
+    <>
+      {inExecution && sheetFocus ? slimUI() : fullUI()}
+      {audible && <Synth bpm={metroBpm} volume={metro.volume || 0} tones={metroTones} click={metroPower} onClick={driven && metroPower ? metroClick : undefined} />}
     </>
   )
 }
