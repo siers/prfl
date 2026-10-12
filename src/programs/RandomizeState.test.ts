@@ -985,6 +985,11 @@ describe('definitions — a card without a pointer', () => {
     expect(s.defined).toStrictEqual(['Scales'])
   })
 
+  test('a key list points at each definition in turn', () => {
+    const s = evaluated("-=-\nScales, Arps\n::Scales: three octaves\n::Arps: broken")
+    expect(contents(s)).toStrictEqual(['Scales: three octaves', 'Arps: broken'])
+  })
+
   test('a definition alone stores the line and places nothing', () => {
     const s = evaluated("-=-\nother\n::Scales: three octaves")
     expect(contents(s)).toStrictEqual(['other'])

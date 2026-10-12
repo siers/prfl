@@ -424,6 +424,12 @@ describe('block subdecks', () => {
     ])
   })
 
+  test('a line of comma-separated keys is one line per key', () => {
+    expect(evalContentsS("-=-\nA, B:,C\n2x D, E")).toStrictEqual(['A', 'B:', 'C', 'D', 'D', 'E', 'E'])
+    expect(evalContentsS("-=-\nA: one, two")).toStrictEqual(['A: one, two'])
+    expect(deckS("-=- w: #unscheduled\nX\n-=-\nw::A, B", 'w')).toStrictEqual(['X', 'A', 'B'])
+  })
+
   test('a #unscheduled header instantiates in written order, not schedule-sorted', () => {
     const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
 

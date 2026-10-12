@@ -131,10 +131,20 @@ function parseLine(lineRaw: string): Item[] {
     const times = timesMatch ? parseInt(timesMatch[0], 10) : 1
     const lineRawUntimed = lineRaw.replace(/^\d+x /, '')
 
+    const keyList = lineRawUntimed.match(KeyListPattern)
+    if (keyList) {
+      const [, relocation = '', keys] = keyList
+      return keys.split(',').map(k => line(`${relocation}${k.trim()}`, [], times))
+    }
+
     const [contents, evals] = extractEvals(lineRawUntimed)
     return [line(contents, evals, times)]
   }
 }
+
+// `A, B:, C` — a line of nothing but keys is one line per key, each pointing at
+// its card. A `name::` prefix and a multiplier apply to every key.
+const KeyListPattern = /^([a-zA-Z0-9\-#]*::)?([a-zA-Z0-9\-#]+:?(?: *, *[a-zA-Z0-9\-#]+:?)+) *$/
 
 function parseBlock(items: Item[]): Block {
   if (items[0] && items[0].kind == 'header') {

@@ -98,6 +98,11 @@ Scales                       # the same card
 ::Scales: [key] three octaves
 ```
 
+Several pointers fit on one line: a line of nothing but comma-separated keys
+— `Scales, Arps:, Bowing` — is one line per key, in that order. A multiplier
+and a `name::` prefix apply to each (`2x warmup::Scales, Arps`). Anything else
+on the line (`Scales: slow, legato`) keeps it a single ordinary line.
+
 A bare key never replaces a stored card; it's only a card of its own while its
 key has none. A definition replaces any line with its key, wherever either is
 written — the first definition per key wins. Definitions are evaluated after
