@@ -315,7 +315,9 @@ describe('integration', () => {
 })
 
 describe('block subdecks', () => {
-  const deckS = (text, name, memory) => evalBlockDeck(text, name, memory).map(rl => rl.contents)
+  const headersOf = (text) => evalContentsMem(text)[2]
+  const deckOf = (text, name, memory) => evalBlockDeck(text, name, headersOf(text), memory)
+  const deckS = (text, name, memory) => deckOf(text, name, memory).map(rl => rl.contents)
 
   test('blockNames lists the named blocks, not the main ones', () => {
     const text = `
@@ -328,7 +330,68 @@ describe('block subdecks', () => {
       d
     `.replaceAll(/^ */mg, '')
 
-    expect(blockNames(text)).toStrictEqual(new Set(['one', 'two']))
+    expect(blockNames(headersOf(text))).toStrictEqual(new Set(['one', 'two']))
+  })
+
+  test('a header parses like an item: Key: description, else the first word is the key', () => {
+    const text = `
+      -=-   one: the first
+      b
+      ---two
+      c
+      -=- three is a description
+      d
+    `.replaceAll(/^ */mg, '')
+
+    const headers = headersOf(text)
+    expect(headers.map(h => [h.key, h.contents])).toStrictEqual([
+      ['one', 'one: the first'],
+      ['two', 'two'],
+      ['three', 'three is a description'],
+    ])
+    expect(evalContentsS(text)).toStrictEqual([])
+    expect(deckS(text, 'three')).toStrictEqual(['d'])
+  })
+
+  test('a header interpolates and explodes; only the first exploded value names the block', () => {
+    const text = `
+      {k='K';}
+      -=- Key-{s('A B')}: [k]
+      x
+      -=- [k]t: tagged
+      y
+    `.replaceAll(/^ */mg, '')
+
+    const headers = headersOf(text)
+    expect(headers.map(h => h && h.key)).toStrictEqual([null, 'Key-A', '[K]'])
+    expect(headers[1].contents).toStrictEqual('Key-A: [K]')
+    expect(headers[2].source.substitutions[0].tag).toStrictEqual('t')
+    expect(deckS(text, 'Key-A')).toStrictEqual(['x'])
+    expect(deckS(text, 'Key-B')).toStrictEqual([])
+  })
+
+  test('a header whose explode yields nothing drops the block', () => {
+    const text = `
+      -=- {undefined}gone
+      x
+      -=-
+      {block('gone')}
+    `.replaceAll(/^ */mg, '')
+
+    expect(headersOf(text)[0]).toBeNull()
+    expect(evalContentsS(text)[0]).toMatch(/^error: block\('gone'\)/)
+  })
+
+  test('the deck reuses the given headers instead of re-evaluating them', () => {
+    const text = `
+      {n=(globalThis.headerCount=(globalThis.headerCount||0)+1);}
+      -=- B[n]
+      x
+    `.replaceAll(/^ */mg, '')
+
+    const headers = headersOf(text)
+    expect(headers[1].key).toMatch(/^B\[\d+\]$/)
+    expect(evalBlockDeck(text, headers[1].key, headers).map(rl => rl.contents)).toStrictEqual(['x'])
   })
 
   test('a named block adds nothing to the root deck and instantiates as a deck', () => {
@@ -377,7 +440,7 @@ describe('block subdecks', () => {
   })
 
   test('items are ordinary items: interpolations, keys and tags survive', () => {
-    const [item] = evalBlockDeck("-=- sub\nKEY: [s('x y')]t\n", 'sub')
+    const [item] = deckOf("-=- sub\nKEY: [s('x y')]t\n", 'sub')
 
     expect(item.contents).toStrictEqual('KEY: [x y]')
     expect(item.key).toStrictEqual('KEY')

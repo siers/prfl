@@ -1,7 +1,7 @@
 // Pure state reducers for Randomize.
 
 import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
-import { isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
+import { BlockHeaders, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
@@ -32,6 +32,9 @@ export type RState = {
   text?: string,
 
   items?: Decks<UserItem>,
+  // The named blocks' headers, evaluated with the root deck and kept until the
+  // next eval — a subdeck never re-evaluates them.
+  blockHeaders?: BlockHeaders,
   outLineCount?: number,
   memory?: string,
   nextMemory?: string,
@@ -148,13 +151,14 @@ function itemsAndTimer(
   total: Timer | undefined,
   stack: DeckCursor[],
   images: ImageEntry[] | undefined,
-): [Decks<UserItem>, Timer | undefined, DeckCursor[]] {
-  if (!eval_) return [decks, total, stack]
+  headers: BlockHeaders | undefined,
+): [Decks<UserItem>, Timer | undefined, DeckCursor[], BlockHeaders | undefined] {
+  if (!eval_) return [decks, total, stack, headers]
 
   let memory: Map<any, any> = memoryFromString(m)
-  const [lines, _] = evalContentsMem(contents, memory, { images })
+  const [lines, _, newHeaders] = evalContentsMem(contents, memory, { images })
 
-  return [decksOf(lines.map(rl => toUserItem(rl))), zeroedStoppedTimer(), []]
+  return [decksOf(lines.map(rl => toUserItem(rl))), zeroedStoppedTimer(), [], newHeaders]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
@@ -357,7 +361,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const deck = a.eval ? DEFAULT_DECK : prevCursor[0]
 
-  const [initDecks, totalTimer, cursorStack] = itemsAndTimer(s?.items || decksOf<UserItem>([]), s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images)
+  const [initDecks, totalTimer, cursorStack, blockHeaders] = itemsAndTimer(s?.items || decksOf<UserItem>([]), s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders)
   const initItems = deckItems(initDecks, deck)
 
   // Exclusion is built from the locally-resolved hideDone (which a.hideDone may
@@ -399,6 +403,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
     text: contentsOr,
 
     items: resolvedDecks,
+    blockHeaders,
     outLineCount: items.length,
     memory: newKey ? setItemBpmMemory(newKey, memory, metro.bpm || newBpm) : memory,
 
@@ -474,7 +479,7 @@ export function liveSubdeckName(s: RState | undefined, item: UserItem): string |
 // The block an item can instantiate a subdeck from: the named block sharing
 // the item's key.
 function subdeckBlock(s: RState | undefined, item: UserItem): string | null {
-  return item.key !== null && blockNames(s?.text || '').has(item.key) ? item.key : null
+  return item.key !== null && blockNames(s?.blockHeaders || []).has(item.key) ? item.key : null
 }
 
 // Is there anything for the "enter subdeck" button to descend into — a live
@@ -495,7 +500,7 @@ export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: n
   const name = subdeckBlock(s, item)
   if (name === null) return s
 
-  const lines = evalBlockDeck(s.text || '', name, memoryFromString(s.memory), { images: s.images })
+  const lines = evalBlockDeck(s.text || '', name, s.blockHeaders || [], memoryFromString(s.memory), { images: s.images })
   if (lines.length === 0) return s
 
   const deckName = blockDeckName(name)

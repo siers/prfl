@@ -242,6 +242,14 @@ describe('block subdecks — an item keyed like a named block', () => {
     expect(reduceEnterSubdeck(s, s.items![DEFAULT_DECK][0], NOW)).toBe(s)
   })
 
+  test('a header names its block by its evaluated key, kept from the eval', () => {
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=-\nscales\n-=- sc{[\'ales\']}: warm up first\nMAJ' }, deps())
+    expect(s.blockHeaders?.map(h => h?.key ?? null)).toStrictEqual([null, 'scales'])
+
+    s = reduceEnterSubdeck(s, s.items![DEFAULT_DECK][0], NOW)
+    expect(s.items!['scales/'].map(i => i.contents)).toStrictEqual(['MAJ'])
+  })
+
   test('an empty block enters nothing', () => {
     const s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=-\nempty\n-=- empty' }, deps())
     expect(reduceEnterSubdeck(s, s.items![DEFAULT_DECK][0], NOW)).toBe(s)

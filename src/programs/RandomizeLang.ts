@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Header, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, BlockHeaders, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -104,10 +104,13 @@ function extractEvals(l: string): [string, Evals] {
   return [template, evals]
 }
 
+// The rest of a header is an item line — key, description, `[]` and `{}` —
+// minus the `Nx` multiplier.
 function parseHeader(lineRaw: string): Header | null {
-  const headerMatch = lineRaw.match(/^-([-=])- ?(.*) *$/)
+  const headerMatch = lineRaw.match(/^-([-=])- *(.*?) *$/)
   if (!headerMatch) return null
-  return header(headerMatch[1] == '-', (headerMatch[2] || '').trim() || null)
+  const rest = headerMatch[2]
+  return header(headerMatch[1] == '-', rest ? line(...extractEvals(rest), 1) : null)
 }
 
 function parseLine(lineRaw: string): Item[] {
@@ -141,10 +144,10 @@ export function parseContents(text: string): Parsed {
   return initSequences(parsed, i => i.kind! == 'header').map(parseBlock)
 }
 
-// The names of the text's named blocks — the keys an item can instantiate a
-// subdeck from. Scans headers only, without parsing (or evaluating) the lines.
-export function blockNames(text: string): Set<string> {
-  return new Set(text.split('\n').flatMap(l => parseHeader(l)?.name ?? []))
+// The names of the named blocks — the keys an item can instantiate a subdeck
+// from — read off the headers evaluated with the root deck.
+export function blockNames(headers: BlockHeaders): Set<string> {
+  return new Set(headers.flatMap(h => h?.key || []))
 }
 
 // evaluators
@@ -301,6 +304,15 @@ function evalItem(item: Item, context: Context): RenderLine[] {
   return []
 }
 
+// A header evaluates like an item line, keeping only the first line an explode
+// yields; none drops the block. Without a `Key:` prefix, the first word is the key.
+function evalHeader(h: Header, context: Context): RenderLine | null {
+  if (!h.line) return null
+  const [first] = evalItem(h.line, context)
+  if (!first) return null
+  return { ...first, key: first.key ?? first.contents.match(/^[^ ]*/)![0] }
+}
+
 function evalBlock(block: Block, context: Context): RenderLine[] {
   const items = block.header.shuffle ? shuffleMinDistance(block.items, 1) : block.items
 
@@ -323,23 +335,28 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
 }
 
 // Evaluates the main blocks in file order, registering each named block as a
-// callable in the context as it is reached.
-function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext): EvaluationContext {
+// callable in the context as it is reached. Headers are evaluated as they are
+// reached too, unless `headers` from an earlier evaluation are given — those
+// are used as-is, so the block names never change after the first evaluation.
+function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders): EvaluationContext {
   const blocks = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
-  const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext)]
-  return blocks.reduce(([mainBlocks, context], b) => {
-    const name = b.header.name || 'impossiblè'
-
-    if (isMainHeader(b.header))
+  const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext), []]
+  return blocks.reduce(([mainBlocks, context, evaluatedHeaders], b, index) => {
+    if (isMainHeader(b.header)) {
       mainBlocks.push(evalBlock(b, context))
-    else {
-      context.set(name, () => evalBlock(b, context))
-      context.set(`items-${name}`, () => b.items)
+      evaluatedHeaders.push(null)
+    } else {
+      const h = headers ? headers[index] ?? null : evalHeader(b.header, context)
+      evaluatedHeaders.push(h)
+      if (h?.key) {
+        context.set(h.key, () => evalBlock(b, context))
+        context.set(`items-${h.key}`, () => b.items)
+      }
     }
 
-    return [mainBlocks, context] satisfies EvaluationContext
+    return [mainBlocks, context, evaluatedHeaders] satisfies EvaluationContext
   }, evaluationInit)
 }
 
@@ -353,22 +370,24 @@ export function blockDeckName(name: string): string {
 // The items of the subdeck instantiated from block `name`, ordered as
 // `scheduleBlocks(name)` would. The whole text is re-evaluated first so the
 // block sees every block and global a call from the text would — which means
-// globals assigned randomly are re-rolled, not the ones the root deck saw.
-export function evalBlockDeck(text: string, name: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine[] {
-  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext)
+// globals assigned randomly are re-rolled, not the ones the root deck saw. The
+// headers are not: `headers` are the ones evaluated with the root deck.
+export function evalBlockDeck(text: string, name: string, headers: BlockHeaders, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine[] {
+  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext, headers)
   const lookup = context.get(name)
-  if (!blockNames(text).has(name) || typeof lookup !== 'function') return []
+  if (!blockNames(headers).has(name) || typeof lookup !== 'function') return []
 
   const memory = context.get('memory') as Memory
   return randomizeLangUtils(context, memory).pickTasksStateless(lookup() satisfies RenderLine[])
 }
 
-export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory] {
-  const [mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext)
+export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory, BlockHeaders] {
+  const [mainBlocks, context, headers] = evalContentsContext(text, oldMemory, additionalContext)
 
   return [
     intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(),
     context.get('memory') as Memory,
+    headers,
   ]
 }
 

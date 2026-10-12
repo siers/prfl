@@ -102,16 +102,23 @@ export type _assertOut = Assert<Equals<RenderLine, RenderLineDerived>>
 // pattern for rendered lines that denotes their flashcard identificator
 export const LineKeyPattern = /^ *([a-zA-Z0-9\-#\[\]]+)(: .*|:|)$/
 
+// The text after the marker is an item line, parsed and evaluated like one; its
+// key names the block. A bare marker leaves it null.
 export type Header = {
   kind: 'header',
-  name: string | null,
+  line: Line | null,
   shuffle: boolean,
 }
 
-// Blocks emitted into the root deck: the unnamed ones. A named block lands
+// Blocks emitted into the root deck: the bare-marker ones. A named block lands
 // nowhere on its own — it's callable, and an item keyed with its name can
 // instantiate it as a subdeck.
-export const isMainHeader: (h: Header) => boolean = (h: Header) => h.name === null
+export const isMainHeader: (h: Header) => boolean = (h: Header) => h.line === null
+
+// Each block's evaluated header, aligned with the parsed blocks: null for a main
+// block, or for a named one whose header explode yielded nothing (it's dropped).
+// Evaluated once, with the root deck, and reused from then on.
+export type BlockHeaders = (RenderLine | null)[]
 
 export type Item = Header | Line
 
@@ -171,14 +178,14 @@ export const maxLen = (x: Tagged, fallback: number): number => {
   return Number.isNaN(n) ? fallback : n
 }
 
-export const header = (shuffle: Boolean, name: string | null) => ({ kind: 'header', name, shuffle }) as Header
+export const header = (shuffle: Boolean, line: Line | null) => ({ kind: 'header', line, shuffle }) as Header
 export const interpolate = (command: string, marker: string, tag: string | null, tags: string[] | null) => ({ kind: 'interpolate', command, marker, tag, tags }) as Interpolate
 export const explode = (command: string, marker: string) => ({ kind: 'explode', command, marker }) as Explode
 export const line = (contents: string, evals: Evals, times: number) => ({ kind: 'line', contents, evals, times }) as Line
 export const block = (header: Header, items: Item[]) => ({ kind: 'block', header, items }) as Block
 
 export type EvaluationResult = RenderLine[]
-export type EvaluationContext = [EvaluationResult[], Context]
+export type EvaluationContext = [EvaluationResult[], Context, BlockHeaders]
 
 export const interpolableLine: (contents: string, interpols: Interpolate[], substitutions?: Substitution[]) => InterpolableLine = (contents, interpols, substitutions) => ({ kind: 'interpolable-line', contents, interpols, substitutions })
 export const substitution: (contents: InterpolateSubstT, marker: string, tag: string | null, tags: string[] | null) => Substitution = (contents, marker, tag, tags) => ({ kind: 'substitution', contents, marker, tag, tags })

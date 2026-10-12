@@ -45,6 +45,24 @@ mnemonic — this is the easiest thing in the language to get wrong.
 A *named* block goes nowhere on its own: it's a definition, called from an
 expression.
 
+**A header's name is an item line.** Whitespace after the marker is dropped and
+the rest is parsed and evaluated exactly like an item — `{}`, `[]` with tags,
+`Key: description` — except for the `Nx` multiplier. The line's
+[key](#line-keys) names the block; without a `Key:` prefix, the first word is
+the key and the whole text is the description:
+
+```
+-=- scales: three octaves      # key scales
+-=- warmup for today           # key warmup
+-=- Key-{keys()}: [k]          # key Key-<first key>
+```
+
+Only the first line an explode yields counts; none (`{after(…)}` gating) drops
+the block entirely. Headers are evaluated where they stand, so they see globals
+assigned above them, and they're evaluated **once**, with the root deck: the
+evaluated headers are kept in state, and instantiating a subdeck reuses them
+rather than re-rolling the names.
+
 **Subdecks come from blocks.** An item whose key equals a named block's name
 gets a 📂: entering it instantiates the subdeck `name/` from that block, ordered
 like `scheduleBlocks('name')` (least-recently-reviewed first). It's lazy — the
