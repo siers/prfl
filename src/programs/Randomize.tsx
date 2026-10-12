@@ -579,7 +579,6 @@ export default Randomize
 // TODO: utils: combinatorial/sampling syntax with distribution control (for shuffled distinct unions)
 //              e.g. (GDAE)*2 (GD DA AE)*2 (G/D D/G D/A A/D A/E E/A)
 //              e.g. [GDAE [GD AE] perm2([GD DA AE])] equal probability within the same level of brackets
-// TODO: subdecks: double colon key for items to spawn an item directly into a block (post K4FP)
 
 // TODO: scheduling: queue: pick after every card, because otherwise suspending inside of a zipScheduleBlocks is weird
 // TODO: subdecks: blocks should take variables

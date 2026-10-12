@@ -382,6 +382,23 @@ describe('block subdecks', () => {
     expect(evalContentsS(text)[0]).toMatch(/^error: block\('gone'\)/)
   })
 
+  test('#tag is shorthand for []tag, at a word start only', () => {
+    const [item] = evalContents('warmup: #unscheduled:hide Key#2 a#b')
+
+    expect(item.contents).toStrictEqual('warmup: [] Key#2 a#b')
+    expect(item.key).toStrictEqual('warmup')
+    expect(item.source.substitutions).toStrictEqual([
+      { kind: 'substitution', contents: [''], marker: '!!!1', tag: 'unscheduled', tags: ['hide'] },
+    ])
+  })
+
+  test('a #unscheduled header instantiates in written order, not schedule-sorted', () => {
+    const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
+
+    expect(deckS("-=- warmup: #unscheduled\nA\nB\nC", 'warmup', memory)).toStrictEqual(['A', 'B', 'C'])
+    expect(deckS("-=- warmup\nA\nB\nC", 'warmup', memory)[0]).toStrictEqual('B')
+  })
+
   test('the deck reuses the given headers instead of re-evaluating them', () => {
     const text = `
       {n=(globalThis.headerCount=(globalThis.headerCount||0)+1);}

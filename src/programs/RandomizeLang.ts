@@ -87,10 +87,15 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [str
   return [template, groups]
 }
 
+// `#tag` (at a word start) is shorthand for `[]tag`: a tag with no value.
 function extractEvals(l: string): [string, Evals] {
-  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([^\] ]+)?/gi, defaultMarker)
+  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([^\] ]+)?|(?<=^|\s)#[^\s\[\]{}]+/gi, defaultMarker)
 
   const evals: Evals = matches.map(([marker, m], idx) => {
+    if (m[0] == '#') {
+      const [tagName, ...flags] = m.slice(1).split(':')
+      return interpolate('', marker, tagName || `tag${idx + 1}`, flags.length > 0 ? flags : null)
+    }
     if (m[0] == '[') {
       const tag = m.match(/[^\] ]+$/i)
       const tags = tag && tag[0].split(':')
@@ -367,9 +372,15 @@ export function blockDeckName(name: string): string {
   return `${name}/`
 }
 
+// A block whose header is tagged `unscheduled` (`#unscheduled`) instantiates in
+// its own order — written, or shuffled for `---` — not schedule-sorted.
+function isUnscheduled(header: RenderLine): boolean {
+  return (header.source?.substitutions || []).some(s => s.tag === 'unscheduled')
+}
+
 // The items of the subdeck instantiated from block `name`, ordered as
-// `scheduleBlocks(name)` would. The whole text is re-evaluated first so the
-// block sees every block and global a call from the text would — which means
+// `scheduleBlocks(name)` would, unless unscheduled. The whole text is
+// re-evaluated first so the block sees every block and global a call from the text would — which means
 // globals assigned randomly are re-rolled, not the ones the root deck saw. The
 // headers are not: `headers` are the ones evaluated with the root deck.
 export function evalBlockDeck(text: string, name: string, headers: BlockHeaders, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine[] {
@@ -377,8 +388,12 @@ export function evalBlockDeck(text: string, name: string, headers: BlockHeaders,
   const lookup = context.get(name)
   if (!blockNames(headers).has(name) || typeof lookup !== 'function') return []
 
+  const lines = lookup() satisfies RenderLine[]
+  const header = headers.find(h => h?.key === name)
+  if (header && isUnscheduled(header)) return lines
+
   const memory = context.get('memory') as Memory
-  return randomizeLangUtils(context, memory).pickTasksStateless(lookup() satisfies RenderLine[])
+  return randomizeLangUtils(context, memory).pickTasksStateless(lines)
 }
 
 export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory, BlockHeaders] {

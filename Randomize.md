@@ -65,7 +65,9 @@ rather than re-rolling the names.
 
 **Subdecks come from blocks.** An item whose key equals a named block's name
 gets a 📂: entering it instantiates the subdeck `name/` from that block, ordered
-like `scheduleBlocks('name')` (least-recently-reviewed first). It's lazy — the
+like `scheduleBlocks('name')` (least-recently-reviewed first) — unless the
+header is tagged `#unscheduled` (`-=- warmup: #unscheduled`), which keeps the
+block's own order: written for `-=-`, shuffled for `---`. It's lazy — the
 block is evaluated on 📂, not on 🔄. To do that the whole text is re-evaluated, so
 the block sees every block and global — but randomly assigned globals (e.g.
 `keyz`) are rolled again and can differ from what the root deck shows. A live deck
@@ -275,7 +277,12 @@ A tag is written immediately after a `]`:
 [expr]tag
 [expr]tag:flag:flag
 [expr]:flag            # leading colon -> auto-named tag1, tag2, …
+#tag                   # shorthand for []tag: a tag with no value
+#tag:flag
 ```
+
+`#tag` only counts at the start of a word — `Key#2` and `a#b` stay text — and
+a `#` at column 0 is still a comment.
 
 **The first `:`-segment is the field's NAME, not a flag.** `[x]freeze` creates a
 field *called* "freeze" and freezes nothing; you want `[x]key:freeze`. There is
