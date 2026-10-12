@@ -290,7 +290,8 @@ no validation, so a mistake here is silent.
 
 Tag names matter beyond identity: `metro` pins the bpm (and is
 overwritten when you change the tempo — 🔄 restores the authored value), `tones`/`sheet` feed the
-synth and engraver, a name containing `image` contributes an image, and `next`
+synth and engraver, a name containing `image` contributes an image, `br`
+(`#br`) prints nothing but ends the visual line, and `next`
 drives the programme in §5.
 
 ### Resolution order — forward references

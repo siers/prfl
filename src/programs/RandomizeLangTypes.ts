@@ -156,6 +156,8 @@ export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')
 // Feeds the sheet/image displays and stays re-rollable, but renders no text.
 export const isHidden = (x: Tagged): boolean => (x.tags || []).includes('hide')
+// A tag named `br` (`#br`) renders nothing but still ends the visual line.
+export const isLineBreak = (x: { tag: string | null }): boolean => x.tag === 'br'
 // Prints a label in place of the value, which stays live for sheet/image displays
 // and re-rolls: `covered` shows the tag's name, `covered-xyz` shows "xyz".
 export const coverLabel = (x: Tagged & { tag: string | null }): string | null => {

@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
-import { ContentOrTag, coverLabel, isCutSemi, isHidden, isInline, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, coverLabel, isCutSemi, isHidden, isInline, isLineBreak, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -272,6 +272,9 @@ function Randomize(controls: any): JSX.Element {
           const recalcF = () => recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })
 
           if (tag && !isCurrent) return null
+
+          // An empty block, not a `<br>`: after a block tag a `<br>` adds a blank line.
+          if (tag && isLineBreak(subst!)) return <div key={idx} />
 
           // `hide` feeds the sheet/image displays without printing the value.
           if (tag && isHidden(subst!)) return null
