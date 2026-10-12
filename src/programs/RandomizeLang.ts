@@ -150,7 +150,8 @@ export function parseContents(text: string): Parsed {
   return relocateLines(initSequences(parsed, i => i.kind! == 'header').map(parseBlock))
 }
 
-const RelocatePattern = /^([a-zA-Z0-9\-#]+)::(.*)$/
+// `name::rest`, or `::rest` for a definition.
+const RelocatePattern = /^([a-zA-Z0-9\-#]*)::(.*)$/
 
 // A header's name as written, before evaluation: the line key, else the first
 // word — the rule evalHeader applies after it.
@@ -164,11 +165,12 @@ function writtenHeaderName(h: Header): string | null {
 // is written `name`. Names are matched as written, so a header whose name is
 // only known after evaluation can't be targeted. Without a written block, the
 // lines make a `-=- name` block of their own, placed first so that every block
-// can call it.
-function relocateLines(blocks: Block[]): Block[] {
+// can call it. `::rest`, with no name, goes to no block: it's a definition.
+function relocateLines(blocks: Block[]): Parsed {
   const names = blocks.map(b => writtenHeaderName(b.header))
   const moved: Item[][] = blocks.map(_ => [])
   const implicit = new Map<string, Item[]>()
+  const definitions: Line[] = []
 
   const kept = blocks.map(b => b.items.filter(item => {
     const m = item.kind == 'line' && item.contents.match(RelocatePattern)
@@ -176,7 +178,8 @@ function relocateLines(blocks: Block[]): Block[] {
 
     const relocated = { ...item, contents: m[2] } satisfies Line
     const target = names.indexOf(m[1])
-    if (target != -1) moved[target].push(relocated)
+    if (m[1] == '') definitions.push(relocated)
+    else if (target != -1) moved[target].push(relocated)
     else implicit.set(m[1], [...(implicit.get(m[1]) || []), relocated])
     return false
   }))
@@ -185,7 +188,10 @@ function relocateLines(blocks: Block[]): Block[] {
     const h = header(false, line(name, [], 1))
     return block(h, [h, ...items])
   })
-  return [...created, ...blocks.map((b, i) => block(b.header, kept[i].concat(moved[i])))]
+  return {
+    blocks: [...created, ...blocks.map((b, i) => block(b.header, kept[i].concat(moved[i])))],
+    definitions,
+  }
 }
 
 // The names of the named blocks — the keys an item can instantiate a subdeck
@@ -391,12 +397,12 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
 // callable in the context as it is reached. Headers are evaluated as they are
 // reached too, unless `headers` from an earlier evaluation are given — those
 // are used as-is, so the block names never change after the first evaluation.
-function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders): EvaluationContext {
-  const blocks = parseContents(text)
+function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders): [...EvaluationContext, Line[]] {
+  const { blocks, definitions } = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
   const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext), []]
-  return blocks.reduce(([mainBlocks, context, evaluatedHeaders], b, index) => {
+  const evaluated = blocks.reduce(([mainBlocks, context, evaluatedHeaders], b, index) => {
     if (isMainHeader(b.header)) {
       mainBlocks.push(evalBlock(b, context))
       evaluatedHeaders.push(null)
@@ -411,6 +417,7 @@ function evalContentsContext(text: string, oldMemory: Memory, additionalContext:
 
     return [mainBlocks, context, evaluatedHeaders] satisfies EvaluationContext
   }, evaluationInit)
+  return [...evaluated, definitions]
 }
 
 // The deck an item keyed `name` instantiates from the block `name`. The
@@ -444,13 +451,16 @@ export function evalBlockDeck(text: string, name: string, headers: BlockHeaders,
   return randomizeLangUtils(context, memory).pickTasksStateless(lines)
 }
 
-export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory, BlockHeaders] {
-  const [mainBlocks, context, headers] = evalContentsContext(text, oldMemory, additionalContext)
+// The definitions (`::Key: …`) are evaluated after every block, in written
+// order, so they see the globals as the blocks left them.
+export function evalContentsMem(text: string, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): [EvaluationResult, Memory, BlockHeaders, RenderLine[]] {
+  const [mainBlocks, context, headers, definitions] = evalContentsContext(text, oldMemory, additionalContext)
 
   return [
     intersperse(mainBlocks.filter(b => b.length > 0), [renderLineSep()]).flat(),
     context.get('memory') as Memory,
     headers,
+    definitions.flatMap(d => evalItem(d, context)),
   ]
 }
 

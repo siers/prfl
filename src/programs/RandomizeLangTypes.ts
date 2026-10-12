@@ -132,7 +132,8 @@ export type Block = {
 
 export type Blocks = Block[]
 
-export type Parsed = Blocks
+// Definitions are `::` lines: evaluated into the lines store, kept out of every block.
+export type Parsed = { blocks: Blocks, definitions: Line[] }
 export type Context = Map<string, any> // contains both blocks as function and memory
 export type Memory = Map<string, any>
 

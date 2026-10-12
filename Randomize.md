@@ -84,6 +84,27 @@ before everything else so any block can call it: `-=- block` holding
 `another::thing` gives `{scheduleBlocks('another')}` a block to schedule. A multiplier goes
 in front: `2x warmup::Thing`.
 
+**`::` with no name defines a card.** `::Scales: [key] three octaves` goes to
+no block at all: it's evaluated into the card store under its key, with nothing
+placed in any deck. A line that is just the key — `Scales:` or a bare `Scales`
+— points at it, from the root deck, a block subdeck or the insert action:
+
+```
+-=-
+warmup
+Scales:                      # shows "Scales: [G] three octaves"
+-=- warmup
+Scales                       # the same card
+::Scales: [key] three octaves
+```
+
+A bare key never replaces a stored card; it's only a card of its own while its
+key has none. A definition replaces any line with its key, wherever either is
+written — the first definition per key wins. Definitions are evaluated after
+every block, in written order, so they see globals as the blocks left them.
+`{}` works as anywhere (`::Key-{keys()}: …` defines one card per key). Inserting
+a definition updates that card everywhere it's pointed at and adds no item.
+
 Blocks are registered in file order, so a block must be defined **before** the
 block that calls it. Adjacent non-empty root blocks get a `---` separator line
 between them automatically; that's output, not something you write.
@@ -161,7 +182,9 @@ DoTheLaundry: do it     ->  key = DoTheLaundry
 Scales3: [key] ...      ->  key = Scales3
 ```
 
-Every item has a key. A line without one gets `Nr` and 6 hex digits of a hash
+Every item has a key, and items with the same key are one card: a re-roll
+shows on each, and a [definition](#headers-and-blocks) can stand in for all of
+them. A line without one gets `Nr` and 6 hex digits of a hash
 of the line as written — after `{}` explodes, before `[]` rolls — so a re-roll
 keeps the key and each exploded line gets its own. Identical lines (`2x`
 included) share it. Headers don't take a hash key: their first word names the

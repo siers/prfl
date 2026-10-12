@@ -9,7 +9,7 @@ import {
   RState, RecalcDeps,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
-  migrateV5, resolveDecks, resolveAt, reduceRefresh, reduceNewText,
+  migrateV5, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -972,6 +972,64 @@ describe('pointers', () => {
     expect(migrated.version).toBe(6)
     expect(migrated.items![DEFAULT_DECK]).toStrictEqual([{ key: 'a', done: true }, { key: 'b' }])
     expect(resolveDecks(migrated)[DEFAULT_DECK].map(i => i.contents)).toStrictEqual(['a', 'b'])
+  })
+})
+
+describe('definitions — a card without a pointer', () => {
+  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const contents = (s: RState) => resolveDecks(s)[DEFAULT_DECK].map(i => i.contents)
+
+  test('a bare key points at the definition, wherever it is written', () => {
+    const s = evaluated("-=-\nScales:\nother\n::Scales: three octaves")
+    expect(contents(s)).toStrictEqual(['Scales: three octaves', 'other'])
+    expect(s.defined).toStrictEqual(['Scales'])
+  })
+
+  test('a definition alone stores the line and places nothing', () => {
+    const s = evaluated("-=-\nother\n::Scales: three octaves")
+    expect(contents(s)).toStrictEqual(['other'])
+    expect(s.lines!.Scales.contents).toBe('Scales: three octaves')
+  })
+
+  test('a definition beats a full line with the same key', () => {
+    expect(contents(evaluated("-=-\nScales: one octave\n::Scales: three octaves"))).toStrictEqual(['Scales: three octaves'])
+  })
+
+  test('a bare key with nothing to point at is its own line', () => {
+    expect(contents(evaluated("-=-\nScales"))).toStrictEqual(['Scales'])
+  })
+
+  test('inserting a bare key points at the stored card instead of replacing it', () => {
+    let s = evaluated("-=-\nother\n::Scales: three octaves")
+    s = reduceInsertItem(s, 'Scales:', NOW)
+    expect(contents(s)).toStrictEqual(['other', 'Scales: three octaves'])
+  })
+
+  test('inserting a definition updates the card everywhere and places nothing', () => {
+    let s = evaluated("-=-\nScales:\n2x other\n::Scales: three octaves")
+    s = reduceInsertItem(s, '::Scales: two octaves', NOW)
+    expect(contents(s)).toStrictEqual(['Scales: two octaves', 'other', 'other'])
+  })
+
+  test('cleaning a subdeck keeps the definitions nothing points at', () => {
+    let s = evaluated("-=-\nScale: [s('C,D')]\n::Arps: broken")
+    s = reduceSpawn(s, 'zip', NOW, keepOrder)
+    s = reducePopOne(s, NOW)
+    s = reduceCleanSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0])
+    expect(s.lines!.Arps.contents).toBe('Arps: broken')
+  })
+
+  test('a refresh keeps the progress of a pointer to a definition', () => {
+    let s = evaluated("-=-\nScales:\nother\n::Scales: three octaves")
+    s = reduceRecalc(s, { item: { done: true } }, deps({ hideDone: false }))
+    s = reduceRefresh(s, "-=-\nother\nScales:\n::Scales: four octaves", NOW)
+    expect(resolveDecks(s)[DEFAULT_DECK].map(i => [i.contents, i.done])).toStrictEqual([['other', undefined], ['Scales: four octaves', true]])
+  })
+
+  test('a block subdeck points at the definition too', () => {
+    let s = evaluated("-=-\nwarmup\n-=- warmup\nScales\n::Scales: three octaves")
+    s = reduceEnterSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0], NOW)
+    expect(resolveDecks(s)['warmup/'].map(i => i.contents)).toStrictEqual(['Scales: three octaves'])
   })
 })
 

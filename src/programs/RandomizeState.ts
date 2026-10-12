@@ -1,6 +1,6 @@
 // Pure state reducers for Randomize.
 
-import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
+import { blockDeckName, blockNames, evalBlockDeck, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
 import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, markBanned, resolveItem } from './RandomizeTypes.js'
 import { Timer, timerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
@@ -8,7 +8,7 @@ import { mapParse, mapSerialize } from '../lib/Map.js'
 import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
 import type { DriveFile } from '../lib/GoogleDrive.ts'
-import { clamp } from 'lodash'
+import { clamp, union } from 'lodash'
 import { Direction } from './LinearSeek.ts'
 import { ListState, dropThree, bottomOfQueue, toTop, toBottom, Exclude } from './GenericList.ts'
 import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckMapAt, deckSeek, deckSetCurrent } from './Decks.ts'
@@ -35,6 +35,9 @@ export type RState = {
   // Decks point at their lines by key; the lines live once, in `lines`.
   items?: Decks<ItemRef>,
   lines?: Lines,
+  // Keys of the lines the text defines (`::Key: …`); kept in `lines` even with
+  // no deck pointing at them.
+  defined?: string[],
   // The named blocks' headers, evaluated with the root deck and kept until the
   // next eval — a subdeck never re-evaluates them.
   blockHeaders?: BlockHeaders,
@@ -119,18 +122,39 @@ export function excludeFor(hideDone: boolean, lines: Lines): Exclude<ItemRef> {
 
 // ── pointers ─────────────────────────────────────────────────────────────────
 
+// A line that is only its key (`Scales:`, `Scales`) points at a card defined
+// elsewhere rather than being one.
+function isBare(line: RenderLine): boolean {
+  return !line.source && line.contents.trim().replace(/:$/, '') === line.key
+}
+
 // Store lines under their keys and point at them. Within a batch the first line
-// per key wins; it replaces what was stored under that key before. Lines without
-// a key (separators, errors) are keyed by their hash.
+// per key wins; it replaces what was stored under that key before. A bare line
+// never replaces anything — it's stored only while its key has no line. Lines
+// without a key (separators, errors) are keyed by their hash.
 export function storeLines(lines: Lines, rls: (RenderLine | UserItem)[]): [Lines, ItemRef[]] {
   const fresh: Lines = {}
   const refs = rls.map(rl => {
     const { timer: _t, done: _d, dropped: _dr, ...line } = rl as UserItem
-    const key = line.key ?? hashKey(line.contents)
-    if (!(key in fresh)) fresh[key] = { ...line, key }
+    const keyed = { ...line, key: line.key ?? hashKey(line.contents) }
+    const key = keyed.key
+    const stored = fresh[key] ?? lines[key]
+    const replaces = !isBare(keyed) && (!(key in fresh) || isBare(fresh[key]))
+    if (!stored || replaces) fresh[key] = keyed
     return { key } satisfies ItemRef
   })
   return [{ ...lines, ...fresh }, refs]
+}
+
+// Definitions replace whatever is stored under their keys, the first per key
+// winning. Returns their keys too.
+export function storeDefinitions(lines: Lines, definitions: RenderLine[]): [Lines, string[]] {
+  const fresh: Lines = {}
+  for (const d of definitions) {
+    const key = d.key ?? hashKey(d.contents)
+    if (!(key in fresh)) fresh[key] = { ...d, key }
+  }
+  return [{ ...lines, ...fresh }, Object.keys(fresh)]
 }
 
 export function resolveDecks(s: RState | undefined): Decks<UserItem> {
@@ -143,9 +167,9 @@ export function resolveAt(s: RState | undefined, cursor: DeckCursor | undefined)
   return ref && resolveItem(s?.lines || {}, ref)
 }
 
-// Lines no deck points at any more.
-function pruneLines(lines: Lines, decks: Decks<ItemRef>): Lines {
-  const used = new Set(Object.values(decks).flatMap(refs => refs.map(r => r.key)))
+// Lines no deck points at any more, and the text doesn't define.
+function pruneLines(lines: Lines, decks: Decks<ItemRef>, defined: string[] = []): Lines {
+  const used = new Set([...defined, ...Object.values(decks).flatMap(refs => refs.map(r => r.key))])
   return Object.fromEntries(Object.entries(lines).filter(([key]) => used.has(key)))
 }
 
@@ -216,14 +240,16 @@ function itemsAndTimer(
   stack: DeckCursor[],
   images: ImageEntry[] | undefined,
   headers: BlockHeaders | undefined,
-): [Decks<ItemRef>, Lines, Timer | undefined, DeckCursor[], BlockHeaders | undefined] {
-  if (!eval_) return [decks, lines, total, stack, headers]
+  defined: string[] | undefined,
+): [Decks<ItemRef>, Lines, Timer | undefined, DeckCursor[], BlockHeaders | undefined, string[] | undefined] {
+  if (!eval_) return [decks, lines, total, stack, headers, defined]
 
   let memory: Map<any, any> = memoryFromString(m)
-  const [evaluated, _, newHeaders] = evalContentsMem(contents, memory, { images })
-  const [newLines, refs] = storeLines({}, evaluated)
+  const [evaluated, _, newHeaders, definitions] = evalContentsMem(contents, memory, { images })
+  const [pointedLines, refs] = storeLines({}, evaluated)
+  const [newLines, newDefined] = storeDefinitions(pointedLines, definitions)
 
-  return [decksOf(markBanned(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders]
+  return [decksOf(markBanned(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders, newDefined]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
@@ -432,7 +458,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const deck = a.eval ? DEFAULT_DECK : prevCursor[0]
 
-  const [initDecks, initLines, totalTimer, cursorStack, blockHeaders] = itemsAndTimer(s?.items || decksOf<ItemRef>([]), s?.lines || {}, s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders)
+  const [initDecks, initLines, totalTimer, cursorStack, blockHeaders, defined] = itemsAndTimer(s?.items || decksOf<ItemRef>([]), s?.lines || {}, s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders, s?.defined)
   const initItems = deckItems(initDecks, deck)
 
   // Exclusion is built from the locally-resolved hideDone (which a.hideDone may
@@ -477,6 +503,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
     items: resolvedDecks,
     lines,
+    defined,
     blockHeaders,
     outLineCount: items.length,
     memory: newKey ? setItemBpmMemory(newKey, memory, metro.bpm || newBpm) : memory,
@@ -615,13 +642,14 @@ function carryProgress(old: ItemRef[], fresh: ItemRef[]): [ItemRef[], number[]] 
 export function reduceRefresh(s: RState | undefined, contents: string, now: number): RState {
   if (!s) return defaultState
 
-  const [evaluated, _, blockHeaders] = evalContentsMem(contents, memoryFromString(s.memory), { images: s.images })
-  const [fresh, refs] = storeLines({}, evaluated)
+  const [evaluated, _, blockHeaders, definitions] = evalContentsMem(contents, memoryFromString(s.memory), { images: s.images })
+  const [pointedLines, refs] = storeLines(s.lines || {}, evaluated)
+  const [fresh, defined] = storeDefinitions(pointedLines, definitions)
   const [carried, sources] = carryProgress(deckItems(s.items || {}, DEFAULT_DECK), refs)
   const root = markBanned(memoryFromString(s.memory), carried)
 
   const items: Decks<ItemRef> = { ...(s.items || {}), [DEFAULT_DECK]: root }
-  const lines = pruneLines({ ...(s.lines || {}), ...fresh }, items)
+  const lines = pruneLines(fresh, items, defined)
 
   const follow = (cursor: DeckCursor): DeckCursor => {
     if (cursor[0] !== DEFAULT_DECK) return cursor
@@ -636,6 +664,7 @@ export function reduceRefresh(s: RState | undefined, contents: string, now: numb
     text: contents,
     items,
     lines,
+    defined,
     blockHeaders,
     outLineCount: root.length,
     current,
@@ -655,8 +684,12 @@ export function reduceNewText(s: RState | undefined, contents: string, deps: Rec
 export function reduceInsertItem(s: RState | undefined, dsl: string, now: number): RState {
   if (!s) return defaultState
 
-  const [lines, inserted] = storeLines(s.lines || {}, evalContents(dsl, { images: s.images }))
-  if (inserted.length === 0) return s
+  // A definition updates its card everywhere, inserted or not.
+  const [evaluated, , , definitions] = evalContentsMem(dsl, new Map(), { images: s.images })
+  const [pointedLines, inserted] = storeLines(s.lines || {}, evaluated)
+  const [lines, newlyDefined] = storeDefinitions(pointedLines, definitions)
+  const defined = union(s.defined || [], newlyDefined)
+  if (inserted.length === 0) return newlyDefined.length === 0 ? s : { ...s, lines, defined }
 
   const [deck, index] = s.current || [DEFAULT_DECK, 0]
   const deckList = deckItems(s.items || {}, deck)
@@ -667,6 +700,7 @@ export function reduceInsertItem(s: RState | undefined, dsl: string, now: number
     ...s,
     items: { ...(s.items || {}), [deck]: newDeckList },
     lines,
+    defined,
     outLineCount: newDeckList.length,
     current: [deck, at],
   }
@@ -679,7 +713,7 @@ export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RStat
   const prefix = subdeckPrefix(item)
   const items = Object.fromEntries(Object.entries(s.items || {}).filter(([deck]) => !deck.startsWith(prefix)))
 
-  return { ...s, items, lines: pruneLines(s.lines || {}, items) }
+  return { ...s, items, lines: pruneLines(s.lines || {}, items, s.defined) }
 }
 
 // The deck names from the root down to the current deck, for the breadcrumb.

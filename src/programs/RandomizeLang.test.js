@@ -414,6 +414,16 @@ describe('block subdecks', () => {
     expect(blockNames(headersOf(text))).toStrictEqual(new Set(['another', 'block']))
   })
 
+  test(':: with no name defines a line: kept out of every block, evaluated after them', () => {
+    const text = "-=-\n{k='G';}\nScales:\n::Scales: [k] three octaves\n::Key-{s('C,D')}: [k]"
+    const [out, , , definitions] = evalContentsMem(text)
+
+    expect(out.map(l => l.contents)).toStrictEqual(['Scales:'])
+    expect(definitions.map(l => [l.key, l.contents])).toStrictEqual([
+      ['Scales', 'Scales: [G] three octaves'], ['Key-C', 'Key-C: [G]'], ['Key-D', 'Key-D: [G]'],
+    ])
+  })
+
   test('a #unscheduled header instantiates in written order, not schedule-sorted', () => {
     const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
 

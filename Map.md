@@ -112,7 +112,9 @@ not a language one. Those are different rotations; conflating them is easy.
 State is versioned (`currentStateVersion`) and persisted to `localStorage` by
 `App.jsx`. Decks hold pointers — a key plus progress (`done`, `timer`,
 `dropped`) — and each line lives once in `lines` under its key: a re-roll
-refreshes the line for every pointer to it. `resolveDecks` joins the two for
+refreshes the line for every pointer to it. A `::Key:` definition lands in
+`lines` with no pointer (its key kept in `defined`, so pruning spares it), and a
+bare `Key:` line never overwrites a stored line. `resolveDecks` joins the two for
 reading; a version-5 state is split by `migrateV5` on load instead of wiped.
 ♻️ (`reduceRefresh`) reloads the items — from the Drive file they came from, if
 any — and carries each pointer's progress over by key, the nth copy the nth's,
