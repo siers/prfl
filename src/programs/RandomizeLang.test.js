@@ -504,6 +504,20 @@ describe('block subdecks', () => {
     ])
   })
 
+  test('`name*` expands to the block, ordered like its subdeck', () => {
+    const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
+
+    expect(evalContentsMem("-=- sub\nA\nB\nC\n-=-\nsub*", memory)[0][0].contents).toStrictEqual('B')
+    expect(evalContentsMem("-=- sub: #unscheduled\nA\nB\nC\n-=-\nsub*", memory)[0].map(l => l.contents))
+      .toStrictEqual(['A', 'B', 'C'])
+  })
+
+  test('`name*` mixes with keys in a list, takes a multiplier and a relocation', () => {
+    expect(evalContentsS("-=- sub: #unscheduled\nA\nB\n-=-\nX, sub*, Y")).toStrictEqual(['X', 'A', 'B', 'Y'])
+    expect(evalContentsS("-=- sub: #unscheduled\nA\n-=-\n2x sub*")).toStrictEqual(['A', 'A'])
+    expect(evalContentsS("-=- sub: #unscheduled\nA\n-=- w\n-=-\nw::sub*\n{block('w')}")).toStrictEqual(['A'])
+  })
+
   test('an unknown name, or a context entry that is not a block, yields nothing', () => {
     expect(deckS("-=- sub\nb", 'nope')).toStrictEqual([])
     expect(deckS("-=- sub\nb", 'memory')).toStrictEqual([])

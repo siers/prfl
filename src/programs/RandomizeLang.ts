@@ -132,9 +132,9 @@ function parseLine(lineRaw: string): Item[] {
     const lineRawUntimed = lineRaw.replace(/^\d+x /, '')
 
     const keyList = lineRawUntimed.match(KeyListPattern)
-    if (keyList) {
+    if (keyList && (keyList[2].includes(',') || keyList[2].endsWith('*'))) {
       const [, relocation = '', keys] = keyList
-      return keys.split(',').map(k => line(`${relocation}${k.trim()}`, [], times))
+      return keys.split(',').map(k => keyLine(relocation, k.trim(), times))
     }
 
     const [contents, evals] = extractEvals(lineRawUntimed)
@@ -143,8 +143,15 @@ function parseLine(lineRaw: string): Item[] {
 }
 
 // `A, B:, C` — a line of nothing but keys is one line per key, each pointing at
-// its card. A `name::` prefix and a multiplier apply to every key.
-const KeyListPattern = /^([a-zA-Z0-9\-#]*::)?([a-zA-Z0-9\-#]+:?(?: *, *[a-zA-Z0-9\-#]+:?)+) *$/
+// its card. A `name::` prefix and a multiplier apply to every key. `name*`
+// stands for the block `name`'s lines, ordered as its subdeck would be.
+const KeyListPattern = /^([a-zA-Z0-9\-#]*::)?([a-zA-Z0-9\-#]+[:*]?(?: *, *[a-zA-Z0-9\-#]+[:*]?)*) *$/
+
+function keyLine(relocation: string, key: string, times: number): Line {
+  const deck = key.match(/^(.*)\*$/)
+  if (!deck) return line(`${relocation}${key}`, [], times)
+  return line(...extractEvals(`${relocation}{blockDeck('${deck[1]}')}`), times)
+}
 
 function parseBlock(items: Item[]): Block {
   if (items[0] && items[0].kind == 'header') {
@@ -437,12 +444,6 @@ export function blockDeckName(name: string): string {
   return `${name}/`
 }
 
-// A block whose header is tagged `unscheduled` (`#unscheduled`) instantiates in
-// its own order — written, or shuffled for `---` — not schedule-sorted.
-function isUnscheduled(header: RenderLine): boolean {
-  return (header.source?.substitutions || []).some(s => s.tag === 'unscheduled')
-}
-
 // The items of the subdeck instantiated from block `name`, ordered as
 // `scheduleBlocks(name)` would, unless unscheduled. The whole text is
 // re-evaluated first so the block sees every block and global a call from the text would — which means
@@ -450,15 +451,9 @@ function isUnscheduled(header: RenderLine): boolean {
 // headers are not: `headers` are the ones evaluated with the root deck.
 export function evalBlockDeck(text: string, name: string, headers: BlockHeaders, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine[] {
   const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext, headers)
-  const lookup = context.get(name)
-  if (!blockNames(headers).has(name) || typeof lookup !== 'function') return []
+  if (!blockNames(headers).has(name) || typeof context.get(name) !== 'function') return []
 
-  const lines = lookup() satisfies RenderLine[]
-  const header = headers.find(h => h?.key === name)
-  if (header && isUnscheduled(header)) return lines
-
-  const memory = context.get('memory') as Memory
-  return randomizeLangUtils(context, memory).pickTasksStateless(lines)
+  return randomizeLangUtils(context, context.get('memory') as Memory).blockDeck(name)
 }
 
 // The definitions (`::Key: …`) are evaluated after every block, in written

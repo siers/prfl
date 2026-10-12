@@ -72,7 +72,10 @@ block is evaluated on 📂, not on 🔄. To do that the whole text is re-evaluat
 the block sees every block and global — but randomly assigned globals (e.g.
 `keyz`) are rolled again and can differ from what the root deck shows. A live deck
 is re-entered as-is; an exhausted or 🧹-cleaned one is instantiated fresh. Items
-inside a subdeck can open their own block subdecks the same way. A block whose
+inside a subdeck can open their own block subdecks the same way. `name*` puts the
+block's lines inline instead, ordered exactly as entering its subdeck would —
+schedule-sorted, or the block's own order under `#unscheduled`. It's a key, so
+it fits a key list (`Scales, warmup*`) and takes a multiplier and `name::`. A block whose
 lines need a `prefix:` keeps a wrapper: `-=- Standards` → `{scheduleBlocks('St:StandardsT')}`.
 
 **`name::` moves a line into a block.** `warmup::Thing: do this`, written

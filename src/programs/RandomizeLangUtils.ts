@@ -1,4 +1,4 @@
-import { RenderLine, errorLine } from './RandomizeLangTypes'
+import { RenderLine, errorLine, isUnscheduled } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
 import type { ImageEntry } from '../lib/PrflAssets'
 
@@ -580,6 +580,14 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return lookupChecked(...args)
   }
 
+  // The block's lines ordered as its subdeck is: schedule-sorted, unless the
+  // header is `#unscheduled`. What `name*` expands to.
+  function blockDeck(name: string): RenderLine[] {
+    const lines = blockLines(name)
+    const items = context.get(`items-${name}`)
+    return items && isUnscheduled(items()) ? lines : pickTasksStateless(lines)
+  }
+
   function zipBlocksDiv(names: string, div: number, ...args: any): any[string] {
     const zipped = zipT(...s(names).map(name => divide(block(name, ...args), div)))
     return zipped.flat().flat()
@@ -666,6 +674,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     context,
     block,
     blockLines,
+    blockDeck,
     scheduleBlocks,
     zipBlocksDiv,
     zipScheduleBlocks,

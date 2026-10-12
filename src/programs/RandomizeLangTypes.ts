@@ -122,6 +122,13 @@ export type BlockHeaders = (RenderLine | null)[]
 
 export type Item = Header | Line
 
+// A block whose header is tagged `unscheduled` (`#unscheduled`) instantiates in
+// its own order — written, or shuffled for `---` — not schedule-sorted.
+export function isUnscheduled(items: Item[]): boolean {
+  const [h] = items
+  return h?.kind == 'header' && (h.line?.evals || []).some(e => e.kind == 'interpolate' && e.tag === 'unscheduled')
+}
+
 export type Block = {
   kind: 'block',
   header: Header,
