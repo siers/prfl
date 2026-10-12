@@ -1,8 +1,8 @@
 // Pure state reducers for Randomize.
 
-import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
-import { BlockHeaders, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
-import { CardData, UserItem, cardSet, findCard, toUserItem } from './RandomizeTypes.js'
+import { blockDeckName, blockNames, evalBlockDeck, evalContents, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
+import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
+import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, resolveItem } from './RandomizeTypes.js'
 import { Timer, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
@@ -14,7 +14,7 @@ import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckMapAt
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 import { NextAction, findNextSubstitution, parseNextSteps, renderNextSteps, stepNext } from './RandomizeNext.ts'
 
-export const currentStateVersion = 5
+export const currentStateVersion = 6
 export const defaultBpm = 60
 
 export type DeckIndex = DeckCursor
@@ -31,7 +31,9 @@ export type RState = {
   version: number,
   text?: string,
 
-  items?: Decks<UserItem>,
+  // Decks point at their lines by key; the lines live once, in `lines`.
+  items?: Decks<ItemRef>,
+  lines?: Lines,
   // The named blocks' headers, evaluated with the root deck and kept until the
   // next eval — a subdeck never re-evaluates them.
   blockHeaders?: BlockHeaders,
@@ -54,7 +56,7 @@ export type RState = {
 }
 
 export const defaultState: RState = {
-  version: 5,
+  version: 6,
 
   text: "Lullaby: play it\nJuggling: do it\nSquats: do it"
 }
@@ -101,8 +103,64 @@ export function itemSkipped(item?: UserItem): boolean {
   return item?.separator == true || item?.done == true
 }
 
-export function excludeFor(hideDone: boolean): Exclude<UserItem> {
-  return item => hideDone !== false && itemSkipped(item)
+function refSkipped(lines: Lines): (ref: ItemRef) => boolean {
+  return ref => ref.done == true || lines[ref.key]?.separator == true
+}
+
+export function excludeFor(hideDone: boolean, lines: Lines): Exclude<ItemRef> {
+  const skipped = refSkipped(lines)
+  return ref => hideDone !== false && skipped(ref)
+}
+
+// ── pointers ─────────────────────────────────────────────────────────────────
+
+// Store lines under their keys and point at them. Within a batch the first line
+// per key wins; it replaces what was stored under that key before. Lines without
+// a key (separators, errors) are keyed by their hash.
+export function storeLines(lines: Lines, rls: (RenderLine | UserItem)[]): [Lines, ItemRef[]] {
+  const fresh: Lines = {}
+  const refs = rls.map(rl => {
+    const { timer: _t, done: _d, dropped: _dr, ...line } = rl as UserItem
+    const key = line.key ?? hashKey(line.contents)
+    if (!(key in fresh)) fresh[key] = { ...line, key }
+    return { key } satisfies ItemRef
+  })
+  return [{ ...lines, ...fresh }, refs]
+}
+
+export function resolveDecks(s: RState | undefined): Decks<UserItem> {
+  const lines = s?.lines || {}
+  return Object.fromEntries(Object.entries(s?.items || {}).map(([deck, refs]) => [deck, refs.map(r => resolveItem(lines, r))]))
+}
+
+export function resolveAt(s: RState | undefined, cursor: DeckCursor | undefined): UserItem | undefined {
+  const ref = deckGet(s?.items || {}, cursor)
+  return ref && resolveItem(s?.lines || {}, ref)
+}
+
+// Lines no deck points at any more.
+function pruneLines(lines: Lines, decks: Decks<ItemRef>): Lines {
+  const used = new Set(Object.values(decks).flatMap(refs => refs.map(r => r.key)))
+  return Object.fromEntries(Object.entries(lines).filter(([key]) => used.has(key)))
+}
+
+// Version 5 kept whole items in the decks; split them into lines and pointers.
+export function migrateV5(s: Omit<RState, 'items'> & { items?: Decks<UserItem> }): RState {
+  let lines: Lines = {}
+  const items: Decks<ItemRef> = Object.fromEntries(Object.entries(s.items || {}).map(([deck, old]) => {
+    const [stored, refs] = storeLines(lines, old)
+    lines = stored
+    return [deck, refs.map((ref, i) => {
+      const { timer, done, dropped } = old[i]
+      return {
+        ...ref,
+        ...(timer !== undefined && { timer }),
+        ...(done !== undefined && { done }),
+        ...(dropped !== undefined && { dropped }),
+      }
+    })]
+  }))
+  return { ...s, version: 6, items, lines }
 }
 
 export function setItemBpmMemory(key: string | null, m: string | undefined, bpm: number): string {
@@ -144,7 +202,8 @@ export function recalcMetro(old: Metro, diff: Metro): Metro {
 
 // On a (re)eval we rebuild, otherwise return previous
 function itemsAndTimer(
-  decks: Decks<UserItem>,
+  decks: Decks<ItemRef>,
+  lines: Lines,
   m: string | undefined,
   eval_: boolean,
   contents: string,
@@ -152,28 +211,30 @@ function itemsAndTimer(
   stack: DeckCursor[],
   images: ImageEntry[] | undefined,
   headers: BlockHeaders | undefined,
-): [Decks<UserItem>, Timer | undefined, DeckCursor[], BlockHeaders | undefined] {
-  if (!eval_) return [decks, total, stack, headers]
+): [Decks<ItemRef>, Lines, Timer | undefined, DeckCursor[], BlockHeaders | undefined] {
+  if (!eval_) return [decks, lines, total, stack, headers]
 
   let memory: Map<any, any> = memoryFromString(m)
-  const [lines, _, newHeaders] = evalContentsMem(contents, memory, { images })
+  const [evaluated, _, newHeaders] = evalContentsMem(contents, memory, { images })
+  const [newLines, refs] = storeLines({}, evaluated)
 
-  return [decksOf(lines.map(rl => toUserItem(rl))), zeroedStoppedTimer(), [], newHeaders]
+  return [decksOf(refs), newLines, zeroedStoppedTimer(), [], newHeaders]
 }
 
 // Apply an item action to the deck-local flat list. `current` is the in-deck
 // index. Returns the new list, new memory, and — for reorders (bury/unreview/last)
 // that resolve the cursor themselves — the new in-deck index (else null).
 export function modifyItemState(
-  inItems: UserItem[] | undefined,
+  inItems: ItemRef[] | undefined,
+  lines: Lines,
   m: string | undefined,
   current: number,
   currentMetro: number,
   controls: ItemActions,
-  exclude: Exclude<UserItem>,
+  exclude: Exclude<ItemRef>,
   now: number,
   images?: ImageEntry[],
-): [UserItem[], string, number | null] {
+): [ItemRef[], Lines, string, number | null] {
   const items = inItems || []
 
   const newMemory = withMemory(m, memory => {
@@ -184,40 +245,41 @@ export function modifyItemState(
       cardSet(memory, items[current].key, { reviewed: 0, })
   })
 
-  const updatedItems: UserItem[] = items.map((item, index) => {
-    if (index != current) return item
-    if (controls.regenerate === 'new') {
-      if (!item.source) return item
-      return evalRenderLine(item, memoryFromString(m), { images }) satisfies UserItem
-    } else if (controls.regenerate === 'next') {
-      if (!item.source) return item
-      return rotateInterpolableLine(item, controls.regenerateKey, memoryFromString(m))
-    } else {
-      const dropped = typeof item.dropped == 'number' ? item.dropped : 0
-      return {
-        ...item,
-        done: controls.done === undefined ? item.done : controls.done,
-        dropped: (dropped + (controls.bury === true ? 1 : 0)) * (controls.unreview === true ? 0 : 1),
-      } satisfies UserItem
-    }
+  // A re-roll refreshes the line itself, so every pointer to it shows it.
+  const line = items[current] && lines[items[current].key]
+  const regenerated =
+    !line?.source ? null
+      : controls.regenerate === 'new' ? evalRenderLine(line, memoryFromString(m), { images })
+        : controls.regenerate === 'next' ? rotateInterpolableLine(line, controls.regenerateKey, memoryFromString(m))
+          : null
+  const updatedLines: Lines = regenerated ? { ...lines, [items[current].key]: regenerated } : lines
+
+  const updatedItems: ItemRef[] = items.map((item, index) => {
+    if (index != current || controls.regenerate) return item
+    const dropped = typeof item.dropped == 'number' ? item.dropped : 0
+    return {
+      ...item,
+      done: controls.done === undefined ? item.done : controls.done,
+      dropped: (dropped + (controls.bury === true ? 1 : 0)) * (controls.unreview === true ? 0 : 1),
+    } satisfies ItemRef
   })
 
   const currentDroppedCount = (updatedItems[current] && updatedItems[current].dropped) || 0
   // bury ("drop down three"), unreview ("to top") and last are GenericList reorders:
   // they move the item and resolve the cursor themselves, so recalc skips its
   // own seek for them (signalled by returning a non-null new current).
-  const excludeForBury: Exclude<UserItem> = it => exclude(it) || ((it.dropped || 0) + 2 <= currentDroppedCount)
-  const list: ListState<UserItem> = { items: updatedItems, current }
+  const excludeForBury: Exclude<ItemRef> = it => exclude(it) || ((it.dropped || 0) + 2 <= currentDroppedCount)
+  const list: ListState<ItemRef> = { items: updatedItems, current }
   const queueBottom = bottomOfQueue(list, currentDroppedCount, it => it.dropped || 0, exclude)
-  const reordered: ListState<UserItem> | null =
+  const reordered: ListState<ItemRef> | null =
     controls.bury === true ? dropThree(list, excludeForBury, exclude, queueBottom)
       : controls.unreview === true ? toTop(list)
         : controls.last === true ? toBottom(list, exclude)
           : null
 
   return reordered
-    ? [reordered.items, newMemory, reordered.current]
-    : [updatedItems, newMemory, null]
+    ? [reordered.items, updatedLines, newMemory, reordered.current]
+    : [updatedItems, updatedLines, newMemory, null]
 }
 
 // ── next tag ────────────────────────────────────────────────────────────────
@@ -226,17 +288,18 @@ export function reduceMetroClick(s: RState | undefined): [RState, NextAction | n
   if (!s) return [defaultState, null]
 
   const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
-  const item = deckGet(s.items || {}, cursor)
-  const subst = findNextSubstitution(item?.source?.substitutions)
-  if (!item || !subst) return [s, null]
+  const ref = deckGet(s.items || {}, cursor)
+  const line = ref && s.lines?.[ref.key]
+  const subst = findNextSubstitution(line?.source?.substitutions)
+  if (!ref || !line || !subst) return [s, null]
 
   const steps = parseNextSteps(subst.contents)
   if (steps.length === 0) return [s, null]
 
   const [stepped, action] = stepNext(steps)
-  const items = deckMapAt(s.items || {}, cursor, it => ({ ...it, ...setSubstitutionContents(it, subst.marker, renderNextSteps(stepped)) }))
+  const lines = { ...s.lines, [ref.key]: setSubstitutionContents(line, subst.marker, renderNextSteps(stepped)) }
 
-  return [{ ...s, items }, action]
+  return [{ ...s, lines }, action]
 }
 
 // ── timers ───────────────────────────────────────────────────────────────────
@@ -298,7 +361,7 @@ export function reduceTimer(s: RState | undefined, commandIn: TimerCommand, targ
     [leafCursor, [commandLeaf], ['stop']],
   ]
 
-  const items: Decks<UserItem> = chain.reduce((acc, [[deck, index], command, siblingCommand]) => ({
+  const items: Decks<ItemRef> = chain.reduce((acc, [[deck, index], command, siblingCommand]) => ({
     ...acc,
     [deck]: deckItems(acc, deck).map((item, i) => ({
       ...item,
@@ -332,12 +395,12 @@ export function reduceMetro(s: RState | undefined, diff: Metro): RState {
 }
 
 function withItemMetroTag(s: RState, bpm: number): RState {
-  const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
-  const item = deckGet(s.items || {}, cursor)
-  if (!item || itemMetroBpm(item) === null || itemMetroBpm(item) === bpm) return s
+  const ref = deckGet(s.items || {}, s.current || [DEFAULT_DECK, 0])
+  const line = ref && s.lines?.[ref.key]
+  if (!ref || !line || itemMetroBpm(line) === null || itemMetroBpm(line) === bpm) return s
 
-  const items = deckMapAt(s.items || {}, cursor, it => ({ ...it, ...setSubstitutionHead(it, 'metro', String(bpm), memoryFromString(s.memory)) }))
-  return { ...s, items }
+  const lines = { ...s.lines, [ref.key]: setSubstitutionHead(line, 'metro', String(bpm), memoryFromString(s.memory)) }
+  return { ...s, lines }
 }
 
 // ── recalc ─────────────────────────────────────────────────────────────────
@@ -361,21 +424,21 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const deck = a.eval ? DEFAULT_DECK : prevCursor[0]
 
-  const [initDecks, totalTimer, cursorStack, blockHeaders] = itemsAndTimer(s?.items || decksOf<UserItem>([]), s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders)
+  const [initDecks, initLines, totalTimer, cursorStack, blockHeaders] = itemsAndTimer(s?.items || decksOf<ItemRef>([]), s?.lines || {}, s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders)
   const initItems = deckItems(initDecks, deck)
 
   // Exclusion is built from the locally-resolved hideDone (which a.hideDone may
   // be flipping in this very update), not a stale closure.
-  const excludeSeek = excludeFor(hideDone !== false)
-  const [deckList, memory, reorderedCurrent] = modifyItemState(initItems, s?.memory, prevCursor[1], deps.bpm, a.item || {}, excludeSeek, deps.now, s?.images)
+  const excludeSeek = excludeFor(hideDone !== false, initLines)
+  const [deckList, lines, memory, reorderedCurrent] = modifyItemState(initItems, initLines, s?.memory, prevCursor[1], deps.bpm, a.item || {}, excludeSeek, deps.now, s?.images)
   const memoryMap = mapParse(memory)
 
   // The cursor is resolved by GenericList: a bury/unreview reorder already set
   // it; otherwise translate the advance request into a seek/set/stay.
-  const decksAfterReorder: Decks<UserItem> = { ...initDecks, [deck]: deckList }
+  const decksAfterReorder: Decks<ItemRef> = { ...initDecks, [deck]: deckList }
   const reorderedCursor: DeckCursor = [deck, reorderedCurrent !== null ? reorderedCurrent : prevCursor[1]]
   const seekDirection = a.advance?.at(0) === "seek" ? (a.advance[1]! as Direction) : null
-  const [resolvedDecks, resolvedCursor]: [Decks<UserItem>, DeckCursor] =
+  const [resolvedDecks, resolvedCursor]: [Decks<ItemRef>, DeckCursor] =
     reorderedCurrent !== null
       ? [decksAfterReorder, reorderedCursor]
       : seekDirection !== null
@@ -390,7 +453,8 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const items = deckItems(resolvedDecks, deck)
   const nextCursor: DeckCursor = a.eval ? [deck, 0] : resolvedCursor
 
-  const newItem = deckGet(resolvedDecks, nextCursor)
+  const newRef = deckGet(resolvedDecks, nextCursor)
+  const newItem = newRef && resolveItem(lines, newRef)
   const newKey = newItem && newItem.key
   const newCard: CardData | null = newKey && findCard(memoryMap, newItem.key || '') || null
   const newBpm: number = itemMetroBpm(newItem) ?? newCard?.bpm ?? s?.metro?.bpm ?? defaultBpm
@@ -403,6 +467,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
     text: contentsOr,
 
     items: resolvedDecks,
+    lines,
     blockHeaders,
     outLineCount: items.length,
     memory: newKey ? setItemBpmMemory(newKey, memory, metro.bpm || newBpm) : memory,
@@ -433,7 +498,7 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   if (!s) return defaultState satisfies RState
 
   const cursor: DeckCursor = s.current || [DEFAULT_DECK, 0]
-  const parent: UserItem | undefined = deckGet(s.items || {}, cursor)
+  const parent: UserItem | undefined = resolveAt(s, cursor)
   if (!parent) return s
 
   const hasOrderedTag = parent.source?.substitutions?.some(s => s.tags?.some(t => t == "ordered"))
@@ -444,16 +509,17 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
 
   const deckName = spawnDeckName(parent, mode)
   const existing = s.items?.[deckName]
-  const reusable = existing && existing.some(i => !itemSkipped(i))
-  const scheduled = reusable ? existing : scheduler(children, s.memory)
+  const reusable = existing && existing.some(i => !refSkipped(s.lines || {})(i))
+  const [lines, scheduled] = reusable ? [s.lines || {}, existing] : storeLines(s.lines || {}, scheduler(children, s.memory))
 
-  const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: scheduled }
-  const newCursor: DeckCursor = descendCursor(s, items, deckName)
+  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: scheduled }
+  const newCursor: DeckCursor = descendCursor({ ...s, lines }, items, deckName)
 
   const newState: RState = {
     ...s,
     version: currentStateVersion,
     items,
+    lines,
     current: newCursor,
     cursorStack: [...(s.cursorStack || []), cursor],
   }
@@ -462,8 +528,8 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   return reduceTimer(newState, 'local-as-global', null, now)
 }
 
-function descendCursor(s: RState, decks: Decks<UserItem>, deckName: string): DeckCursor {
-  return deckSetCurrent(decks, [deckName, 0], 0, excludeFor(s.hideDone !== false))[1]
+function descendCursor(s: RState, decks: Decks<ItemRef>, deckName: string): DeckCursor {
+  return deckSetCurrent(decks, [deckName, 0], 0, excludeFor(s.hideDone !== false, s.lines || {}))[1]
 }
 
 function subdeckPrefix(item: UserItem): string {
@@ -472,7 +538,8 @@ function subdeckPrefix(item: UserItem): string {
 
 export function liveSubdeckName(s: RState | undefined, item: UserItem): string | null {
   const prefix = subdeckPrefix(item)
-  const found = Object.entries(s?.items || {}).find(([deck, items]) => deck.startsWith(prefix) && items.some(i => !itemSkipped(i)))
+  const skipped = refSkipped(s?.lines || {})
+  const found = Object.entries(s?.items || {}).find(([deck, items]) => deck.startsWith(prefix) && items.some(i => !skipped(i)))
   return found ? found[0] : null
 }
 
@@ -504,8 +571,9 @@ export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: n
   if (lines.length === 0) return s
 
   const deckName = blockDeckName(name)
-  const items: Decks<UserItem> = { ...(s.items || {}), [deckName]: lines.map(rl => toUserItem(rl)) }
-  return reduceEnterDeck({ ...s, items }, deckName, now)
+  const [stored, refs] = storeLines(s.lines || {}, lines)
+  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: refs }
+  return reduceEnterDeck({ ...s, items, lines: stored }, deckName, now)
 }
 
 // Descend into an existing deck by name. Pushes the current cursor on the stack.
@@ -524,7 +592,7 @@ export function reduceEnterDeck(s: RState | undefined, deckName: string, now: nu
 export function reduceInsertItem(s: RState | undefined, dsl: string, now: number): RState {
   if (!s) return defaultState
 
-  const inserted = evalContents(dsl, { images: s.images }).map(rl => toUserItem(rl))
+  const [lines, inserted] = storeLines(s.lines || {}, evalContents(dsl, { images: s.images }))
   if (inserted.length === 0) return s
 
   const [deck, index] = s.current || [DEFAULT_DECK, 0]
@@ -535,6 +603,7 @@ export function reduceInsertItem(s: RState | undefined, dsl: string, now: number
   const newState: RState = {
     ...s,
     items: { ...(s.items || {}), [deck]: newDeckList },
+    lines,
     outLineCount: newDeckList.length,
     current: [deck, at],
   }
@@ -547,7 +616,7 @@ export function reduceCleanSubdeck(s: RState | undefined, item: UserItem): RStat
   const prefix = subdeckPrefix(item)
   const items = Object.fromEntries(Object.entries(s.items || {}).filter(([deck]) => !deck.startsWith(prefix)))
 
-  return { ...s, items }
+  return { ...s, items, lines: pruneLines(s.lines || {}, items) }
 }
 
 // The deck names from the root down to the current deck, for the breadcrumb.

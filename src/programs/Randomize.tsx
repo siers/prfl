@@ -10,14 +10,14 @@ import { mapParse } from '../lib/Map.js'
 
 import { clamp, parseInt } from 'lodash'
 import { linearSeekPast } from './LinearSeek.ts'
-import { DeckCursor, Decks, DEFAULT_DECK, decksOf, deckItems, deckGet } from './Decks.ts'
+import { DeckCursor, Decks, DEFAULT_DECK, deckItems, deckGet } from './Decks.ts'
 import { Synth, unlockAudio } from './Synth.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, hasSubdeck, liveSubdeckName, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
+  deckPath, hasSubdeck, liveSubdeckName, migrateV5, resolveDecks, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
@@ -51,10 +51,12 @@ function Randomize(controls: any): JSX.Element {
 
   useEffect(() => {
     if (!controls.state) { setState((_: any) => defaultState); return }
-    if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
+    if (stateVersion == 5) setState((s: Parameters<typeof migrateV5>[0]) => migrateV5(s))
+    else if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
   }, [controls.state, stateVersion])
 
-  const decks: Decks<UserItem> = state?.items || decksOf<UserItem>([])
+  // Memoized: fresh items every render would restart the synth's tone loop.
+  const decks: Decks<UserItem> = React.useMemo(() => resolveDecks(state), [state?.items, state?.lines])
   const outLineCount: number = state?.outLineCount || 0
 
   const current: DeckCursor = state?.current || [DEFAULT_DECK, 0]

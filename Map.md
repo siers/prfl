@@ -110,7 +110,10 @@ not a language one. Those are different rotations; conflating them is easy.
 | `Synth.tsx` | `SheetNote[]` → Tone.js events; `unlockAudio` for the mobile audio gate |
 
 State is versioned (`currentStateVersion`) and persisted to `localStorage` by
-`App.jsx`. Review memory is a serialized `key -> {reviewed, bpm}` map; items
+`App.jsx`. Decks hold pointers — a key plus progress (`done`, `timer`,
+`dropped`) — and each line lives once in `lines` under its key: a re-roll
+refreshes the line for every pointer to it. `resolveDecks` joins the two for
+reading; a version-5 state is split by `migrateV5` on load instead of wiped. Review memory is a serialized `key -> {reviewed, bpm}` map; items
 never seen fall back to a stable hash of their contents, so ordering is
 deterministic rather than arbitrary.
 

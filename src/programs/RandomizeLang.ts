@@ -312,7 +312,7 @@ function evalInterpolates(
 
 // Every item has a key: a line without a `Key:` prefix gets `Nr` and 6 hex
 // digits of its hash.
-function hashKey(contents: string): string {
+export function hashKey(contents: string): string {
   return `Nr${murmur.x86.hash32(contents).toString(16).padStart(8, '0').slice(0, 6)}`
 }
 
