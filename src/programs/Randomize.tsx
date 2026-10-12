@@ -303,8 +303,10 @@ function Randomize(controls: any): JSX.Element {
         const isCurrent = index == currentIndex
         const showReeval = isCurrent && (items[currentIndex]?.source?.interpols?.length || 0) > 0
         const deckName = isCurrent ? liveSubdeckName(state, item) : null
-        const showEnter = isCurrent && hasSubdeck(state, item)
-        const showSpawn = isCurrent && isSpawnable(item) && !deckName
+        // Hidden or empty tags leave nothing on screen to explore in a subdeck.
+        const visibleTags = (item.source?.substitutions || []).some(s => !isHidden(s) && interpolateSubtToStringPlain(s.contents).length > 0)
+        const showEnter = isCurrent && visibleTags && hasSubdeck(state, item)
+        const showSpawn = isCurrent && visibleTags && isSpawnable(item) && !deckName
         const showCheckmark = isCurrent && itemSeekExcluded(item)
 
         let wipeHandlers = useWipe({
