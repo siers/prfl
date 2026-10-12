@@ -75,6 +75,13 @@ is re-entered as-is; an exhausted or 🧹-cleaned one is instantiated fresh. Ite
 inside a subdeck can open their own block subdecks the same way. A block whose
 lines need a `prefix:` keeps a wrapper: `-=- Standards` → `{scheduleBlocks('St:StandardsT')}`.
 
+**`name::` moves a line into a block.** `warmup::Thing: do this`, written
+anywhere, is appended to the end of the first block whose header is written
+`warmup` — as `Thing: do this`. The name is matched against the header as
+written, before evaluation, so a header named by `{}`/`[]` can't be targeted;
+without a match the line stays where it is, prefix and all. A multiplier goes
+in front: `2x warmup::Thing`.
+
 Blocks are registered in file order, so a block must be defined **before** the
 block that calls it. Adjacent non-empty root blocks get a `---` separator line
 between them automatically; that's output, not something you write.

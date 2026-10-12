@@ -392,6 +392,26 @@ describe('block subdecks', () => {
     ])
   })
 
+  test('name:: moves a line to the end of the block written as name, in file order', () => {
+    const text = `
+      a::d
+      -=- a: #unscheduled
+      a
+      b
+      -=-
+      a
+      a::c
+    `.replaceAll(/^ */mg, '')
+
+    expect(evalContentsS(text)).toStrictEqual(['a'])
+    expect(deckS(text, 'a')).toStrictEqual(['a', 'b', 'd', 'c'])
+  })
+
+  test('name:: without a block written as name leaves the line in place', () => {
+    // A header-less block shuffles; `-=-` keeps the written order.
+    expect(evalContentsS("-=-\nnowhere::Thing\nroot")).toStrictEqual(['nowhere::Thing', 'root'])
+  })
+
   test('a #unscheduled header instantiates in written order, not schedule-sorted', () => {
     const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
 

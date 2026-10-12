@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Header, BlockHeaders, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -146,7 +146,36 @@ function parseBlock(items: Item[]): Block {
 export function parseContents(text: string): Parsed {
   const lines = text.split('\n').filter(x => !x.match(/^ *$/))
   const parsed = lines.flatMap(parseLine)
-  return initSequences(parsed, i => i.kind! == 'header').map(parseBlock)
+  return relocateLines(initSequences(parsed, i => i.kind! == 'header').map(parseBlock))
+}
+
+const RelocatePattern = /^([a-zA-Z0-9\-#]+)::(.*)$/
+
+// A header's name as written, before evaluation: the line key, else the first
+// word — the rule evalHeader applies after it.
+function writtenHeaderName(h: Header): string | null {
+  if (!h.line) return null
+  const contents = h.line.contents
+  return contents.match(LineKeyPattern)?.[1] ?? contents.match(/^[^ ]*/)![0]
+}
+
+// `name::rest` moves the line `rest` to the end of the first block whose header
+// is written `name`. Names are matched as written, so a header whose name is
+// only known after evaluation can't be targeted; the line then stays as it is.
+function relocateLines(blocks: Block[]): Block[] {
+  const names = blocks.map(b => writtenHeaderName(b.header))
+  const moved: Item[][] = blocks.map(_ => [])
+
+  const kept = blocks.map(b => b.items.filter(item => {
+    const m = item.kind == 'line' && item.contents.match(RelocatePattern)
+    const target = m ? names.indexOf(m[1]) : -1
+    if (!m || target == -1) return true
+
+    moved[target].push({ ...item, contents: m[2] } satisfies Line)
+    return false
+  }))
+
+  return blocks.map((b, i) => block(b.header, kept[i].concat(moved[i])))
 }
 
 // The names of the named blocks — the keys an item can instantiate a subdeck
