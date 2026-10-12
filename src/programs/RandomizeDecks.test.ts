@@ -90,3 +90,35 @@ describe('child keys & deck name', () => {
     expect(children.every(c => !isSpawnable(c))).toBe(true)
   })
 })
+
+describe('stable parameters', () => {
+  const STABLE = "Scale: play [s('C,D')]key [s('up,down')]bow:stable"
+
+  test('a `stable` substitution is not a parameter', () => {
+    expect(itemParams(evalItem(STABLE)).map(p => p.tag)).toStrictEqual(['key'])
+  })
+
+  test('only stable multi-value substitutions leave nothing to spawn', () => {
+    expect(isSpawnable(evalItem("Bow: [s('C')]key [s('up,down')]bow:stable"))).toBe(false)
+  })
+
+  test('children vary only the other parameters and keep the stable one whole', () => {
+    for (const mode of ['zip', 'cartesian'] as const) {
+      const children = spawnChildren(evalItem(STABLE), mode)
+      expect(keys(children)).toStrictEqual(['Scale-[C]', 'Scale-[D]'])
+      expect(children.map(c => c.source?.substitutions?.map(s => s.contents))).toStrictEqual([
+        [['C'], ['up', 'down']],
+        [['D'], ['up', 'down']],
+      ])
+      expect(children.every(c => !isSpawnable(c))).toBe(true)
+    }
+  })
+
+  test('a stable substitution between parameters keeps the others aligned', () => {
+    const children = spawnChildren(evalItem("Scale: [s('C,D')]key [s('up,down')]bow:stable [s('1,2')]fing"), 'zip')
+    expect(children.map(c => c.source?.substitutions?.map(s => s.contents))).toStrictEqual([
+      [['C'], ['up', 'down'], ['1']],
+      [['D'], ['up', 'down'], ['2']],
+    ])
+  })
+})

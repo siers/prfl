@@ -13,7 +13,7 @@
 // card/memory entry. The cursor/return-stack mechanics live in RandomizeState;
 // this module is the pure parameter → children expansion.
 
-import { InterpolateSubstT } from './RandomizeLangTypes.js'
+import { InterpolateSubstT, isStable } from './RandomizeLangTypes.js'
 import { collapseToValues } from './RandomizeLang.js'
 import { UserItem, toUserItem } from './RandomizeTypes.js'
 import { cartesian, zipLongest } from '../lib/Array.ts'
@@ -29,13 +29,14 @@ export function substValues(c: InterpolateSubstT): string[] {
 
 export type Param = { marker: string, tag: string | null, values: string[] }
 
-// One Param per substitution, in substitution order — so a combination's i-th
-// value lines up with collapseToValues' i-th substitution. An empty
+// One Param per non-`stable` substitution, in substitution order — so a
+// combination's i-th value lines up with collapseToValues' i-th non-stable
+// substitution. A stable one isn't a parameter: children keep it whole. An empty
 // substitution keeps a single '-' placeholder rather than collapsing the whole
 // product to nothing (and to stay aligned).
 export function itemParams(item: UserItem): Param[] {
   const subs = item.source?.substitutions || []
-  return subs.map(s => {
+  return subs.filter(s => !isStable(s)).map(s => {
     const values = substValues(s.contents)
     return { marker: s.marker, tag: s.tag, values: values.length > 0 ? values : ['-'] }
   })

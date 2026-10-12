@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, isStable, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -558,8 +558,11 @@ export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
   const l = structuredClone(l_)
 
   if (!l.source?.substitutions) return l
-  const newSubst = (l.source.substitutions || []).map((s, i) =>
-    ({ ...s, contents: [values[i] ?? '-'] })
+  // `values` line up with the non-`stable` substitutions only; a stable one
+  // keeps its whole option list.
+  let i = 0
+  const newSubst = (l.source.substitutions || []).map(s =>
+    isStable(s) ? s : ({ ...s, contents: [values[i++] ?? '-'] })
   )
 
   const resubst = newSubst.reduce<RenderLine>(

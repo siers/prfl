@@ -159,7 +159,10 @@ export const isComputed = (x: Tagged): boolean => (x.tags || []).includes('compu
 // pick from rather than a sequence to step through, so stepping the line should
 // not walk it. Clicking the field's own tag still rotates it.
 export const isNonrotated = (x: Tagged): boolean => (x.tags || []).includes('nonrotated')
-export const isInline = (x: Tagged): boolean => (x.tags || []).includes('inline')
+// Kept out of a spawned deck's parameters: every child carries the field's full
+// option list as-is, instead of one value per combination.
+export const isStable = (x: Tagged): boolean => (x.tags || []).includes('stable')
+export const isInline =(x: Tagged): boolean => (x.tags || []).includes('inline')
 export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')
 // Feeds the sheet/image displays and stays re-rollable, but renders no text.
