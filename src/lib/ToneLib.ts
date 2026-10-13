@@ -338,6 +338,18 @@ export function keyCenters(mode: number = 0): ModalKey[] {
   })
 }
 
+export function keyAccidentals(k: Key): number {
+  return _.sumBy(k, n => Math.abs(n.alter))
+}
+
+// the same mode, its root moved by `semis` semitones; every spelling the key set has,
+// ordered by number of accidentals: D+1 = [Eb], D-1 = [Db, C#]
+export function modulateModalKeySemi(mk: ModalKey, semis: number): ModalKey[] {
+  const target = ((pitchClass(mk.root) + semis) % 12 + 12) % 12
+  const found = keyCenters(mk.mode).filter(k => pitchClass(k.root) === target)
+  return _.sortBy(found, k => keyAccidentals(k.key))
+}
+
 // NOTE: this really could be just [0, 11]
 export function keySemis(mode: number = 0): number[] {
   return keyCenters(mode).map(k => semi(normalize(k.root)))

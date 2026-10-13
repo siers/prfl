@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical } from './ToneLib.ts'
+import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical, keyCenters, modulateModalKeySemi } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
 import { parseSheet, resolveColor } from './SheetNotation.ts'
 
@@ -582,5 +582,19 @@ describe('ToneLib', () => {
       expect(herzToSemi(hertz / quarterUp / 0.999)).toBe(semi(t))
       expect(semiToHertz(semi(t))).toBeCloseTo(hertz)
     })
+  })
+
+  test('modulateModalKeySemi — by semitone offset, fewest accidentals first', () => {
+    const rel = (root: string, mode: number, semis: number) => {
+      const mk = keyCenters(mode).find(k => renderN(k.root) === root)!
+      return modulateModalKeySemi(mk, semis).map(k => renderN(k.root))
+    }
+
+    expect(rel('D', 0, 1)).toStrictEqual(['Eb'])
+    expect(rel('D', 0, -1)).toStrictEqual(['Db', 'C#'])
+    expect(rel('D', 0, 0)).toStrictEqual(['D'])
+    expect(rel('D', 0, 12)).toStrictEqual(['D'])
+    expect(rel('A', 5, -1)).toStrictEqual(['G#', 'Ab'])
+    expect(modulateModalKeySemi(keyCenters(1)[0], 3).every(k => k.mode === 1)).toBe(true)
   })
 })
