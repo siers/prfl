@@ -439,6 +439,7 @@ export { zipT, intersperse, interspersing, interleavingEvery, chunk, take, pairw
 export * as ExExample from './Exercise20260919Example'
 export * as ExBowedTies from './ExerciseBowedTies'
 export * as ExScales from './Exercise20260929Scales'
+export * as ExScales3oc from './Exercise20261013Scales3oc'
 export { chromaticSlide } from '../lib/ToneLibViolin'
 export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
 export { shiftsDistributed }
