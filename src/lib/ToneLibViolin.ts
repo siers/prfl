@@ -1,6 +1,6 @@
 import { directRange, transpose, zipLongest, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt, shuffleArray } from './Random'
-import { addAccidental, enharmonics, equalLetterOctave, findMajor, Key, majorKey, Note, noteToNatural, parseNote, rebaseSemiByPitch, rename, render, renderN, semi } from './ToneLib'
+import { addAccidental, enharmonics, equalLetterOctave, findMajor, Key, majorKey, Note, noteToNatural, parseNote, rebaseSemiByPitch, rename, render, renderN, semi, stepN } from './ToneLib'
 import _ from 'lodash'
 
 // TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
@@ -276,6 +276,7 @@ export function modeShiftsGen(
   scales?: string,
   startFingerTarget: number = 0,
   endFingerTarget: number = 0,
+  endNoteOffset: number = 21, // diatonic steps above the start; 21 is three octaves
 ): ModeShiftGen[] {
   const key = Array.isArray(keyIn) ? keyIn : findMajor(keyIn)!
 
@@ -290,10 +291,12 @@ export function modeShiftsGen(
     const modeIdx = idx % modes.length
 
     const note = rebaseSemiByPitch(knote, parseNote('G3')!)
-    const endNote = { ...note, octave: note.octave + 3 }
+    const endNote = rename(stepN(note, endNoteOffset), key)
 
     const beginPos: StringEmbeddedNote = _.sortBy(embedNote(note, ['G', 'D']), sen => sen.position)[0]
-    const endPos: StringEmbeddedNote = embedNote(endNote, ['E'])[0]
+    // On the E string, unless it's below it: then the highest string that has it.
+    const endPos: StringEmbeddedNote | undefined = _.sortBy(embedNote(endNote), sen => -sen.string.index)[0]
+    if (!endPos) throw new Error(`modeShiftsGen: no string reaches ${renderN(endNote)}`)
 
     const startFinger = pickAvailOrRandom(beginPos.availFingers, startFingerTarget)
     const endFingerAvail = [4, 3, 2, 1].slice(0, 1 + Math.max(0, 15 - endPos.position))
@@ -331,9 +334,10 @@ export function modeShifts(
   keyIn: Note | Key,
   scales: string = 'maj',
   startFinger: number = 0,
-  endFinger: number = 0
+  endFinger: number = 0,
+  endNoteOffset: number = 21,
 ): string[] {
-  return modeShiftsGen(keyIn, scales, startFinger, endFinger).map(serializeModeShift)
+  return modeShiftsGen(keyIn, scales, startFinger, endFinger, endNoteOffset).map(serializeModeShift)
 }
 
 // modeNr is recovered from the mode; root and the raw shift counts are not encoded.

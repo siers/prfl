@@ -200,6 +200,27 @@ describe('ToneLibViolin', () => {
       )
     })
 
+    test('three octaves by default: the same diatonic shifts as 21 steps', () => {
+      const d = findMajor(parseNote('d')!)!
+      const shiftsOf = (offset?: number) => modeShiftsGen(d, 'maj', 1, 4, offset).map(ms => [ms.mode, ms.diatonicShifts, ms.chromShifts])
+      expect(shiftsOf()).toStrictEqual(shiftsOf(21))
+    })
+
+    test('a shorter end note takes fewer shifts', () => {
+      const d = findMajor(parseNote('d')!)!
+      const shiftsOf = (offset: number) => modeShiftsGen(d, 'maj', 1, 4, offset).map(ms => ms.chromShifts)
+      const [two, three] = [shiftsOf(14), shiftsOf(21)]
+      two.forEach((s, i) => expect(s).toBeLessThan(three[i]))
+    })
+
+    test('an end note off the octave lands on the key degree', () => {
+      // D major, starting on D: 16 steps up is the third, F#, two octaves and a third higher.
+      const d = findMajor(parseNote('d')!)!
+      const ion = modeShiftsGen(d, 'maj', 1, 4, 16)[0]
+      const ionOctaves = modeShiftsGen(d, 'maj', 1, 4, 14)[0]
+      expect(ion.chromShifts - ionOctaves.chromShifts).toBe(4)
+    })
+
     test('chrom scale shows chromShifts', () => {
       modeShiftsGen(findMajor(parseNote('d')!)!, 'chrom').forEach(ms =>
         expect(ms.shifts).toBe(ms.chromShifts)

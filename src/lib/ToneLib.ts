@@ -226,10 +226,15 @@ export function stepTo(n: Note, to: Note): Note {
   return next
 }
 
+// Move by letters, keeping the alter: respell it into a key with `rename`.
+export function stepN(note: Note, steps: number): Note {
+  return times(Math.abs(steps)).reduce((n) => steps > 0 ? stepUp(n) : stepDown(n), note)
+}
+
 export function addInterval(note: Note, interval: number): Note {
   if (interval == 0) return note
   if (Math.abs(interval) > 200) return note
-  return times(Math.abs(interval)).reduce((n) => interval > 0 ? stepUp(n) : stepDown(n), note)
+  return stepN(note, interval)
 }
 
 // === § Note collections

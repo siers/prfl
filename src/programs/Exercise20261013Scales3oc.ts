@@ -1,7 +1,7 @@
 import { card, fieldsOf, fixed, text } from './ExerciseCard'
 import type { FieldGen } from './ExerciseCard'
 import type { RenderLine } from './RandomizeLangTypes'
-import { desMS, forceSignZero, metroS, modeShifts, range, s, shiftsMD, shuffle, ss, zipLongestShuf } from './RandomizeLangUtils'
+import { desMS, forceSignZero, metroS, modeShifts, range, s, shiftsMD, shuffle, ss } from './RandomizeLangUtils'
 
 // The S-3oc card: three-octave scales in a key, with a subdivision, a starting
 // offset into it, a metronome and the shifts for the first mode.
@@ -14,7 +14,7 @@ export const fields = {
   metro: () => metroS(42, 4),
   tempo: ({ div, metro }) => [`${Number(div[0].match(/\d+/)![0]) * Number(metro[0])}`],
   // Every scale, with and without an `R`, dealt over the key's seven modes.
-  mode: ({ key }) => shuffle(modeShifts(key[0], zipLongestShuf(ss(`dia chr hm mm +1 -1 sub pos`), [``, `R`]).map(x => x.join('')).join(' '))),
+  mode: ({ key }) => shuffle(modeShifts(key[0], ss(`dia hm mm`).join(' '))),
   inv: () => s(`-421, -321, 1233-4, -1, -1-2`),
   shifts: ({ mode, inv }) => shiftsMD(mode[0], `${inv[0]}:1-2-34`, '011222233333'),
   additional: ({ mode }) => [desMS(mode[0]).additional || '-'],

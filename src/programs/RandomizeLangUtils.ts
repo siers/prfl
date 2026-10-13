@@ -474,8 +474,8 @@ export function frets(upTo?: number): string[] {
   return fretsLib(upTo).flat()
 }
 
-export function modeShifts(keyIn: Note | string, scales?: string): string[] {
-  return modeShiftsLib(parseNote(keyIn)!, scales)
+export function modeShifts(keyIn: Note | string, scales?: string, endNoteOffset?: number): string[] {
+  return modeShiftsLib(parseNote(keyIn)!, scales, 0, 0, endNoteOffset)
 }
 
 export function metroS(base: number, diff: number): string[] {

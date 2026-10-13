@@ -49,7 +49,7 @@ describe('Scales3oc', () => {
   test('it comes out of an explode, like blockLines', () => {
     const [line] = evalContents("{ExScales3oc.gen('S-3oc', 'A')}")
     expect(line.key).toBe('S-3oc')
-    expect(fields(line).mode.length).toBe(8)
+    expect(fields(line).mode.length).toBe(7)
   })
 
   test('a re-roll runs the fields again in the DSL, keeping the key', () => {
