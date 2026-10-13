@@ -368,7 +368,7 @@ export function aba<A>(as: A[], bs: A[]): A[] {
 export function pickKeys(settings?: PickKeysInt): string[][] {
   settings = settings || {}
 
-  const keys = keyCenters(settings?.mode || 0)
+  const keys = keyCenters(settings?.mode || 0).map(k => k.root)
 
   if (typeof settings?.split == 'number') {
     settings.div = Math.round(12 / settings.split)

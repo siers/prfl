@@ -30,6 +30,15 @@ export interface Note {
 }
 
 export type Key = Note[] // semantic distinction only, unfortunately
+
+// A key read in one of its modes: `root` is the note the mode starts on,
+// `relativeMajor` the key's major tonic.
+export type ModalKey = {
+  key: Key,
+  mode: number,
+  root: Note,
+  relativeMajor: Note,
+}
 type Notes = Note[]
 
 const sharp = 1
@@ -321,18 +330,21 @@ export function majorKey(note: Note): Key | undefined {
   return keysMajor().find(k => renderN(k[0]) == renderN(note))
 }
 
-export function keyCenters(mode: number = 0): Note[] {
+export function keyCenters(mode: number = 0): ModalKey[] {
   const keys = _.sortBy(keysMajor(), ks => semi(ks[0]))
-  return keys.map(k => k[mode % keys[0].length])
+  return keys.map(key => {
+    const keyMode = mode % key.length
+    return { key, mode: keyMode, root: key[keyMode], relativeMajor: key[0] }
+  })
 }
 
 // NOTE: this really could be just [0, 11]
 export function keySemis(mode: number = 0): number[] {
-  return keyCenters(mode).map(k => semi(normalize(k)))
+  return keyCenters(mode).map(k => semi(normalize(k.root)))
 }
 
 export function keysBySemi(n: number): Note[] {
-  const centers = keyCenters()
+  const centers = keyCenters().map(k => k.root)
   return enharmonics(n).flatMap(e => centers.filter(c => equalNote(c, e)))
 }
 
@@ -375,7 +387,7 @@ export function nameLeadingDim7(): string[] {
 // group the major key tonics by letter name, ordered C D E F G A B,
 // each inner array holding that letter's tonics ordered by accidental (b, natural, #)
 export function majorKeyCentersPerLetter(): Note[][] {
-  const centers = keyCenters().map(normalize)
+  const centers = keyCenters().map(k => normalize(k.root))
   return names.map(name =>
     _.sortBy(centers.filter(c => c.name === name), c => c.alter),
   )
