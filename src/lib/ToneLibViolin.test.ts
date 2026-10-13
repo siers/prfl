@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { embedNote, embedNotePlusMinus, renderSen, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, positionsForKey, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
+import { embedNote, embedNotePlusMinus, renderSen, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, positionsForKey, modeShifts, modeShiftsGen, stringShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
 import { findMajor, Key, Modulation, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
 import { transpose, zipT } from './Array.ts'
@@ -240,6 +240,36 @@ describe('ToneLibViolin', () => {
     test('chrom scale shows chromShifts', () => {
       modeShiftsGen(findMajor(parseNote('d')!)!, 'chrom').forEach(ms =>
         expect(ms.shifts).toBe(ms.chromShifts)
+      )
+    })
+  })
+
+  describe('stringShiftsGen', () => {
+    const onString = (key: string, string: StringName, scales = 'dia') =>
+      stringShiftsGen(findMajor(parseNote(key)!)!, scales, string).map(serializeModeShift).join(' ')
+
+    test('starts on the open string when the key spells it', () => {
+      expect(onString('D', 'D')).toBe('D.dia:04;s10:a')
+      expect(onString('D', 'G')).toBe('G.dia:04;s10:a')
+      expect(onString('B', 'E')).toBe('E.dia:04;s10:a')
+    })
+
+    test('starts on 1 when the key has no open string', () => {
+      expect(onString('B', 'D')).toBe('D.dia:14;s11:a')
+      expect(onString('Gb', 'E')).toBe('E.dia:14;s11:a')
+      // E# is spelled in F#, but it is not the open E
+      expect(onString('F#', 'E')).toBe('E.dia:14;s11:a')
+    })
+
+    test('one per scale in the inventory, counted like modeShiftsGen', () => {
+      expect(onString('D', 'D', 'dia hm chrom')).toBe('D.dia:04;s10:a D.hm:04;s10:a D.chrom:04;s28:a')
+      expect(onString('B', 'D', 'dia chrom')).toBe('D.dia:14;s11:a D.chrom:14;s27:a')
+      expect(onString('D', 'D', 'pos')).toMatch(/^pos:04;s0:a[1-7]{7}$/)
+    })
+
+    test('round-trips', () => {
+      onString('Eb', 'A', 'dia hm mm chrom pos').split(' ').forEach(str =>
+        expect(serializeModeShift(deserializeModeShift(str))).toBe(str)
       )
     })
   })

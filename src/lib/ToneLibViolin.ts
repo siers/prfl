@@ -348,6 +348,32 @@ export function modeShifts(
   return modeShiftsGen(keyIn, scales, startFinger, endFinger, endNoteOffset, modulation).map(serializeModeShift)
 }
 
+// Two octaves of the key on one string, ending on 4: from the open string (0)
+// when the key spells it, else 1 on the first key note above it. One per scale
+// in the inventory, which counts the shifts like `modeShiftsGen` does. The
+// string takes the mode's slot, so `shiftsMD` reads it like any other ModeShift.
+export function stringShiftsGen(key: Key, scales: string, stringName: StringName): ModeShift[] {
+  const string = stringsForTonality(key)[stringIndex(stringName)]
+  const startFinger = semi(string.positions[0]) == semi(string.base) ? 0 : 1
+  const endFinger = 4
+
+  const diatonicShifts = positionOf(14, endFinger) - positionOf(0, startFinger)
+  const chromShifts = 24 + endFinger - startFinger
+
+  return scales.split(' ').map(scale => ({
+    modeNr: -1,
+    mode: stringName,
+    scale,
+    start: startFinger,
+    end: endFinger,
+    shifts:
+      scale == 'chrom' || scale == 'chr' ? chromShifts :
+        scale == 'pos' ? 0 :
+          diatonicShifts,
+    additional: scale == 'pos' ? shuffleArray('1234567'.split('')).join('') : '',
+  }))
+}
+
 // modeNr is recovered from the mode; root and the raw shift counts are not encoded.
 export function serializeModeShift(ms: ModeShift): string {
   return `${ms.scale == 'pos' ? '' : `${ms.mode}.`}${ms.scale}:${ms.start}${ms.end};s${ms.shifts}:a${ms.additional}`

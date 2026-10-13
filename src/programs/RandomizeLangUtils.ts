@@ -482,6 +482,13 @@ export function modeShifts(keyIn: Note | string, scales?: string, endNoteOffset?
   return modeShiftsLib(key, scales, 0, 0, endNoteOffset, modulation)
 }
 
+// a string key is a ModalKey (D, Bm, EM1): two octaves of its major key on one string, per scale
+export function stringShifts(keyIn: Note | string, scales: string, string: ToneLibViolin.StringName): string[] {
+  const key = typeof keyIn === 'string' ? ToneLib.parseModalKey(keyIn)?.key : ToneLib.findMajor(keyIn)
+  if (!key) throw new Error(`stringShifts: invalid key ${keyIn}`)
+  return ToneLibViolin.stringShiftsGen(key, scales, string).map(ToneLibViolin.serializeModeShift)
+}
+
 export function metroS(base: number, diff: number): string[] {
   return zipInterleave(...zipInterleave(...divide(divide(metro(base, diff), 6).map(shuffle), 3)))
 }
