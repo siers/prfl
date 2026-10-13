@@ -36,8 +36,11 @@ function clampIndex<A>(items: A[], index: number): number {
 }
 
 // direction = 0 is special, it will seek to the next item, only if the current is excluded
-export function seek<A>(state: ListState<A>, direction: Direction, exclude: Exclude<A>): ListState<A> {
-  if (state.items.length === 0) return state
+export function seek<A>(stateIn: ListState<A>, direction: Direction, exclude: Exclude<A>): ListState<A> {
+  if (stateIn.items.length === 0) return stateIn
+
+  // a stale cursor (e.g. its deck shrank on refresh) resolves from the nearest end
+  const state = { ...stateIn, current: clampIndex(stateIn.items, stateIn.current) }
 
   const mustSeek = exclude(state.items[state.current]) || direction !== 0
   if (!mustSeek) return state

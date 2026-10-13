@@ -1077,6 +1077,14 @@ describe('reduceRefresh', () => {
     expect(resolveAt(s, s.current)?.key).toBe('B')
   })
 
+  test('a cursor whose item is gone lands inside the shrunk deck', () => {
+    let s = evaluated("-=-\nA: a\nB: b\nC: c")
+    s = reduceRecalc(s, { advance: ['set', 2] }, deps()) // on C
+    s = reduceRefresh(s, "x", NOW)
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(resolveAt(s, s.current)?.contents).toBe('x')
+  })
+
   test('subdecks and the stack survive, with the stacked root cursor following its item', () => {
     let s = stateOf(['Scale', 'other'], 0, decked({ [DEFAULT_DECK]: [item('Scale'), item('other')], 'Scale/zip': [item('z')] }))
     s = reduceEnterDeck(s, 'Scale/zip', NOW)
