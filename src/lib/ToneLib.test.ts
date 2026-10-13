@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical, keyCenters, modulateModalKeySemi, renderModalKey, parseModalKey } from './ToneLib.ts'
+import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical, keyCenters, modulateModalKeySemi, renderModalKey, parseModalKey, modulateModalKeyString } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
 import { parseSheet, resolveColor } from './SheetNotation.ts'
 
@@ -609,5 +609,15 @@ describe('ToneLib', () => {
     directRange(0, 6).forEach(mode => keyCenters(mode).forEach(mk => {
       expect(parseModalKey(renderModalKey(mk))).toStrictEqual(mk)
     }))
+  })
+
+  test('modulateModalKeyString', () => {
+    expect(modulateModalKeyString('D', '+1')).toBe('Eb')
+    expect(modulateModalKeyString('D', '-1')).toBe('Db')
+    expect(modulateModalKeyString('D', 'sub')).toBe('Bbm')
+    expect(modulateModalKeyString('Bm', '+1')).toBe('Cm')
+    expect(modulateModalKeyString('Am', 'sub')).toBe('Fm')
+    expect(modulateModalKeyString('EM1', '-1')).toBe('EbM1')
+    expect(modulateModalKeyString('X', '+1')).toBeUndefined()
   })
 })

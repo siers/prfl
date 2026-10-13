@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { embedNote, embedNotePlusMinus, renderSen, fingerPosition, findTriadOnString, frets, positionsQuiz, shifts, StringName, strings, stringsAboveOpen, stringsForTonality, positionsForKey, modeShifts, modeShiftsGen, ModeShift, serializeModeShift, deserializeModeShift } from './ToneLibViolin.ts'
-import { findMajor, Key, parseNote, render } from './ToneLib.ts'
+import { findMajor, Key, Modulation, parseNote, render } from './ToneLib.ts'
 import { shuffleArray } from './Random.tsx'
-import { transpose } from './Array.ts'
+import { transpose, zipT } from './Array.ts'
 import _ from 'lodash'
 
 describe('ToneLibViolin', () => {
@@ -219,6 +219,22 @@ describe('ToneLibViolin', () => {
       const ion = modeShiftsGen(d, 'maj', 1, 4, 16)[0]
       const ionOctaves = modeShiftsGen(d, 'maj', 1, 4, 14)[0]
       expect(ion.chromShifts - ionOctaves.chromShifts).toBe(4)
+    })
+
+    test('a modulation moves the end note by its semitones, into the modulated key', () => {
+      const d = findMajor(parseNote('d')!)!
+      const shiftsOf = (modulation?: Modulation) => modeShiftsGen(d, 'maj', 1, 4, 21, modulation).map(ms => ms.chromShifts)
+      const plain = shiftsOf()
+      zipT(plain, shiftsOf('+1')).forEach(([p, m]) => expect(m - p).toBe(1))
+      zipT(plain, shiftsOf('-1')).forEach(([p, m]) => expect(m - p).toBe(-1))
+      zipT(plain, shiftsOf('sub')).forEach(([p, m]) => expect(m - p).toBe(-4))
+    })
+
+    test('sub ends in the minor a major third below', () => {
+      // D ionian, three octaves and a third: F# in D major, Db in Bb minor — 5 semitones down, not 4
+      const d = findMajor(parseNote('d')!)!
+      const shiftsOf = (modulation?: Modulation) => modeShiftsGen(d, 'maj', 1, 4, 23, modulation)[0].chromShifts
+      expect(shiftsOf('sub') - shiftsOf()).toBe(-5)
     })
 
     test('chrom scale shows chromShifts', () => {

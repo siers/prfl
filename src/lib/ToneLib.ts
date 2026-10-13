@@ -371,6 +371,29 @@ export function parseModalKey(s: string): ModalKey | undefined {
   return keyCenters(mode).find(k => equalNote(k.root, root))
 }
 
+// where a modal key moves: rooted this many semitones away, in the same mode unless the
+// modulation names one — sub lands on the minor (aeolian) a major third below
+export type Modulation = '+1' | '-1' | 'sub'
+export const modulations: Record<Modulation, { semis: number, mode?: number }> = {
+  '+1': { semis: 1 },
+  '-1': { semis: -1 },
+  sub: { semis: -4, mode: minorMode },
+}
+
+// the fewest-accidentals spelling, as modulateModalKeySemi orders them
+export function modulateModalKey(mk: ModalKey, modulation: Modulation): ModalKey | undefined {
+  const { semis, mode = mk.mode } = modulations[modulation]
+  // modulateModalKeySemi reads only the root and the mode, so the mode can be swapped in here
+  return modulateModalKeySemi({ ...mk, mode }, semis)[0]
+}
+
+// D + sub = Bbm, Bm + +1 = Cm
+export function modulateModalKeyString(s: string, modulation: Modulation): string | undefined {
+  const mk = parseModalKey(s)
+  const target = mk && modulateModalKey(mk, modulation)
+  return target && renderModalKey(target)
+}
+
 // NOTE: this really could be just [0, 11]
 export function keySemis(mode: number = 0): number[] {
   return keyCenters(mode).map(k => semi(normalize(k.root)))

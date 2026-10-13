@@ -4,7 +4,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, parseNote, rebase, renderN, semi } from '../lib/ToneLib'
+import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
 import * as ToneLib from '../lib/ToneLib'
 import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } from '../lib/ToneLibViolin'
 import * as ToneLibViolin from '../lib/ToneLibViolin'
@@ -441,6 +441,7 @@ export * as ExBowedTies from './ExerciseBowedTies'
 export * as ExScales from './Exercise20260929Scales'
 export * as ExScales3oc from './Exercise20261013Scales3oc'
 export { chromaticSlide } from '../lib/ToneLibViolin'
+export { modulateModalKeyString } from '../lib/ToneLib'
 export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
 export { shiftsDistributed }
 export { ToneLib, ToneLibViolin }
@@ -474,8 +475,11 @@ export function frets(upTo?: number): string[] {
   return fretsLib(upTo).flat()
 }
 
-export function modeShifts(keyIn: Note | string, scales?: string, endNoteOffset?: number): string[] {
-  return modeShiftsLib(parseNote(keyIn)!, scales, 0, 0, endNoteOffset)
+// a string key is a ModalKey (D, Bm, EM1): the shifts run over all modes of its major key
+export function modeShifts(keyIn: Note | string, scales?: string, endNoteOffset?: number, modulation?: ToneLib.Modulation): string[] {
+  const key = typeof keyIn === 'string' ? ToneLib.parseModalKey(keyIn)?.key : keyIn
+  if (!key) throw new Error(`modeShifts: invalid key ${keyIn}`)
+  return modeShiftsLib(key, scales, 0, 0, endNoteOffset, modulation)
 }
 
 export function metroS(base: number, diff: number): string[] {

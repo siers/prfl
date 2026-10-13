@@ -1,6 +1,6 @@
 import { directRange, transpose, zipLongest, zipWithIndex } from './Array'
 import { maybeReverse, pick, randInt, shuffleArray } from './Random'
-import { addAccidental, enharmonics, equalLetterOctave, findMajor, Key, majorKey, Note, noteToNatural, parseNote, rebaseSemiByPitch, rename, render, renderN, semi, stepN } from './ToneLib'
+import { addAccidental, enharmonics, equalLetterOctave, findMajor, Key, majorKey, Modulation, modulateModalKey, modulations, Note, noteToNatural, parseNote, rebaseSemiByPitch, rename, render, renderN, semi, stepN } from './ToneLib'
 import _ from 'lodash'
 
 // TODO: content: scales: remove half-positions in ToneLibViolin (maybe, we'll see)
@@ -277,6 +277,7 @@ export function modeShiftsGen(
   startFingerTarget: number = 0,
   endFingerTarget: number = 0,
   endNoteOffset: number = 21, // diatonic steps above the start; 21 is three octaves
+  modulation?: Modulation, // the end note is taken in the modulated key
 ): ModeShiftGen[] {
   const key = Array.isArray(keyIn) ? keyIn : findMajor(keyIn)!
 
@@ -291,7 +292,13 @@ export function modeShiftsGen(
     const modeIdx = idx % modes.length
 
     const note = rebaseSemiByPitch(knote, parseNote('G3')!)
-    const endNote = rename(stepN(note, endNoteOffset), key)
+    const [endRoot, endKey] = (() => {
+      if (!modulation) return [note, key]
+      const target = modulateModalKey({ key, mode: modeIdx, root: knote, relativeMajor: key[0] }, modulation)
+      if (!target) throw new Error(`modeShiftsGen: no key ${modulation} from ${renderN(knote)}`)
+      return [rebaseSemiByPitch(target.root, semi(note) + modulations[modulation].semis), target.key]
+    })()
+    const endNote = rename(stepN(endRoot, endNoteOffset), endKey)
 
     const beginPos: StringEmbeddedNote = _.sortBy(embedNote(note, ['G', 'D']), sen => sen.position)[0]
     // On the E string, unless it's below it: then the highest string that has it.
@@ -336,8 +343,9 @@ export function modeShifts(
   startFinger: number = 0,
   endFinger: number = 0,
   endNoteOffset: number = 21,
+  modulation?: Modulation,
 ): string[] {
-  return modeShiftsGen(keyIn, scales, startFinger, endFinger, endNoteOffset).map(serializeModeShift)
+  return modeShiftsGen(keyIn, scales, startFinger, endFinger, endNoteOffset, modulation).map(serializeModeShift)
 }
 
 // modeNr is recovered from the mode; root and the raw shift counts are not encoded.
