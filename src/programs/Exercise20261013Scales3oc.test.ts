@@ -38,7 +38,7 @@ describe('Scales3oc', () => {
 
   test('renders like the parser would', () => {
     const line = gen('S-3oc', 'D')[0]
-    const parsed = evalContents(line.source!.contents.replace(/!!!(\d)/g, (_, n) => `[\\[${fields(line)[line.source!.interpols[n - 1].tag!].map(v => JSON.stringify(v)).join(',')}\\]]`))[0]
+    const parsed = evalContents(line.source!.contents.replace(/!!(\d+)!!/g, (_, n) => `[\\[${fields(line)[line.source!.interpols[n - 1].tag!].map(v => JSON.stringify(v)).join(',')}\\]]`))[0]
     expect(line.contents).toBe(parsed.contents)
   })
 

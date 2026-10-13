@@ -144,7 +144,8 @@ export type Parsed = { blocks: Blocks, definitions: Line[] }
 export type Context = Map<string, any> // contains both blocks as function and memory
 export type Memory = Map<string, any>
 
-export const defaultMarker = '!!!'
+// Closed on both sides, so `!!1!!` is never a prefix of `!!10!!`.
+export const markerAt = (n: number): Marker => `!!${n}!!`
 
 export const makeEmptyMemory = () => new Map()
 

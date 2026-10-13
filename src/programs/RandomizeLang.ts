@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, defaultMarker, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, isStable, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, markerAt, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, isStable, showCount } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -73,14 +73,14 @@ export const initSequences = <A>(lines: A[], finder: (_: A) => boolean): A[][] =
 
 // parser
 
-function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [string, [Marker, string][]] {
+function replaceMatchesMarker(line: string, regex: RegExp, marker: (n: number) => Marker): [string, [Marker, string][]] {
   const groups: [string, string][] = []
 
   let count = 0
 
   const template = line.replaceAll(regex, match => {
     count += 1
-    const thisMarker = marker + count
+    const thisMarker = marker(count)
     groups.push([thisMarker, match])
     return thisMarker
   })
@@ -90,7 +90,7 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: string): [str
 
 // `#tag` (at a word start) is shorthand for `[]tag`: a tag with no value.
 function extractEvals(l: string): [string, Evals] {
-  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([^\] ]+)?|(?<=^|\s)#[^\s\[\]{}]+/gi, defaultMarker)
+  const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([^\] ]+)?|(?<=^|\s)#[^\s\[\]{}]+/gi, markerAt)
 
   const evals: Evals = matches.map(([marker, m], idx) => {
     if (m[0] == '#') {
@@ -589,10 +589,11 @@ export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<S
     }]
   }))
 
-  const allTagsRegex = new RegExp(`${l.source?.substitutions?.map(s => s.marker || "").join('|')}`, 'g')
+  const markers = (l.source?.substitutions || []).map(s => s.marker || "")
+  const allTagsRegex = new RegExp(markers.join('|'), 'g')
 
   const c = (l.source?.contents || l.contents || "")
-  const replaces = c.replaceAll(allTagsRegex, tag => `||##${byMarker.get(tag)?.tag}||`)
+  const replaces = markers.length == 0 ? c : c.replaceAll(allTagsRegex, tag => `||##${byMarker.get(tag)?.tag}||`)
   const cwt: ContentOrTag[] = replaces.split('||').flatMap(s =>
     s == '' ? [] : [s.match(/^##/) ? ['tag', s.slice(2)] : ['string', s]]
   )

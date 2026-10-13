@@ -222,7 +222,7 @@ describe('scheduleBlocks', () => {
     const lines = evalContents(text)
     expect(lines.map(l => [l.key, l.contents, l.source?.contents]).sort()).toStrictEqual([
       ["pre-t1", "pre-t1: task one", undefined],
-      ["shared", "shared: shared one [1 2]", "shared: shared one !!!1"],
+      ["shared", "shared: shared one [1 2]", "shared: shared one !!1!!"],
     ])
   })
 
@@ -244,12 +244,12 @@ describe('scheduleBlocks', () => {
         "separator": null,
         "source": {
           "kind": "interpolable-line",
-          "contents": "pre-t1: task one !!!1",
+          "contents": "pre-t1: task one !!1!!",
           "interpols": [
             {
               "kind": "interpolate",
               "command": "s('12')",
-              "marker": "!!!1",
+              "marker": "!!1!!",
               "tag": "tagA",
               "tags": ["show-5"],
             },
@@ -258,7 +258,7 @@ describe('scheduleBlocks', () => {
             {
               "kind": "substitution",
               "contents": ["1", "2"],
-              "marker": "!!!1",
+              "marker": "!!1!!",
               "tag": "tagA",
               "tags": ["show-5"],
             },
@@ -272,12 +272,12 @@ describe('scheduleBlocks', () => {
         "separator": null,
         "source": {
           "kind": "interpolable-line",
-          "contents": "o1: other one !!!1",
+          "contents": "o1: other one !!1!!",
           "interpols": [
             {
               "kind": "interpolate",
               "command": "s('34')",
-              "marker": "!!!1",
+              "marker": "!!1!!",
               "tag": "tagB",
               "tags": null,
             },
@@ -286,7 +286,7 @@ describe('scheduleBlocks', () => {
             {
               "kind": "substitution",
               "contents": ["3", "4"],
-              "marker": "!!!1",
+              "marker": "!!1!!",
               "tag": "tagB",
               "tags": null,
             },
@@ -388,7 +388,7 @@ describe('block subdecks', () => {
     expect(item.contents).toStrictEqual('warmup: [] Key#2 a#b')
     expect(item.key).toStrictEqual('warmup')
     expect(item.source.substitutions).toStrictEqual([
-      { kind: 'substitution', contents: [''], marker: '!!!1', tag: 'unscheduled', tags: ['hide'] },
+      { kind: 'substitution', contents: [''], marker: '!!1!!', tag: 'unscheduled', tags: ['hide'] },
     ])
   })
 
@@ -500,7 +500,7 @@ describe('block subdecks', () => {
     expect(item.contents).toStrictEqual('KEY: [x y]')
     expect(item.key).toStrictEqual('KEY')
     expect(item.source.substitutions).toStrictEqual([
-      { kind: 'substitution', contents: ['x', 'y'], marker: '!!!1', tag: 't', tags: null },
+      { kind: 'substitution', contents: ['x', 'y'], marker: '!!1!!', tag: 't', tags: null },
     ])
   })
 
@@ -568,19 +568,19 @@ describe('evaling items inside a block', () => {
         "kind": "renderline",
         "separator": null,
         "source": {
-          "contents": "a: !!!1 !!!2",
+          "contents": "a: !!1!! !!2!!",
           "interpols": [
             {
               "command": "s('12')",
               "kind": "interpolate",
-              "marker": "!!!1",
+              "marker": "!!1!!",
               "tag": "tag1",
               "tags": null,
             },
             {
               "command": "s('34')",
               "kind": "interpolate",
-              "marker": "!!!2",
+              "marker": "!!2!!",
               "tag": "tagX",
               "tags": null,
             },
@@ -593,7 +593,7 @@ describe('evaling items inside a block', () => {
                 "2",
               ],
               "kind": "substitution",
-              "marker": "!!!1",
+              "marker": "!!1!!",
               "tag": "tag1",
               "tags": null,
             },
@@ -603,7 +603,7 @@ describe('evaling items inside a block', () => {
                 "4",
               ],
               "kind": "substitution",
-              "marker": "!!!2",
+              "marker": "!!2!!",
               "tag": "tagX",
               "tags": null,
             },
@@ -628,19 +628,19 @@ describe('rotateInterpolableLine', () => {
       "kind": "renderline",
       "separator": null,
       "source": {
-        "contents": "Thing: do it !!!1 !!!2",
+        "contents": "Thing: do it !!1!! !!2!!",
         "interpols": [
           {
             "command": "s('12')",
             "kind": "interpolate",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tagS",
             "tags": null,
           },
           {
             "command": "s('12')",
             "kind": "interpolate",
-            "marker": "!!!2",
+            "marker": "!!2!!",
             "tag": "tagK",
             "tags": null,
           },
@@ -653,7 +653,7 @@ describe('rotateInterpolableLine', () => {
               "2",
             ],
             "kind": "substitution",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tagS",
             "tags": null,
           },
@@ -663,7 +663,7 @@ describe('rotateInterpolableLine', () => {
               "2",
             ],
             "kind": "substitution",
-            "marker": "!!!2",
+            "marker": "!!2!!",
             "tag": "tagK",
             "tags": null,
           },
@@ -677,19 +677,19 @@ describe('rotateInterpolableLine', () => {
       "kind": "renderline",
       "separator": null,
       "source": {
-        "contents": "Thing: do it !!!1 !!!2",
+        "contents": "Thing: do it !!1!! !!2!!",
         "interpols": [
           {
             "command": "s('12')",
             "kind": "interpolate",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tagS",
             "tags": null,
           },
           {
             "command": "s('12')",
             "kind": "interpolate",
-            "marker": "!!!2",
+            "marker": "!!2!!",
             "tag": "tagK",
             "tags": null,
           },
@@ -702,7 +702,7 @@ describe('rotateInterpolableLine', () => {
               "1",
             ],
             "kind": "substitution",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tagS",
             "tags": null,
           },
@@ -712,7 +712,7 @@ describe('rotateInterpolableLine', () => {
               "1",
             ],
             "kind": "substitution",
-            "marker": "!!!2",
+            "marker": "!!2!!",
             "tag": "tagK",
             "tags": null,
           },
@@ -726,19 +726,19 @@ describe('rotateInterpolableLine', () => {
       "kind": "renderline",
       "separator": null,
       "source": {
-        "contents": "Thing: do it !!!1 !!!2",
+        "contents": "Thing: do it !!1!! !!2!!",
         "interpols": [
           {
             "command": "s('12')",
             "kind": "interpolate",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tagS",
             "tags": null,
           },
           {
             "command": "s('12')",
             "kind": "interpolate",
-            "marker": "!!!2",
+            "marker": "!!2!!",
             "tag": "tagK",
             "tags": null,
           },
@@ -751,7 +751,7 @@ describe('rotateInterpolableLine', () => {
               "2",
             ],
             "kind": "substitution",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tagS",
             "tags": null,
           },
@@ -761,7 +761,7 @@ describe('rotateInterpolableLine', () => {
               "1",
             ],
             "kind": "substitution",
-            "marker": "!!!2",
+            "marker": "!!2!!",
             "tag": "tagK",
             "tags": null,
           },
@@ -889,13 +889,22 @@ describe('renderLineContentWithTags', () => {
               "5",
             ],
             "kind": "substitution",
-            "marker": "!!!1",
+            "marker": "!!1!!",
             "tag": "tag",
             "tags": ["show-5"],
           }],
         ]),
       ]
     )
+  })
+
+  test('the tenth field is not read as the first one', () => {
+    const fields = Array.from({ length: 10 }, (_, i) => `[\`${i + 1}\`]f${i + 1}`).join(' ')
+    const item = evalContents(`x ${fields} y`)[0]
+
+    expect(renderLineContentWithTags(item)[0].filter(ct => ct[0] == 'tag').map(ct => ct[1]))
+      .toStrictEqual(Array.from({ length: 10 }, (_, i) => `f${i + 1}`))
+    expect(renderLineContentWithTags(item)[0].at(-1)).toStrictEqual(['string', ' y'])
   })
 })
 

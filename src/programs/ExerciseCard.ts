@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { interpolateSubtToString } from './RandomizeLang'
-import { defaultMarker, interpolableLine, interpolate, isComputed, isFrozen, renderLine, substitution } from './RandomizeLangTypes'
+import { markerAt, interpolableLine, interpolate, isComputed, isFrozen, renderLine, substitution } from './RandomizeLangTypes'
 import type { Interpolate, InterpolateSubstT, RenderLine, Substitution } from './RandomizeLangTypes'
 
 // Builds a card straight from TypeScript values: the same `RenderLine` the
@@ -47,7 +47,7 @@ export function card(key: string, parts: Part[]): RenderLine {
   const fieldParts = parts.filter((p): p is FieldPart => p.kind == 'field')
 
   const interpols: Interpolate[] = fieldParts.map((p, idx) =>
-    interpolate(p.command, `${defaultMarker}${idx + 1}`, ...parseSpec(p.spec, idx)))
+    interpolate(p.command, markerAt(idx + 1), ...parseSpec(p.spec, idx)))
 
   const tier = (i: Interpolate) => isFrozen(i) ? 0 : isComputed(i) ? 2 : 1
   const substitutions = _.sortBy(interpols.map((i, idx) => [i, fieldParts[idx]] as const), ([i]) => tier(i))
@@ -57,7 +57,7 @@ export function card(key: string, parts: Part[]): RenderLine {
     }, [])
 
   let markerIdx = 0
-  const template = [`${key}:`, ...parts.map(p => p.kind == 'text' ? p.text : `${defaultMarker}${++markerIdx}`)].join(' ')
+  const template = [`${key}:`, ...parts.map(p => p.kind == 'text' ? p.text : markerAt(++markerIdx))].join(' ')
 
   const contents = substitutions.reduce((c, s) => c.replace(s.marker, interpolateSubtToString(s.contents)), template)
 
