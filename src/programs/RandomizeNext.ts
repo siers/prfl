@@ -60,7 +60,12 @@ export function parseNextStep(s: string): NextStep | null {
 
 // `3:1f` — remaining before the colon, spent after it. A step nothing has been
 // spent on drops the prefix, so an untouched programme reads as it was written.
+// A one-click step drops the count entirely: it fires on the click that reaches
+// it, so there is never a countdown to show. That holds for a parked `s` too —
+// it reads back unspent and fires its halt again on each click, which is
+// harmless.
 export function renderNextStep(s: NextStep): string {
+  if (s.total === 1) return s.action
   return s.spent === 0 ? `${s.total}${s.action}` : `${s.total - s.spent}:${s.spent}${s.action}`
 }
 

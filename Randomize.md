@@ -430,7 +430,9 @@ Spent clicks show in the rendered value, so the card is its own progress bar:
 ```
 
 Remaining before the colon, spent after; an untouched step drops the prefix and
-reads as written.
+reads as written. A one-click step (`1f`, `1s`) shows no count at all — it fires
+on the click that reaches it, so there's nothing to count down — and renders as
+the bare letter: `1f 4r` -> `4r f`. A parked `1s` stays `s` as well.
 
 A programme rotates **forever** unless it ends in `s`. `[4f 4r 8s]next` steps
 twice then parks on the `s` permanently, swallowing further clicks without

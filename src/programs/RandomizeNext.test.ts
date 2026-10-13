@@ -47,12 +47,18 @@ describe('parsing steps', () => {
     ])
   })
 
-  test('a bare step renders back as an explicit one, not as the bare letter', () => {
-    expect(renderNextStep(parseNextStep('f')!)).toBe('1f')
+  test('a one-click step renders bare, with no count', () => {
+    expect(renderNextStep(parseNextStep('f')!)).toBe('f')
+    expect(renderNextStep(parseNextStep('1f')!)).toBe('f')
+    expect(renderNextStep(parseNextStep('1s')!)).toBe('s')
+  })
+
+  test('a parked one-click halt renders bare too', () => {
+    expect(renderNextStep({ total: 1, spent: 1, action: 's' })).toBe('s')
   })
 
   test('a bare step fires on the very next click', () => {
-    expect(run('f 2r', 1)).toEqual([['2r 1f', 'f']])
+    expect(run('f 2r', 1)).toEqual([['2r f', 'f']])
   })
 
   test('the halt may be written bare, which is the point of it', () => {
@@ -114,7 +120,7 @@ describe('stepping the programme', () => {
   })
 
   test('a one-click step fires immediately and never sits spent', () => {
-    expect(run('1f 2r', 1)).toEqual([['2r 1f', 'f']])
+    expect(run('1f 2r', 1)).toEqual([['2r f', 'f']])
   })
 
   test('a lone step keeps firing on its own period', () => {
@@ -141,9 +147,9 @@ describe('halting on `s`', () => {
   })
 
   test('a halted programme stays put no matter how long the metronome runs', () => {
-    let steps = parseNextSteps(['1s', '4f'])
+    let steps = parseNextSteps(['2s', '4f'])
     for (let i = 0; i < 50; i++) steps = stepNext(steps)[0]
-    expect(renderNextSteps(steps)).toEqual(['0:1s', '4f'])
+    expect(renderNextSteps(steps)).toEqual(['0:2s', '4f'])
   })
 
   test('without a halt the programme really does go forever', () => {
