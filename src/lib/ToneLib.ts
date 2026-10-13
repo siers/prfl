@@ -350,6 +350,27 @@ export function modulateModalKeySemi(mk: ModalKey, semis: number): ModalKey[] {
   return _.sortBy(found, k => keyAccidentals(k.key))
 }
 
+const majorMode = 0
+const minorMode = 5
+
+// root, then the mode: none for major, `m` for minor, `M${mode}` otherwise — D, Bm, EM1
+export function renderModalKey(mk: ModalKey): string {
+  const suffix = mk.mode === majorMode ? '' : mk.mode === minorMode ? 'm' : `M${mk.mode}`
+  return renderN(mk.root) + suffix
+}
+
+export function parseModalKey(s: string): ModalKey | undefined {
+  const match = s.match(/^(?<root>[a-gA-G][b#]{0,2})(?<mode>m|M[0-6])?$/)
+  if (!match?.groups) return undefined
+
+  const root = parseNote(match.groups.root)
+  if (!root) return undefined
+
+  const modeStr = match.groups.mode
+  const mode = !modeStr ? majorMode : modeStr === 'm' ? minorMode : parseInt(modeStr.slice(1), 10)
+  return keyCenters(mode).find(k => equalNote(k.root, root))
+}
+
 // NOTE: this really could be just [0, 11]
 export function keySemis(mode: number = 0): number[] {
   return keyCenters(mode).map(k => semi(normalize(k.root)))

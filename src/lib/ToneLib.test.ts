@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
-import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical, keyCenters, modulateModalKeySemi } from './ToneLib.ts'
+import { parseNote, render, renderSheet, rebase, rebaseSemiByLetter, rebaseSemiByPitch, Note, major, keysMajor, majorKey, semi, enharmonics, pointwiseInterval, rename, findMajor, equalNote, addInterval, majorKeyCentersPerLetter, majorKeyCentersWeighted, majorKeyCentersWeights, chromaticScale, chromaticScaleZipMin, normalize, renderN, allNotes, pitchClass, keyHasSemi, keyCenter, Key, addAccidental, noteToHertz, herzToSemi, semiToHertz, canonicalEnharmonic, hertzCanonical, keyCenters, modulateModalKeySemi, renderModalKey, parseModalKey } from './ToneLib.ts'
 import { directRange, zipT } from './Array.ts'
 import { parseSheet, resolveColor } from './SheetNotation.ts'
 
@@ -596,5 +596,18 @@ describe('ToneLib', () => {
     expect(rel('D', 0, 12)).toStrictEqual(['D'])
     expect(rel('A', 5, -1)).toStrictEqual(['G#', 'Ab'])
     expect(modulateModalKeySemi(keyCenters(1)[0], 3).every(k => k.mode === 1)).toBe(true)
+  })
+
+  test('renderModalKey / parseModalKey round trip', () => {
+    expect(renderModalKey(parseModalKey('D')!)).toBe('D')
+    expect(renderModalKey(parseModalKey('Bm')!)).toBe('Bm')
+    expect(renderModalKey(parseModalKey('EM1')!)).toBe('EM1')
+    expect(parseModalKey('Bm')!.relativeMajor).toStrictEqual(parseModalKey('D')!.root)
+    expect(parseModalKey('M0')).toBeUndefined()
+    expect(parseModalKey('D#')).toBeUndefined()
+
+    directRange(0, 6).forEach(mode => keyCenters(mode).forEach(mk => {
+      expect(parseModalKey(renderModalKey(mk))).toStrictEqual(mk)
+    }))
   })
 })
