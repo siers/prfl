@@ -455,6 +455,18 @@ export function maybeReverse<A>(as: A[]): A[] {
   return randInt(0, 1) == 0 ? [...as] : [...as].reverse()
 }
 
+// Sign-flipped half the time: 1 → 1 or -1, 0 stays 0.
+export function maybePolarize(n: number): number {
+  return maybePolarizeL([n])[0]
+}
+
+// Like maybePolarize, but one coin flip for the whole list, so every item
+// flips in the same direction. Strings are parsed as base-10 integers.
+export function maybePolarizeL(ns: number[] | string[]): number[] {
+  const flip = randInt(0, 1) == 1
+  return ns.map(x => typeof x === 'string' ? parseInt(x, 10) : x).map(n => flip && n != 0 ? -n : n)
+}
+
 export function range(f: number, t: number): string[] {
   return directRange(f, t).map(n => `${n}`)
 }

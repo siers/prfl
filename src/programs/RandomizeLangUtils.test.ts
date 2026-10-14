@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import {
   glob,
   s,
@@ -32,6 +32,8 @@ import {
   metroS,
   avgPairwiseDiff,
   metro,
+  maybePolarize,
+  maybePolarizeL,
 } from './RandomizeLangUtils'
 import _ from 'lodash'
 
@@ -465,4 +467,32 @@ test('nextHalves', () => {
 test('nextHalves: counts are configurable', () => {
   expect(nextHalves(['100', '50', '100', '50'], 2, 4))
     .toStrictEqual(['4f', '2f', '4f', '2f'])
+})
+
+test('maybePolarize', () => {
+  const random = vi.spyOn(Math, 'random')
+  random.mockReturnValue(0)
+  expect([maybePolarize(1), maybePolarize(0), maybePolarize(-1)]).toStrictEqual([1, 0, -1])
+  random.mockReturnValue(0.99)
+  expect([maybePolarize(1), maybePolarize(0), maybePolarize(-1)]).toStrictEqual([-1, 0, 1])
+  random.mockRestore()
+})
+
+test('maybePolarizeL flips every item the same way', () => {
+  const random = vi.spyOn(Math, 'random')
+  random.mockReturnValue(0)
+  expect(maybePolarizeL([1, 0, -2, 3])).toStrictEqual([1, 0, -2, 3])
+  random.mockReturnValue(0.99)
+  expect(maybePolarizeL([1, 0, -2, 3])).toStrictEqual([-1, 0, 2, -3])
+  expect(random).toHaveBeenCalledTimes(2) // one flip per list, not per item
+  random.mockRestore()
+})
+
+test('maybePolarizeL parses strings', () => {
+  const random = vi.spyOn(Math, 'random')
+  random.mockReturnValue(0)
+  expect(maybePolarizeL(['1', '0', '-2'])).toStrictEqual([1, 0, -2])
+  random.mockReturnValue(0.99)
+  expect(maybePolarizeL(['1', '0', '-2'])).toStrictEqual([-1, 0, 2])
+  random.mockRestore()
 })
