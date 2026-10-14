@@ -9,6 +9,7 @@ import * as ToneLib from '../lib/ToneLib'
 import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } from '../lib/ToneLibViolin'
 import * as ToneLibViolin from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
+import { jitter } from '../lib/Jitter'
 import { shiftFormat, shifts as shiftsLib, shiftsDistributed } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
 
@@ -229,6 +230,8 @@ export function picksEarlyBias<A>(as: A[], shuffleFactor: number = DEFAULT_SHUFF
 
   return [next, ...picksEarlyBias(rest, shuffleFactor)]
 }
+
+export { jitter, DEFAULT_JITTER_GAIN, DEFAULT_JITTER_PERCENT } from '../lib/Jitter'
 
 // scheduling
 
@@ -588,7 +591,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
       return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
 
-    return picksEarlyBias(sorted, shuffleFactor)
+    return jitter(sorted, shuffleFactor)
   }
 
   // state
@@ -635,9 +638,8 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   // A token is `[prefix:]name[-count][%shuffleFactor]`. The optional `prefix:`
   // applies to that token only, so `scheduleBlocks('pre:tasks-2 other-1')`
   // prefixes the tasks items and leaves `other`'s alone. `%shuffleFactor` is
-  // the percentage of the least-recently-reviewed list the weighted random
-  // picks from (see pickEarlyBias): `%0` is strict oldest-first, `%100` biases
-  // across all items.
+  // the jitter, as a percentage of the least-recently-reviewed list's length,
+  // an item may be moved by (see jitter): `%0` is strict oldest-first.
   function parseScheduleBlocksSentence(sentence: string): string | [string, number | 'full', string | null, number | undefined][] {
     let err
 

@@ -227,10 +227,13 @@ takes the whole block; `-N` takes N after sorting least-recently-reviewed first;
 reviews record under the rendered key. A line starting with `-` opts out:
 instead of being prefixed, its leading `-` is stripped (`-shared: …` → `shared: …`).
 
-The order is a weighted random walk over that sorted list: each pick comes from
-the first `shuffleFactor`% of what remains, weight falling off linearly from
-the head. The default is 33⅓ (only the oldest third is ever picked). `%0` is strict
-oldest-first; `%100` biases across the whole block; above 100 tends to uniform.
+The order is that sorted list, jittered: every item moves fewer than
+ceil(`shuffleFactor`% of the block) places, the most in the middle and tapering
+towards the ends, so the oldest and newest stay put about 80-85% of the time.
+The default is 100: in a 20-item block items move about 1.6 places on average,
+at most 8. Blocks under about 8 items get a boost that fades with size, so a
+4-item block still reorders about half the time. `%0` is strict
+oldest-first; `%50` is calmer.
 
 ### The expression language
 

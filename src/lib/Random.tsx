@@ -64,3 +64,16 @@ export function shuffleMinDistance<A>(array: A[], min: number) {
 export function maybeReverse<A>(a: A[]): A[] {
   return randInt(0, 1) == 0 ? a : a.toReversed()
 }
+
+// A `Math.random` stand-in with a fixed sequence per seed (mulberry32), for
+// reproducible tests and examples.
+export function seededRandom(seed: number): () => number {
+  let state = seed >>> 0
+  return () => {
+    state = (state + 0x6D2B79F5) >>> 0
+    let t = state
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}

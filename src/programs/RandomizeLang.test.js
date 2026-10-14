@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { initSequences, evalContentsS, evalContents, evalContentsMem, evalBlockDeck, blockNames, rotateInterpolableLine, evalRenderLine, renderLineContentWithTags, extractTagFunctions } from './RandomizeLang.js'
 import { isNonrotated, isFrozen, isComputed, isHidden, coverLabel, showCount } from './RandomizeLangTypes.js'
 
@@ -133,6 +133,17 @@ describe('evalContents', () => {
     expect(evalContentsS('-=-\nitem {s("a\\}b c")}')).toStrictEqual(['item a}b', 'item c'])
   })
 })
+
+// Math.random() == 0.5 is a zero jitter nudge, so schedule order is strict
+// least-recently-reviewed first.
+function withoutJitter(f) {
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0.5)
+  try {
+    return f()
+  } finally {
+    random.mockRestore()
+  }
+}
 
 describe('scheduleBlocks', () => {
   test('no suffix picks 1', () => {
@@ -434,7 +445,7 @@ describe('block subdecks', () => {
     const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
 
     expect(deckS("-=- warmup: #unscheduled\nA\nB\nC", 'warmup', memory)).toStrictEqual(['A', 'B', 'C'])
-    expect(deckS("-=- warmup\nA\nB\nC", 'warmup', memory)[0]).toStrictEqual('B')
+    expect(withoutJitter(() => deckS("-=- warmup\nA\nB\nC", 'warmup', memory))[0]).toStrictEqual('B')
   })
 
   test('the deck reuses the given headers instead of re-evaluating them', () => {
@@ -477,7 +488,7 @@ describe('block subdecks', () => {
     const text = "-=- sub\nA\nB\nC"
     const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
 
-    expect(deckS(text, 'sub', memory)[0]).toStrictEqual('B')
+    expect(withoutJitter(() => deckS(text, 'sub', memory))[0]).toStrictEqual('B')
   })
 
   test('the block sees blocks defined after it and globals assigned in main blocks', () => {
@@ -507,7 +518,7 @@ describe('block subdecks', () => {
   test('`name*` expands to the block, ordered like its subdeck', () => {
     const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
 
-    expect(evalContentsMem("-=- sub\nA\nB\nC\n-=-\nsub*", memory)[0][0].contents).toStrictEqual('B')
+    expect(withoutJitter(() => evalContentsMem("-=- sub\nA\nB\nC\n-=-\nsub*", memory))[0][0].contents).toStrictEqual('B')
     expect(evalContentsMem("-=- sub: #unscheduled\nA\nB\nC\n-=-\nsub*", memory)[0].map(l => l.contents))
       .toStrictEqual(['A', 'B', 'C'])
   })
