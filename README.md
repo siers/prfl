@@ -4,6 +4,15 @@ A musical practice list generator with a timer and metronome built in.
 
 Offers hierarchical timers for items and their subdecks (parametrizations or real subdecks). Current item's timers can be also restarted or subtracted from the total.
 
+Practice list's main job is to allocate work to specific tasks, so it is also partly a scheduler.
+There is a weighted random picker implementation based on review dates and a jitter reorder available.
+However, there are many possible workflows for working on building muscle memory and automation
+of this process works in conjunction with careful observation, and personal priority lists.
+
+Since practice lists benefit from generated content and
+the space of parameters to play around with (think keys, but it can be any measurement) often benefits from generation,
+this tool has a DSL that allows to execute javascript.
+
 ## Why
 
 Practicing well means controlling *what* you practice (randomized vs. blocked
@@ -21,6 +30,15 @@ because encountering new problems in different orders brings new insights and pr
 
 This project unifies following such a practice list with the timers and computed parameters,
 so you're not juggling a metronome app, a timer, and a notes file separately.
+
+## Difference to other schedulers
+
+The difference between this and Anki is that Anki schedules content for a longer term. This is meant more for actionable task lists for shorter time spans and shorter feedback cycles.
+
+It could be possible that setting the retention to a very high one it, you could have something similar to this tool, but you're still lacking the task DSL, the hierarchical timers, parametrization UI.
+
+I don't know where to find the testimonials about other people's workflows and the lessons from their experiences.
+I do suspect that once you've covered the techniques and have been observing the scheduling problems for long enough, you could go a long way with pen and paper. I have no idea.
 
 ## Inspiration
 
