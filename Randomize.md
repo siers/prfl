@@ -292,9 +292,9 @@ Review marks done and records *when* and *at what bpm*. Suspend marks done
 **without** recording practice — hidden, but not counted as done. Surface undoes
 a review and pulls the item back to the front.
 
-Ban marks done like suspend, but the ban sticks to the card: wherever the key
-shows up again — re-eval, reload, spawned or entered decks, inserts — it starts
-out done. Surfacing a banned item lifts the ban.
+Ban asks for confirmation first, then marks done like suspend, but the ban
+sticks to the card: wherever the key shows up again — re-eval, reload, spawned
+or entered decks, inserts — it starts out done. Surfacing a banned item lifts the ban.
 
 ### How burying actually works
 

@@ -76,6 +76,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 describe('Randomize — render + interaction', () => {
@@ -238,6 +239,7 @@ describe('Randomize — item swipes', () => {
 
   test('far W bans: hides the item and moves on', () => {
     const { container } = setupExecuting(THREE_LINES)
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
     swipeCurrent(container, -250)
     expect(currentItemText(container)).toBe('bravo')
     expect(renderedItems(container)).not.toContain('alpha')
@@ -246,8 +248,18 @@ describe('Randomize — item swipes', () => {
   test('far W bans a shuffled plain item too', () => {
     const { container } = setupExecuting('a\nb\nc\nd')
     const banned = currentItemText(container)
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
     swipeCurrent(container, -250)
     expect(currentItemText(container)).not.toBe(banned)
     expect(renderedItems(container)).not.toContain(banned)
+  })
+
+  test('far W asks first; declining leaves the item alone', () => {
+    const { container } = setupExecuting(THREE_LINES)
+    const ask = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
+    swipeCurrent(container, -250)
+    expect(ask).toHaveBeenCalledOnce()
+    expect(currentItemText(container)).toBe('alpha')
+    expect(renderedItems(container)).toContain('alpha')
   })
 })

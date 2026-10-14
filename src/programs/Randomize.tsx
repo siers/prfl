@@ -405,6 +405,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemBan() {
+    if (!confirm('ban this card?')) return
     recalc({ item: { done: true, ban: true } })
   }
 
