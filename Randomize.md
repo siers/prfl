@@ -345,7 +345,7 @@ no validation, so a mistake here is silent.
 Tag names matter beyond identity: `metro` pins the bpm (and is
 overwritten when you change the tempo — 🔄 restores the authored value), `tones`/`sheet` feed the
 synth and engraver, a name containing `image` contributes an image, `br`
-(`#br`) prints nothing but ends the visual line, and `next`
+(`[…]br` or `#br`) prints nothing but ends the visual line, and `next`
 drives the programme in §5.
 
 ### Resolution order — forward references
@@ -381,9 +381,12 @@ back-compat alias for the same map.)
 | `covered` / `covered-xyz` | prints `[name]` (or `[xyz]`) instead of the value — which still feeds sheet/tones/image and stays re-rollable |
 | `inline` | `<span>` instead of `<div>` — stays on the same visual line |
 | `mono` | monospace |
+| `br` | a tag *name*, not a flag — `[…]br` or `#br` prints nothing but ends the visual line |
 | `cut-semi` | each value cut at the first `;` for display |
 | `show-N` | show the first N upcoming values — a peek at the rotation queue |
 | `maxlen-N` | override the 50-char truncation |
+| `tones` | on a `sheet` field: also sound it through the metro (a field *named* `tones` sounds anyway) |
+| `stable` | on spawn, not a parameter: every child deck carries the field's full value list as-is, instead of one value per combination |
 | `ordered` | on spawn, keep parameter order instead of schedule-sorting |
 
 Unrecognised flags are ignored silently.
