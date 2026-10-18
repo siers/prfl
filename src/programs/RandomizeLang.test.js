@@ -394,13 +394,32 @@ describe('block subdecks', () => {
   })
 
   test('#tag is shorthand for []tag, at a word start only', () => {
-    const [item] = evalContents('warmup: #unscheduled:hide Key#2 a#b')
+    const [item] = evalContents('warmup: #warm:hide Key#2 a#b')
 
     expect(item.contents).toStrictEqual('warmup: [] Key#2 a#b')
     expect(item.key).toStrictEqual('warmup')
     expect(item.source.substitutions).toStrictEqual([
-      { kind: 'substitution', contents: [''], marker: '!!1!!', tag: 'unscheduled', tags: ['hide'] },
+      { kind: 'substitution', contents: [''], marker: '!!1!!', tag: 'warm', tags: ['hide'] },
     ])
+  })
+
+  test('#scheduled, #shuffled and #unscheduled are shorthand for an order field, the named value first', () => {
+    const orders = (src) => evalContents(src)[0].source.substitutions.map(s => [s.tag, s.contents, s.tags])
+
+    expect(orders('w: #scheduled:hide')).toStrictEqual([['order', ['scheduled', 'unscheduled'], ['hide', 'show-1']]])
+    expect(orders('w: #shuffled')).toStrictEqual([['order', ['shuffled', 'unscheduled', 'scheduled'], ['show-1']]])
+    expect(orders('w: #unscheduled:show-2')).toStrictEqual([['order', ['unscheduled', 'scheduled', 'shuffled'], ['show-2']]])
+  })
+
+  test("a header's order overrides the marker", () => {
+    const items = 'ABCDEFGHIJKLMNOP'.split('')
+    const body = items.join('\n')
+    const memory = new Map([['cards', { A: { reviewed: 3 }, B: { reviewed: 1 }, C: { reviewed: 2 } }]])
+
+    expect(deckS(`--- w: #unscheduled\n${body}`, 'w')).toStrictEqual(items)
+    expect(deckS(`-=- w: #shuffled\n${body}`, 'w')).not.toStrictEqual(items)
+    expect(withoutJitter(() => deckS('--- w: #scheduled\nA\nB\nC', 'w', memory))[0]).toStrictEqual('B')
+    expect(evalContentsS(`--- w: #unscheduled\n${body}\n-=-\n{block('w')}`)).toStrictEqual(items)
   })
 
   test('name:: moves a line to the end of the block written as name, in file order', () => {

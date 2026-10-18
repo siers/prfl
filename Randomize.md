@@ -65,18 +65,38 @@ rather than re-rolling the names.
 
 **Subdecks come from blocks.** An item whose key equals a named block's name
 gets a 📂: entering it instantiates the subdeck `name/` from that block, ordered
-like `scheduleBlocks('name')` (least-recently-reviewed first) — unless the
-header is tagged `#unscheduled` (`-=- warmup: #unscheduled`), which keeps the
-block's own order: written for `-=-`, shuffled for `---`. It's lazy — the
+like `scheduleBlocks('name')` (least-recently-reviewed first) — unless its
+[order](#block-order) says otherwise. It's lazy — the
 block is evaluated on 📂, not on 🔄. To do that the whole text is re-evaluated, so
 the block sees every block and global — but randomly assigned globals (e.g.
 `keyz`) are rolled again and can differ from what the root deck shows. A live deck
 is re-entered as-is; an exhausted or 🧹-cleaned one is instantiated fresh. Items
 inside a subdeck can open their own block subdecks the same way. `name*` puts the
 block's lines inline instead, ordered exactly as entering its subdeck would —
-schedule-sorted, or the block's own order under `#unscheduled`. It's a key, so
+including the order. It's a key, so
 it fits a key list (`Scales, warmup*`) and takes a multiplier and `name::`. A block whose
 lines need a `prefix:` keeps a wrapper: `-=- Standards` → `{scheduleBlocks('St:StandardsT')}`.
+
+<a id="block-order"></a>**`#scheduled` / `#shuffled` / `#unscheduled` set a block's order.** They're
+mutually exclusive, and on a header they override the marker:
+
+| Order | Lines | Subdeck / `name*` |
+|---|---|---|
+| `#scheduled` | per marker | least-recently-reviewed first |
+| `#shuffled` | shuffled, even for `-=-` | as shuffled |
+| `#unscheduled` | as written, even for `---` | as written |
+
+Without one, a subdeck is scheduled and `block('name')` follows the marker —
+`block()` never schedule-sorts; `scheduleBlocks()` does. Each is shorthand for
+an `order` field, the named value first: `#scheduled` is
+`` [s(`scheduled unscheduled`)]order `` (no `shuffled` to rotate to), `#shuffled` is
+`` [s(`shuffled unscheduled scheduled`)]order ``, `#unscheduled` is
+`` [s(`unscheduled scheduled shuffled`)]order `` — the block follows the first
+value, and only that value shows (`show-1`, unless a `show` flag is given).
+Flags carry over (`#unscheduled:hide`). On the item pointing at a block
+(`warmup: #shuffled`) they decide that item's subdeck, over the header — rotate
+the field to switch. A live subdeck is re-entered as-is, so a switch shows on
+the next fresh instantiation.
 
 **`name::` moves a line into a block.** `warmup::Thing: do this`, written
 anywhere, is appended to the end of the first block whose header is written

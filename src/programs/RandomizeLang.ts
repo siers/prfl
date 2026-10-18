@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, markerAt, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, isStable, showCount } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, markerAt, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, isStable, showCount, BlockOrder, orderField, orderShuffles } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -89,12 +89,23 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: (n: number) =
 }
 
 // `#tag` (at a word start) is shorthand for `[]tag`: a tag with no value.
+// `#scheduled`, `#shuffled` and `#unscheduled` are shorthand for an `order`
+// field, the named value first — see BlockOrder. `#scheduled` leaves out
+// `shuffled`. Only the current value shows, unless a `show` flag says otherwise.
+const OrderShorthands: Record<string, string> = {
+  scheduled: 's(`scheduled unscheduled`)',
+  shuffled: 's(`shuffled unscheduled scheduled`)',
+  unscheduled: 's(`unscheduled scheduled shuffled`)',
+}
+
 function extractEvals(l: string): [string, Evals] {
   const [template, matches] = replaceMatchesMarker(l, /\{(?:[^}\\]|\\.)+\}|\[(?:[^\]\\]|\\.)+\]([^\] ]+)?|(?<=^|\s)#[^\s\[\]{}]+/gi, markerAt)
 
   const evals: Evals = matches.map(([marker, m], idx) => {
     if (m[0] == '#') {
       const [tagName, ...flags] = m.slice(1).split(':')
+      const order = OrderShorthands[tagName]
+      if (order) return interpolate(order, marker, 'order', flags.some(f => f.startsWith('show')) ? flags : [...flags, 'show-1'])
       return interpolate('', marker, tagName || `tag${idx + 1}`, flags.length > 0 ? flags : null)
     }
     if (m[0] == '[') {
@@ -389,14 +400,14 @@ function evalHeader(h: Header, context: Context): RenderLine | null {
   return { ...first, key: first.contents.match(LineKeyPattern)?.[1] ?? first.contents.match(/^[^ ]*/)![0] }
 }
 
-function evalBlock(block: Block, context: Context): RenderLine[] {
-  const items = block.header.shuffle ? shuffleMinDistance(block.items, 1) : block.items
+function evalBlock(block: Block, context: Context, shuffle: boolean): RenderLine[] {
+  const items = shuffle ? shuffleMinDistance(block.items, 1) : block.items
 
   const lines: [number, RenderLine][] = items.flatMap((item, index) => {
     return evalItem(item, context).map<[number, RenderLine]>(l => [index, l])
   })
 
-  return block.header.shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
+  return shuffle ? shuffleMinDistanceIndexed(lines, 1) : lines.map(([_i, l]) => l)
 }
 
 function initContext(memory: Memory, additionalContext: AdditionalContext = {}): Map<string, any> {
@@ -414,21 +425,24 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
 // callable in the context as it is reached. Headers are evaluated as they are
 // reached too, unless `headers` from an earlier evaluation are given — those
 // are used as-is, so the block names never change after the first evaluation.
-function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders): [...EvaluationContext, Line[]] {
+// `orderOf` can override a named block's order (see evalBlockDeck).
+function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders, orderOf: (name: string) => BlockOrder | null = () => null): [...EvaluationContext, Line[]] {
   const { blocks, definitions } = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
   const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext), []]
   const evaluated = blocks.reduce(([mainBlocks, context, evaluatedHeaders], b, index) => {
     if (isMainHeader(b.header)) {
-      mainBlocks.push(evalBlock(b, context))
+      mainBlocks.push(evalBlock(b, context, b.header.shuffle))
       evaluatedHeaders.push(null)
     } else {
       const h = headers ? headers[index] ?? null : evalHeader(b.header, context)
       evaluatedHeaders.push(h)
       if (h?.key) {
-        context.set(h.key, () => evalBlock(b, context))
-        context.set(`items-${h.key}`, () => b.items)
+        const key = h.key
+        const order = () => orderOf(key) ?? orderField(h)
+        context.set(key, () => evalBlock(b, context, orderShuffles(order(), b.header)))
+        context.set(`order-${key}`, order)
       }
     }
 
@@ -445,12 +459,13 @@ export function blockDeckName(name: string): string {
 }
 
 // The items of the subdeck instantiated from block `name`, ordered as
-// `scheduleBlocks(name)` would, unless unscheduled. The whole text is
+// `scheduleBlocks(name)` would, unless its order says otherwise. The whole text is
 // re-evaluated first so the block sees every block and global a call from the text would — which means
 // globals assigned randomly are re-rolled, not the ones the root deck saw. The
 // headers are not: `headers` are the ones evaluated with the root deck.
-export function evalBlockDeck(text: string, name: string, headers: BlockHeaders, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}): RenderLine[] {
-  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext, headers)
+// `order`, from the pointing item's `order` field, overrides the block's own.
+export function evalBlockDeck(text: string, name: string, headers: BlockHeaders, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}, order: BlockOrder | null = null): RenderLine[] {
+  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext, headers, n => n === name ? order : null)
   if (!blockNames(headers).has(name) || typeof context.get(name) !== 'function') return []
 
   return randomizeLangUtils(context, context.get('memory') as Memory).blockDeck(name)

@@ -270,6 +270,19 @@ describe('block subdecks — an item keyed like a named block', () => {
     expect(resolveDecks(s)['scales/'].every(i => !i.done)).toBe(true)
   })
 
+  test("the pointing item's order overrides the block's", () => {
+    const written = 'ABCDEFGHIJKLMNOP'.split('')
+    const entered = (text: string) => {
+      const s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+      const e = reduceEnterSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0], NOW)
+      return resolveDecks(e)['w/'].map(i => i.contents)
+    }
+    const body = written.join('\n')
+
+    expect(entered(`-=-\nw: #unscheduled\n--- w: #shuffled\n${body}`)).toStrictEqual(written)
+    expect(entered(`-=-\nw: #shuffled\n-=- w: #unscheduled\n${body}`)).not.toStrictEqual(written)
+  })
+
   test('an item without a block or deck enters nothing', () => {
     const s = evaluated()
     expect(reduceEnterSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0], NOW)).toBe(s)

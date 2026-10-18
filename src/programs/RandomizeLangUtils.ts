@@ -1,4 +1,4 @@
-import { RenderLine, errorLine, isUnscheduled } from './RandomizeLangTypes'
+import { BlockOrder, RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
 import type { ImageEntry } from '../lib/PrflAssets'
 
@@ -608,11 +608,11 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // The block's lines ordered as its subdeck is: schedule-sorted, unless the
-  // header is `#unscheduled`. What `name*` expands to.
+  // block's order is `shuffled` or `unscheduled`. What `name*` expands to.
   function blockDeck(name: string): RenderLine[] {
     const lines = blockLines(name)
-    const items = context.get(`items-${name}`)
-    return items && isUnscheduled(items()) ? lines : pickTasksStateless(lines)
+    const order: BlockOrder | null = context.get(`order-${name}`)?.() ?? null
+    return order === 'shuffled' || order === 'unscheduled' ? lines : pickTasksStateless(lines)
   }
 
   function zipBlocksDiv(names: string, div: number, ...args: any): any[string] {

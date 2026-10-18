@@ -122,11 +122,23 @@ export type BlockHeaders = (RenderLine | null)[]
 
 export type Item = Header | Line
 
-// A block whose header is tagged `unscheduled` (`#unscheduled`) instantiates in
-// its own order — written, or shuffled for `---` — not schedule-sorted.
-export function isUnscheduled(items: Item[]): boolean {
-  const [h] = items
-  return h?.kind == 'header' && (h.line?.evals || []).some(e => e.kind == 'interpolate' && e.tag === 'unscheduled')
+// How a block orders its lines: `scheduled` sorts them least-recently-reviewed
+// first (after the marker's shuffle), `shuffled` shuffles them whatever the
+// marker, `unscheduled` keeps them as written. Set by the `order` field
+// (`#scheduled`, `#shuffled`, `#unscheduled`).
+export const BlockOrders = ['scheduled', 'shuffled', 'unscheduled'] as const
+export type BlockOrder = typeof BlockOrders[number]
+
+// A line's `order` field by its current value, or null without one.
+export function orderField(l: RenderLine | null): BlockOrder | null {
+  const field = l?.source?.substitutions?.find(s => s.tag === 'order')?.contents[0]
+  return BlockOrders.find(o => o === field) ?? null
+}
+
+// Whether a block's lines are shuffled: by its order, else by the marker —
+// `---` shuffles, `-=-` doesn't.
+export function orderShuffles(order: BlockOrder | null, h: Header): boolean {
+  return order === 'shuffled' || (order !== 'unscheduled' && h.shuffle)
 }
 
 export type Block = {

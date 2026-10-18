@@ -1,7 +1,7 @@
 // Pure state reducers for Randomize.
 
 import { blockDeckName, blockNames, evalBlockDeck, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
-import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory } from './RandomizeLangTypes.js'
+import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory, orderField } from './RandomizeLangTypes.js'
 import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, markBanned, resolveItem } from './RandomizeTypes.js'
 import { Timer, timerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
@@ -603,7 +603,7 @@ export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: n
   const name = subdeckBlock(s, item)
   if (name === null) return s
 
-  const lines = evalBlockDeck(s.text || '', name, s.blockHeaders || [], memoryFromString(s.memory), { images: s.images })
+  const lines = evalBlockDeck(s.text || '', name, s.blockHeaders || [], memoryFromString(s.memory), { images: s.images }, orderField(item))
   if (lines.length === 0) return s
 
   const deckName = blockDeckName(name)
