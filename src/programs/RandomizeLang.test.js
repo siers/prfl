@@ -409,6 +409,7 @@ describe('block subdecks', () => {
     expect(orders('w: #scheduled:hide')).toStrictEqual([['order', ['scheduled', 'unscheduled'], ['hide', 'show-1']]])
     expect(orders('w: #shuffled')).toStrictEqual([['order', ['shuffled', 'unscheduled', 'scheduled'], ['show-1']]])
     expect(orders('w: #unscheduled:show-2')).toStrictEqual([['order', ['unscheduled', 'scheduled', 'shuffled'], ['show-2']]])
+    expect(orders('w: #unscheduleNew')).toStrictEqual([['order', ['unscheduleNew', 'scheduled', 'unscheduled'], ['show-1']]])
   })
 
   test("a header's order overrides the marker", () => {
@@ -420,6 +421,12 @@ describe('block subdecks', () => {
     expect(deckS(`-=- w: #shuffled\n${body}`, 'w')).not.toStrictEqual(items)
     expect(withoutJitter(() => deckS('--- w: #scheduled\nA\nB\nC', 'w', memory))[0]).toStrictEqual('B')
     expect(evalContentsS(`--- w: #unscheduled\n${body}\n-=-\n{block('w')}`)).toStrictEqual(items)
+  })
+
+  test('#unscheduleNew keeps never-reviewed lines first, in block order, then schedules the rest', () => {
+    const memory = new Map([['cards', { B: { reviewed: 2 }, D: { reviewed: 1 } }]])
+
+    expect(withoutJitter(() => deckS('-=- w: #unscheduleNew\nA\nB\nC\nD\nE', 'w', memory))).toStrictEqual(['A', 'C', 'E', 'D', 'B'])
   })
 
   test('name:: moves a line to the end of the block written as name, in file order', () => {

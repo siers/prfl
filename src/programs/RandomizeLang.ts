@@ -89,13 +89,14 @@ function replaceMatchesMarker(line: string, regex: RegExp, marker: (n: number) =
 }
 
 // `#tag` (at a word start) is shorthand for `[]tag`: a tag with no value.
-// `#scheduled`, `#shuffled` and `#unscheduled` are shorthand for an `order`
-// field, the named value first — see BlockOrder. `#scheduled` leaves out
-// `shuffled`. Only the current value shows, unless a `show` flag says otherwise.
+// `#scheduled`, `#shuffled`, `#unscheduled` and `#unscheduleNew` are shorthand
+// for an `order` field, the named value first — see BlockOrder. `#scheduled`
+// and `#unscheduleNew` leave out `shuffled`. Only the current value shows, unless a `show` flag says otherwise.
 const OrderShorthands: Record<string, string> = {
   scheduled: 's(`scheduled unscheduled`)',
   shuffled: 's(`shuffled unscheduled scheduled`)',
   unscheduled: 's(`unscheduled scheduled shuffled`)',
+  unscheduleNew: 's(`unscheduleNew scheduled unscheduled`)',
 }
 
 function extractEvals(l: string): [string, Evals] {

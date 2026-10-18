@@ -124,9 +124,11 @@ export type Item = Header | Line
 
 // How a block orders its lines: `scheduled` sorts them least-recently-reviewed
 // first (after the marker's shuffle), `shuffled` shuffles them whatever the
-// marker, `unscheduled` keeps them as written. Set by the `order` field
-// (`#scheduled`, `#shuffled`, `#unscheduled`).
-export const BlockOrders = ['scheduled', 'shuffled', 'unscheduled'] as const
+// marker, `unscheduled` keeps them as written. `unscheduleNew` schedules like
+// `scheduled`, but the never-reviewed lines go first, in the block's order.
+// Set by the `order` field (`#scheduled`, `#shuffled`, `#unscheduled`,
+// `#unscheduleNew`).
+export const BlockOrders = ['scheduled', 'shuffled', 'unscheduled', 'unscheduleNew'] as const
 export type BlockOrder = typeof BlockOrders[number]
 
 // A line's `order` field by its current value, or null without one.

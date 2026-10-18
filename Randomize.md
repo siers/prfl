@@ -77,7 +77,7 @@ including the order. It's a key, so
 it fits a key list (`Scales, warmup*`) and takes a multiplier and `name::`. A block whose
 lines need a `prefix:` keeps a wrapper: `-=- Standards` → `{scheduleBlocks('St:StandardsT')}`.
 
-<a id="block-order"></a>**`#scheduled` / `#shuffled` / `#unscheduled` set a block's order.** They're
+<a id="block-order"></a>**`#scheduled` / `#shuffled` / `#unscheduled` / `#unscheduleNew` set a block's order.** They're
 mutually exclusive, and on a header they override the marker:
 
 | Order | Lines | Subdeck / `name*` |
@@ -85,13 +85,15 @@ mutually exclusive, and on a header they override the marker:
 | `#scheduled` | per marker | least-recently-reviewed first |
 | `#shuffled` | shuffled, even for `-=-` | as shuffled |
 | `#unscheduled` | as written, even for `---` | as written |
+| `#unscheduleNew` | per marker | never-reviewed first, in block order; then least-recently-reviewed first |
 
 Without one, a subdeck is scheduled and `block('name')` follows the marker —
 `block()` never schedule-sorts; `scheduleBlocks()` does. Each is shorthand for
 an `order` field, the named value first: `#scheduled` is
 `` [s(`scheduled unscheduled`)]order `` (no `shuffled` to rotate to), `#shuffled` is
 `` [s(`shuffled unscheduled scheduled`)]order ``, `#unscheduled` is
-`` [s(`unscheduled scheduled shuffled`)]order `` — the block follows the first
+`` [s(`unscheduled scheduled shuffled`)]order ``, `#unscheduleNew` is
+`` [s(`unscheduleNew scheduled unscheduled`)]order `` — the block follows the first
 value, and only that value shows (`show-1`, unless a `show` flag is given).
 Flags carry over (`#unscheduled:hide`). On the item pointing at a block
 (`warmup: #shuffled`) they decide that item's subdeck, over the header — rotate

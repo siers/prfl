@@ -594,6 +594,13 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return jitter(sorted, shuffleFactor)
   }
 
+  // pickTasksStateless, but the never-reviewed items go first, as given.
+  function pickTasksKeepNew<A extends RenderLine>(items: A[]): A[] {
+    const cards = cardMemory(memory)
+    const [fresh, reviewed] = _.partition(items, item => !cards[item.key || '']?.reviewed)
+    return [...fresh, ...pickTasksStateless(reviewed)]
+  }
+
   // state
 
   function block(name: string, ...args: any): string[] {
@@ -608,11 +615,12 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
   }
 
   // The block's lines ordered as its subdeck is: schedule-sorted, unless the
-  // block's order is `shuffled` or `unscheduled`. What `name*` expands to.
+  // block's order says otherwise. What `name*` expands to.
   function blockDeck(name: string): RenderLine[] {
     const lines = blockLines(name)
     const order: BlockOrder | null = context.get(`order-${name}`)?.() ?? null
-    return order === 'shuffled' || order === 'unscheduled' ? lines : pickTasksStateless(lines)
+    if (order === 'shuffled' || order === 'unscheduled') return lines
+    return order === 'unscheduleNew' ? pickTasksKeepNew(lines) : pickTasksStateless(lines)
   }
 
   function zipBlocksDiv(names: string, div: number, ...args: any): any[string] {
