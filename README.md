@@ -13,6 +13,8 @@ Since practice lists benefit from generated content and
 the space of parameters to play around with (think keys, but it can be any measurement) often benefits from generation,
 this tool has a DSL that allows to execute javascript.
 
+Additionally, a tool such as this provides fast feedback cycles for prototyping new exercises.
+
 ## Why
 
 Practicing well means controlling *what* you practice (randomized vs. blocked
