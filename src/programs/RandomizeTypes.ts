@@ -30,18 +30,28 @@ export function resolveItem(lines: Lines, ref: ItemRef): UserItem {
   return { ...line, ...progress }
 }
 
+// A ✅ is an accepted review; leaving a card unreviewed after a long time on
+// it is an unaccepted one.
+export type Review = {
+  time: number, // Date.now()
+  length: number, // ms on the item's timer
+  accepted: boolean,
+}
+
 // think flashcards
 export type CardData = {
   reviewed?: number, // Date.now()
   bpm?: number,
   banned?: boolean, // starts out done wherever it shows up again
+  reviews?: Review[], // oldest first
 }
 
 export function cardMemory(memory: any): Record<string, CardData> {
   return (memory.get('cards') as Record<string, CardData>) || {}
 }
 
-export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number, banned?: boolean }) {
+// `review` is appended to the card's reviews.
+export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number, banned?: boolean, review?: Review }) {
   const cards = cardMemory(memory)
   // Unbanning drops the flag instead of storing `banned: false`.
   const { banned, ...card } = { ...cards[key], ...(settings.banned !== undefined && { banned: settings.banned }) }
@@ -50,6 +60,7 @@ export function cardSet(memory: any, key: string, settings: { reviewed?: number,
     ...(banned && { banned }),
     ...(settings.reviewed ? { reviewed: settings.reviewed } : {}),
     ...(settings.bpm ? { bpm: settings.bpm } : {}),
+    ...(settings.review ? { reviews: [...(card.reviews || []), settings.review] } : {}),
   }
   memory.set('cards', cards)
 }

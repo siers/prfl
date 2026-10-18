@@ -307,15 +307,22 @@ Five actions, all swipes on the item card:
 
 | Swipe | Action | Memory | Order |
 |---|---|---|---|
-| **E** → | review ✅ | `{reviewed: now, bpm}` | — |
-| **W** ← | suspend 📚 | untouched | — |
+| **E** → | review ✅ | `{reviewed: now, bpm}`, accepted review if timer ≥ 10 s | — |
+| **W** ← | suspend 📚 | unaccepted review if timer > 3 min | — |
 | far **W** ←← | ban 🚫 | `banned: true` | — |
 | **N** ↑ | surface 🌟 | `reviewed: 0`, `dropped: 0`, unbanned | **to top** |
-| **S** ↓ | bury ✘ | untouched | **drops down** |
+| **S** ↓ | bury ✘ | unaccepted review if timer > 3 min | **drops down** |
 
 Review marks done and records *when* and *at what bpm*. Suspend marks done
 **without** recording practice — hidden, but not counted as done. Surface undoes
 a review and pulls the item back to the front.
+
+Each card also keeps its history in `reviews`, oldest first: `{time, length,
+accepted}`, where `length` is the ms on the item's own timer. A review appends
+an accepted one if the timer reached ten seconds — `reviewed` is set either
+way. Suspend and bury append an unaccepted one only if the item's
+timer is past three minutes — a long try that didn't land — and otherwise
+record nothing. Only `reviewed` feeds the schedule; `reviews` is just kept.
 
 Ban asks for confirmation first, then marks done like suspend, but the ban
 sticks to the card: wherever the key shows up again — re-eval, reload, spawned
@@ -335,7 +342,7 @@ The effect is that the **first** bury is an ordinary drop-three, but an item you
 keep burying sinks below everything that hasn't had its turn yet — it stops
 competing with fresh material instead of resurfacing every few items.
 
-Review state lives in a serialized map of `key -> {reviewed, bpm}`, which is
+Review state lives in a serialized map of `key -> {reviewed, bpm, reviews}`, which is
 what `scheduleBlocks` and the spawn scheduler sort on. Unseen items fall back to
 a stable hash of their contents, so ordering is deterministic rather than
 arbitrary.

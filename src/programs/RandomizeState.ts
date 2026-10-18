@@ -3,7 +3,7 @@
 import { blockDeckName, blockNames, evalBlockDeck, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory, orderField } from './RandomizeLangTypes.js'
 import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, markBanned, resolveItem } from './RandomizeTypes.js'
-import { Timer, timerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
+import { Timer, timerLength, logicalTimerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
 import type { ImageEntry } from '../lib/PrflAssets.ts'
@@ -252,6 +252,11 @@ function itemsAndTimer(
   return [decksOf(markBanned(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders, newDefined]
 }
 
+// How long a card must have been worked on for a review to be recorded: a ✅
+// as accepted, leaving it unreviewed as unaccepted.
+const ACCEPTED_REVIEW_MIN_MS = 10 * 1000
+const UNACCEPTED_REVIEW_MIN_MS = 3 * 60 * 1000
+
 // Apply an item action to the deck-local flat list. `current` is the in-deck
 // index. Returns the new list, new memory, and — for reorders (bury/unreview/last)
 // that resolve the cursor themselves — the new in-deck index (else null).
@@ -269,8 +274,17 @@ export function modifyItemState(
   const items = inItems || []
 
   const newMemory = withMemory(m, memory => {
+    const length = logicalTimerLength(items[current]?.timer ?? null, now)
+
     if (controls.reviewed === true && items[current].key)
-      cardSet(memory, items[current].key, { reviewed: now, bpm: currentMetro })
+      cardSet(memory, items[current].key, {
+        reviewed: now, bpm: currentMetro,
+        ...(length >= ACCEPTED_REVIEW_MIN_MS && { review: { time: now, length, accepted: true } }),
+      })
+
+    // Bury and suspend leave it unreviewed: only a long try is worth recording.
+    if (controls.reviewed === false && items[current].key && length > UNACCEPTED_REVIEW_MIN_MS)
+      cardSet(memory, items[current].key, { review: { time: now, length, accepted: false } })
 
     if (controls.unreview === true && items[current].key)
       cardSet(memory, items[current].key, { reviewed: 0, })

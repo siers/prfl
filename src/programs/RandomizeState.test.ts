@@ -6,7 +6,7 @@ import { SpawnMode } from './RandomizeDecks.ts'
 import type { Timer } from './Timers.ts'
 import * as ToneLib from '../lib/ToneLib.ts'
 import {
-  RState, RecalcDeps,
+  RState, RecalcDeps, ItemActions,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
   migrateV5, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
@@ -146,6 +146,22 @@ describe('reduceRecalc — item actions', () => {
     const memory: [string, any][] = JSON.parse(s.memory!)
     const cards = Object.fromEntries(memory).cards
     expect(cards['a'].reviewed).toBe(42) // deterministic, no Date.now()
+  })
+
+  test('records reviews: ✅ accepted from ten seconds, bury/suspend unaccepted only past three minutes', () => {
+    const minutes = (n: number) => n * 60 * 1000
+    const reviewsAfter = (item: ItemActions, length: number) => {
+      const s = stateOf(['a', 'b'])
+      s.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length, running: false }
+      const after = reduceRecalc(s, { item }, deps({ now: 42 }))
+      return Object.fromEntries(JSON.parse(after.memory!)).cards?.['a']?.reviews
+    }
+
+    expect(reviewsAfter({ reviewed: true, done: true }, minutes(1))).toStrictEqual([{ time: 42, length: minutes(1), accepted: true }])
+    expect(reviewsAfter({ reviewed: false, bury: true }, minutes(4))).toStrictEqual([{ time: 42, length: minutes(4), accepted: false }])
+    expect(reviewsAfter({ reviewed: false, done: true }, minutes(4))).toStrictEqual([{ time: 42, length: minutes(4), accepted: false }])
+    expect(reviewsAfter({ reviewed: true, done: true }, 9000)).toBeUndefined()
+    expect(reviewsAfter({ reviewed: false, bury: true }, minutes(2))).toBeUndefined()
   })
 })
 
