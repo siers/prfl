@@ -303,11 +303,12 @@ mode stops the local timer.
 
 ## 3. Reviewing
 
-Five actions, all swipes on the item card:
+Six actions, all swipes on the item card:
 
 | Swipe | Action | Memory | Order |
 |---|---|---|---|
 | **E** → | review ✅ | `{reviewed: now, bpm}`, accepted review if timer ≥ 10 s | — |
+| far **E** →→ | review + FSRS 🧠 | as review; `fsrs: now` the first time | — |
 | **W** ← | suspend 📚 | unaccepted review if timer > 3 min | — |
 | far **W** ←← | ban 🚫 | `banned: true` | — |
 | **N** ↑ | surface 🌟 | `reviewed: 0`, `dropped: 0`, unbanned | **to top** |
@@ -322,7 +323,16 @@ accepted}`, where `length` is the ms on the item's own timer. A review appends
 an accepted one if the timer reached ten seconds — `reviewed` is set either
 way. Suspend and bury append an unaccepted one only if the item's
 timer is past three minutes — a long try that didn't land — and otherwise
-record nothing. Only `reviewed` feeds the schedule; `reviews` is just kept.
+record nothing.
+
+**FSRS is opt-in per card.** The far right swipe reviews the card and, the first
+time and after a confirmation, turns on [FSRS](https://github.com/open-spaced-repetition/ts-fsrs) for it
+(`fsrs: <opt-in time>`) — meant for cards that are strong, atomic and stable.
+After that it's just a review. FSRS state isn't stored: it's replayed from the
+card's `reviews` since the opt-in, accepted as Good and unaccepted as Again,
+with learning steps off. An FSRS card not yet due starts out done, like a banned
+one; scheduling puts the due ones first, most overdue first. Every other card
+is still scheduled by `reviewed`.
 
 Ban asks for confirmation first, then marks done like suspend, but the ban
 sticks to the card: wherever the key shows up again — re-eval, reload, spawned
@@ -342,7 +352,7 @@ The effect is that the **first** bury is an ordinary drop-three, but an item you
 keep burying sinks below everything that hasn't had its turn yet — it stops
 competing with fresh material instead of resurfacing every few items.
 
-Review state lives in a serialized map of `key -> {reviewed, bpm, reviews}`, which is
+Review state lives in a serialized map of `key -> {reviewed, bpm, reviews, fsrs}`, which is
 what `scheduleBlocks` and the spawn scheduler sort on. Unseen items fall back to
 a stable hash of their contents, so ordering is deterministic rather than
 arbitrary.

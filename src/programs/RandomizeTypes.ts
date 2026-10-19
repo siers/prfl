@@ -1,5 +1,6 @@
 import { Timer } from './Timers.ts'
 import { RenderLine } from './RandomizeLangTypes.js'
+import { fsrsWaiting } from './RandomizeFsrs'
 
 type UserItemData = {
   timer?: Timer,
@@ -44,6 +45,7 @@ export type CardData = {
   bpm?: number,
   banned?: boolean, // starts out done wherever it shows up again
   reviews?: Review[], // oldest first
+  fsrs?: number, // Date.now() of the opt-in: scheduled by FSRS from then on
 }
 
 export function cardMemory(memory: any): Record<string, CardData> {
@@ -51,7 +53,7 @@ export function cardMemory(memory: any): Record<string, CardData> {
 }
 
 // `review` is appended to the card's reviews.
-export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number, banned?: boolean, review?: Review }) {
+export function cardSet(memory: any, key: string, settings: { reviewed?: number, bpm?: number, banned?: boolean, review?: Review, fsrs?: number }) {
   const cards = cardMemory(memory)
   // Unbanning drops the flag instead of storing `banned: false`.
   const { banned, ...card } = { ...cards[key], ...(settings.banned !== undefined && { banned: settings.banned }) }
@@ -61,6 +63,7 @@ export function cardSet(memory: any, key: string, settings: { reviewed?: number,
     ...(settings.reviewed ? { reviewed: settings.reviewed } : {}),
     ...(settings.bpm ? { bpm: settings.bpm } : {}),
     ...(settings.review ? { reviews: [...(card.reviews || []), settings.review] } : {}),
+    ...(settings.fsrs && !card.fsrs ? { fsrs: settings.fsrs } : {}),
   }
   memory.set('cards', cards)
 }
@@ -69,8 +72,8 @@ export function findCard(memory: any, key: string): CardData | null {
   return cardMemory(memory)[key]
 }
 
-// Banned cards come back already done.
-export function markBanned(memory: any, refs: ItemRef[]): ItemRef[] {
+// Banned cards come back already done, and so do FSRS cards not due yet.
+export function markStartsDone(memory: any, refs: ItemRef[], now: number = Date.now()): ItemRef[] {
   const cards = cardMemory(memory)
-  return refs.map(ref => cards[ref.key]?.banned ? { ...ref, done: true } : ref)
+  return refs.map(ref => cards[ref.key]?.banned || fsrsWaiting(cards[ref.key], now) ? { ...ref, done: true } : ref)
 }

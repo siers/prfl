@@ -2,7 +2,7 @@
 
 import { blockDeckName, blockNames, evalBlockDeck, evalContentsMem, evalRenderLine, hashKey, interpolateSubtToStringPlain, rotateInterpolableLine, scheduleItems, setSubstitutionContents, setSubstitutionHead } from './RandomizeLang.js'
 import { BlockHeaders, RenderLine, isSounded, makeEmptyMemory, orderField } from './RandomizeLangTypes.js'
-import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, markBanned, resolveItem } from './RandomizeTypes.js'
+import { CardData, ItemRef, Lines, UserItem, cardSet, findCard, markStartsDone, resolveItem } from './RandomizeTypes.js'
 import { Timer, timerLength, logicalTimerLength, freshTimer, freshTimerOrRestart, toStartedTimer, toStoppedTimer, timerSubtract, zeroedStoppedTimer } from './Timers.ts'
 import { mapParse, mapSerialize } from '../lib/Map.js'
 import { SheetNote, parseSheet } from '../lib/SheetNotation.ts'
@@ -89,6 +89,7 @@ export type ItemActions = {
   unreview?: boolean,
   last?: boolean,
   ban?: boolean, // false lifts a ban
+  fsrs?: boolean, // opts the card into FSRS scheduling; only the first counts
 }
 
 export type TimerCommand = 'start' | 'stop' | 'restart' | 'local-as-global' | 'subtract-and-restart'
@@ -249,7 +250,7 @@ function itemsAndTimer(
   const [pointedLines, refs] = storeLines({}, evaluated)
   const [newLines, newDefined] = storeDefinitions(pointedLines, definitions)
 
-  return [decksOf(markBanned(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders, newDefined]
+  return [decksOf(markStartsDone(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders, newDefined]
 }
 
 // How long a card must have been worked on for a review to be recorded: a ✅
@@ -275,6 +276,10 @@ export function modifyItemState(
 
   const newMemory = withMemory(m, memory => {
     const length = logicalTimerLength(items[current]?.timer ?? null, now)
+
+    // Before the review below, so FSRS counts it as the first.
+    if (controls.fsrs === true && items[current].key)
+      cardSet(memory, items[current].key, { fsrs: now })
 
     if (controls.reviewed === true && items[current].key)
       cardSet(memory, items[current].key, {
@@ -562,7 +567,7 @@ export function reduceSpawn(s: RState | undefined, mode: SpawnMode, now: number,
   const reusable = existing && existing.some(i => !refSkipped(s.lines || {})(i))
   const [lines, scheduled] = reusable ? [s.lines || {}, existing] : storeLines(s.lines || {}, scheduler(children, s.memory))
 
-  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: markBanned(memoryFromString(s.memory), scheduled) }
+  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: markStartsDone(memoryFromString(s.memory), scheduled, now) }
   const newCursor: DeckCursor = descendCursor({ ...s, lines }, items, deckName)
 
   const newState: RState = {
@@ -622,7 +627,7 @@ export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: n
 
   const deckName = blockDeckName(name)
   const [stored, refs] = storeLines(s.lines || {}, lines)
-  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: markBanned(memoryFromString(s.memory), refs) }
+  const items: Decks<ItemRef> = { ...(s.items || {}), [deckName]: markStartsDone(memoryFromString(s.memory), refs, now) }
   return reduceEnterDeck({ ...s, items, lines: stored }, deckName, now)
 }
 
@@ -660,7 +665,7 @@ export function reduceRefresh(s: RState | undefined, contents: string, now: numb
   const [pointedLines, refs] = storeLines(s.lines || {}, evaluated)
   const [fresh, defined] = storeDefinitions(pointedLines, definitions)
   const [carried, sources] = carryProgress(deckItems(s.items || {}, DEFAULT_DECK), refs)
-  const root = markBanned(memoryFromString(s.memory), carried)
+  const root = markStartsDone(memoryFromString(s.memory), carried, now)
 
   const items: Decks<ItemRef> = { ...(s.items || {}), [DEFAULT_DECK]: root }
   const lines = pruneLines(fresh, items, defined)
@@ -708,7 +713,7 @@ export function reduceInsertItem(s: RState | undefined, dsl: string, now: number
   const [deck, index] = s.current || [DEFAULT_DECK, 0]
   const deckList = deckItems(s.items || {}, deck)
   const at = index + 1
-  const newDeckList = [...deckList.slice(0, at), ...markBanned(memoryFromString(s.memory), inserted), ...deckList.slice(at)]
+  const newDeckList = [...deckList.slice(0, at), ...markStartsDone(memoryFromString(s.memory), inserted, now), ...deckList.slice(at)]
 
   const newState: RState = {
     ...s,

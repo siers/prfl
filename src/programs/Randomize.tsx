@@ -334,7 +334,7 @@ function Randomize(controls: any): JSX.Element {
         const showCheckmark = isCurrent && itemSeekExcluded(item)
 
         let wipeHandlers = useWipe({
-          E: { icon: '✅', run: itemReview },
+          E: [{ icon: '✅', run: itemReview }, { icon: '🧠', run: itemReviewFsrs }],
           W: [{ icon: '📚', run: itemSuspend }, { icon: '🚫', run: itemBan }],
           N: { icon: '🌟', run: itemSurface },
           S: [{ icon: '✘', run: itemBury }, { icon: '🔚', run: itemToLast }],
@@ -394,6 +394,13 @@ function Randomize(controls: any): JSX.Element {
 
   function itemReview() {
     recalc({ item: { reviewed: true, done: true, bury: false } })
+  }
+
+  // A review that also opts the card into FSRS scheduling. Only the opt-in
+  // asks first; once on FSRS it's just a review.
+  function itemReviewFsrs() {
+    if (!findCardFromMemory(state.memory, items[currentIndex])?.fsrs && !confirm('advance this card to FSRS?')) return
+    recalc({ item: { reviewed: true, done: true, bury: false, fsrs: true } })
   }
 
   function itemBury() {
@@ -622,7 +629,8 @@ export default Randomize
 
 // gen_tracker_id() { pwgen 4 1 | tr -d '\n' | tr 'a-z' 'A-Z' | xclip; }
 
-// TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots
+// TODO: state: make a zod of the state, so we have explicit structures to show what the state is made out of
+// TODO: ToneLib: minor keys, redo altered key acceptance test with the correct roots (should be enabled through ModalKeys and string repr.)
 // TODO: subdecks: allow just a list of RenderLines in the tag to spawn a subdeck
 // TODO: blocks: code for decorating the tasks
 // TODO: keys: add bangs + errors to make sure that the pointers reference (7RZH)

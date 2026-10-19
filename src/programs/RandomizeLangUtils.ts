@@ -1,5 +1,6 @@
 import { BlockOrder, RenderLine, errorLine } from './RandomizeLangTypes'
 import { cardMemory } from './RandomizeTypes'
+import { fsrsDue } from './RandomizeFsrs'
 import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
@@ -580,18 +581,24 @@ export function metro(base: number, diff: number): string[] {
 }
 
 export function randomizeLangUtils(context: Map<string, any>, memory: Map<string, any>) {
-  // Note: uses memory
+  // Note: uses memory. FSRS cards go by their due date instead: the due ones
+  // first, most overdue first, the waiting ones last.
   function pickTasksStateless<A extends RenderLine>(items: A[], shuffleFactor?: number): A[] {
     if (items.length == 0) return []
 
-    const sorted = (_.sortBy(items, item => {
-      const cards = cardMemory(memory)
+    const cards = cardMemory(memory)
+    const now = Date.now()
+    const dues = new Map(items.map(item => [item, fsrsDue(cards[item.key || ''])]))
+    const [fsrsItems, rest] = _.partition(items, item => dues.get(item) != null)
+    const [due, waiting] = _.partition(_.sortBy(fsrsItems, item => dues.get(item)), item => dues.get(item)! <= now)
+
+    const sorted = (_.sortBy(rest, item => {
       const otherwiseOrder = murmur.x86.hash32(item.contents)
       // c.l(`${item.key}.reviewed = ${(cards[item.key || '']?.reviewed || -otherwiseOrder)}`)
       return (cards[item.key || '']?.reviewed || -otherwiseOrder)
     }))
 
-    return jitter(sorted, shuffleFactor)
+    return [...due, ...jitter(sorted, shuffleFactor), ...waiting]
   }
 
   // pickTasksStateless, but the never-reviewed items go first, as given.

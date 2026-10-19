@@ -163,6 +163,19 @@ describe('reduceRecalc — item actions', () => {
     expect(reviewsAfter({ reviewed: true, done: true }, 9000)).toBeUndefined()
     expect(reviewsAfter({ reviewed: false, bury: true }, minutes(2))).toBeUndefined()
   })
+
+  test('the far → swipe opts a card into FSRS once, and reviews it', () => {
+    const cardAfter = (s: RState) => Object.fromEntries(JSON.parse(s.memory!)).cards['a']
+    const fsrsReview: ItemActions = { reviewed: true, done: true, fsrs: true }
+    let s = stateOf(['a', 'b'])
+    s.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length: 60 * 1000, running: false }
+    s = reduceRecalc(s, { item: fsrsReview }, deps({ now: 42 }))
+
+    expect(cardAfter(s)).toStrictEqual(expect.objectContaining({ fsrs: 42, reviewed: 42, reviews: [{ time: 42, length: 60 * 1000, accepted: true }] }))
+
+    s = reduceRecalc(stateOf(['a', 'b'], 0, { memory: s.memory }), { item: fsrsReview }, deps({ now: 99 }))
+    expect(cardAfter(s)).toStrictEqual(expect.objectContaining({ fsrs: 42, reviewed: 99 }))
+  })
 })
 
 describe('reduceRecalc — ban', () => {
