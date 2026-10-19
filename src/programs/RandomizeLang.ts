@@ -17,7 +17,9 @@ export type AdditionalContext = {
 
 // lib
 
-function executeInContext<A>(context: Object, f: string): A | { kind: 'error', contents: string } | null {
+// `where` names the card the command belongs to, so a failure can be traced
+// back to its source line.
+function executeInContext<A>(context: Object, f: string, where: string): A | { kind: 'error', contents: string } | null {
   const keys = Object.keys(context)
   const values = Object.values(context)
   try {
@@ -26,7 +28,7 @@ function executeInContext<A>(context: Object, f: string): A | { kind: 'error', c
     const fn = new Function(...keys, body)
     return fn(...values)
   } catch (e) {
-    console.error(e)
+    console.error(`in ${where}\n  command: ${f}\n`, e)
     return { kind: 'error', contents: `error: ${e?.toString()}` }
   }
 }
@@ -307,7 +309,13 @@ function substituteExplode(line: RenderLine, marker: string, subst: any): Render
   else return [errorLine(`explode requires string[], got ${JSON.stringify(subst)}`)]
 }
 
-function executeCommand(command: string, context: Context, extra: Record<string, any> = {}): any {
+// The card a command belongs to, for error messages: its key (the `Key:`
+// prefix or the `Nr` hash, as evalItem assigns it) and its source line.
+function cardOrigin(contents: string, key: string | null = null): string {
+  return `${key ?? contents.match(LineKeyPattern)?.[1] ?? hashKey(contents)}: ${contents}`
+}
+
+function executeCommand(command: string, context: Context, where: string, extra: Record<string, any> = {}): any {
   const memory = context.get('memory') as Memory
   const additionalContext = {
     memory,
@@ -315,7 +323,7 @@ function executeCommand(command: string, context: Context, extra: Record<string,
   }
   const fullContext = { ...Utils, ...randomizeLangUtils(context, memory), ...additionalContext, ...extra }
 
-  return executeInContext(fullContext, command)
+  return executeInContext(fullContext, command, where)
 }
 
 // The substitutions resolved so far, exposed to a command under `fields` as
@@ -343,6 +351,7 @@ function evalInterpolate(
   i: Interpolate,
   context: Context,
   frozen: Substitution[],
+  where: string,
 ): [RenderLine, Substitution[]] {
   const [l, ss] = lss
 
@@ -364,7 +373,7 @@ function evalInterpolate(
     // `computed` fields, evaluated last, thus see every default/frozen field.
     const fields = fieldsContext([...frozen, ...ss])
     const extra = { fields, frozen: fields, rotating: false }
-    const substOut: any = executeCommand(i.command, context, extra)
+    const substOut: any = executeCommand(i.command, context, where, extra)
     if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: ${substOut}`), ss]
 
     // Several tags: an empty result falls through to an empty tag named by the source.
@@ -385,8 +394,9 @@ function evalInterpolates(
   context: Context,
   frozen: Substitution[] = [],
 ): RenderLine {
+  const where = cardOrigin(line.contents, line.key)
   const [interpolated, substitutions] =
-    orderInterpolates(is).reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context, frozen), [line, []])
+    orderInterpolates(is).reduce<[RenderLine, Substitution[]]>((lss, i) => evalInterpolate(lss, i, context, frozen, where), [line, []])
 
   return {
     ...interpolated,
@@ -412,7 +422,7 @@ function evalItem(item: Item, context: Context): RenderLine[] {
     return pipe(
       times(thisLine.times).map(_ => renderLine1(thisLine.contents)),
       lines => es.reduce((lines, e) => lines.flatMap(l => {
-        const subst: any = executeCommand(e.command, context)
+        const subst: any = executeCommand(e.command, context, cardOrigin(thisLine.contents))
         if (subst?.kind === 'error') return [errorLine(`error: failed to compile: ${subst?.contents}}`)]
 
         return substituteExplode(l, e.marker, subst)
@@ -573,9 +583,9 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
 // non-computed `fields` and with `rotating` set. Returns its raw output, or
 // null if the command is missing or errors — the caller then keeps the old
 // values.
-function rerunForRotation(command: string | undefined, fields: Record<string, InterpolateSubstT>, context: Context): unknown {
+function rerunForRotation(command: string | undefined, fields: Record<string, InterpolateSubstT>, context: Context, where: string): unknown {
   if (command === undefined) return null
-  const out: any = executeCommand(command, context, { fields, frozen: fields, rotating: true })
+  const out: any = executeCommand(command, context, where, { fields, frozen: fields, rotating: true })
   return out?.kind === 'error' ? null : out
 }
 
@@ -591,10 +601,11 @@ function refreshComputedSubstitutions(l: RenderLine, source: NonNullable<RenderL
   const context = initContext(mem)
   const byMarker = new Map((source.interpols || []).map(i => [i.marker, i]))
   const fields = fieldsContext(substitutions.filter(o => !isComputed(o)))
+  const where = cardOrigin(source.contents, l.key)
 
   // origin marker -> tag name -> the values the re-run source gave it
   const regenerate = _.memoize((origin: string) => new Map(
-    (toGeneratedTags(rerunForRotation(byMarker.get(origin)?.command, fields, context)) || []).map(g => [g.tag, g.contents]),
+    (toGeneratedTags(rerunForRotation(byMarker.get(origin)?.command, fields, context, where)) || []).map(g => [g.tag, g.contents]),
   ))
 
   const newSubst = substitutions.map(s => {
@@ -603,7 +614,7 @@ function refreshComputedSubstitutions(l: RenderLine, source: NonNullable<RenderL
       const contents = regenerate(s.origin).get(s.tag ?? '')
       return contents ? { ...s, contents } : s
     }
-    const out = rerunForRotation(byMarker.get(s.marker)?.command, fields, context)
+    const out = rerunForRotation(byMarker.get(s.marker)?.command, fields, context, where)
     return out === null ? s : { ...s, contents: toInterpolateSubst(out) }
   })
 
