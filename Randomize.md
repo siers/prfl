@@ -387,6 +387,35 @@ synth and engraver, a name containing `image` contributes an image, `br`
 (`[…]br` or `#br`) prints nothing but ends the visual line, and `next`
 drives the programme in §5.
 
+### One source, several tags
+
+A `[]` whose command returns a plain object, or an array of
+substitution-like objects, generates one tag per entry, rendered in place and
+space-separated:
+
+```
+[({ key: 'C', mode: { contents: s('dorian lydian'), tags: s('show-1') } })]src
+[s('C G').map((v, i) => ({ tag: 'k' + i, contents: v }))]src
+```
+
+An entry is `name: values` or `name: { contents, tags }`; values take any shape
+a single `[]` may return. The source names and flags each tag: nothing is
+inherited from its own `tag:flags`, whose flags only place it in a resolution
+tier (`freeze`, `computed`). Each generated tag is a field like any other:
+`fields.<name>`, ⏩, tag clicks, spawning.
+
+A generated tag flagged `computed` is re-derived on ⏩ and tag clicks: the
+source re-runs with `rotating` set to `true` and `fields` holding the current
+values, and only its `computed` tags take the output — so a source derives them
+from `fields` when `rotating`, and rolls everything fresh otherwise.
+`ExScales3oc.tags(fields, rotating)` is the worked example.
+
+On 🔄 the source re-runs and still sees its previous tags in `fields`. A
+name it returns again takes the new values; a name it no longer returns is
+**kept**, not dropped; a new name is appended. A `freeze` source reuses its
+tags without re-running. An empty object renders as an empty tag named after
+the source.
+
 ### Resolution order — forward references
 
 Interpolations don't resolve left to right. They resolve in **three tiers**:

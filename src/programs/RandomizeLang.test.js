@@ -1051,6 +1051,71 @@ describe('computed rotation', () => {
   })
 })
 
+describe('multi-tag source', () => {
+  test('an object return spits out one tag per entry, in place', () => {
+    const item = evalContents("Line: [({ key: 'C', mode: s('dorian lydian') })]src end")[0]
+
+    expect(item.contents).toBe("Line: [C] [dorian lydian] end")
+    expect(item.source.substitutions.map(s => [s.tag, s.marker, s.origin]))
+      .toStrictEqual([['key', '!!1-0!!', '!!1!!'], ['mode', '!!1-1!!', '!!1!!']])
+    expect(renderLineContentWithTags(item)[0].filter(ct => ct[0] == 'tag').map(ct => ct[1]))
+      .toStrictEqual(['key', 'mode'])
+  })
+
+  test('the source provides each tag\'s flags; they are not inherited', () => {
+    const item = evalContents("Line: [({ key: { contents: 'C', tags: s('freeze inline') }, mode: 'dorian' })]src:hide")[0]
+
+    expect(item.source.substitutions.map(s => s.tags)).toStrictEqual([['freeze', 'inline'], null])
+  })
+
+  test('an array of substitution-like objects works too', () => {
+    const item = evalContents("Line: [s('C G').map((v, i) => ({ tag: 'k' + i, contents: v }))]src")[0]
+
+    expect(item.contents).toBe("Line: [C] [G]")
+    expect(item.source.substitutions.map(s => s.tag)).toStrictEqual(['k0', 'k1'])
+  })
+
+  test('generated tags are fields for later interpolations and rotate on their own', () => {
+    const item = evalContents("Line: [({ a: s('A B'), b: s('1 2') })]src [j(fields.a)]echo:computed")[0]
+    expect(item.contents).toBe("Line: [A B] [1 2] [A B]")
+
+    expect(rotateInterpolableLine(item).contents).toBe("Line: [B A] [2 1] [B A]")
+    expect(rotateInterpolableLine(item, 'b').contents).toBe("Line: [A B] [2 1] [A B]")
+  })
+
+  test('on re-eval the source sees its old tags in `fields`, and keeps the ones it no longer returns', () => {
+    const src = "Line: [memory.get('k') == 'A' ? { a: 'A1', b: 'B1' } : { b: fields.a + 'B2', c: 'C2' }]src"
+    const [[item]] = evalContentsMem(src, new Map([['k', 'A']]))
+    expect(item.contents).toBe("Line: [A1] [B1]")
+
+    const reevaluated = evalRenderLine(item, new Map([['k', 'B']]))
+    expect(reevaluated.contents).toBe("Line: [A1] [A1B2] [C2]")
+    expect(reevaluated.source.substitutions.map(s => s.marker)).toStrictEqual(['!!1-0!!', '!!1-1!!', '!!1-2!!'])
+  })
+
+  test('rotation re-runs the source, with `rotating`, for its computed tags only', () => {
+    const src = "Line: [({ a: rotating ? 'X' : s('A B'), echo: { contents: fields.a ? fields.a.join('') : 'none', tags: 'computed'.split(' ') } })]src"
+    const item = evalContents(src)[0]
+    expect(item.contents).toBe("Line: [A B] [none]")
+
+    const rotated = rotateInterpolableLine(item)
+    expect(rotated.contents).toBe("Line: [B A] [BA]")
+  })
+
+  test('a frozen source reuses its generated tags', () => {
+    const [[item]] = evalContentsMem("Line: [({ a: memory.get('k') })]src:freeze", new Map([['k', 'A']]))
+
+    expect(evalRenderLine(item, new Map([['k', 'B']])).contents).toBe("Line: [A]")
+  })
+
+  test('an empty object renders as an empty tag named by the source', () => {
+    const item = evalContents("Line: [({})]src")[0]
+
+    expect(item.contents).toBe("Line: []")
+    expect(item.source.substitutions.map(s => s.tag)).toStrictEqual(['src'])
+  })
+})
+
 describe('nonrotated tag', () => {
   test('a nonrotated field holds still while its neighbours rotate', () => {
     const item = evalContents("Line: [s('A B')]a [s('1 2')]b:nonrotated")[0]

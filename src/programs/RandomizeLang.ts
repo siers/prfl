@@ -1,4 +1,4 @@
-import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, markerAt, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, isFrozen, isComputed, isNonrotated, isStable, showCount, BlockOrder, orderField, orderShuffles } from './RandomizeLangTypes'
+import { Evals, isMainHeader, Header, Line, BlockHeaders, Item, Block, Parsed, Context, Memory, markerAt, Marker, header, interpolate, explode, line, block, RenderLine, renderLineSep, EvaluationResult, EvaluationContext, LineKeyPattern, interpolableLine, RenderLineSchema, renderLine1, errorLine, Interpolate, InterpolateSubstT, Substitution, Explode, toInterpolateSubst, rotateInterpolateSubst, substitution, ContentOrTag, toGeneratedTags, GeneratedTag, subMarkerAt, InterpolableLine, isFrozen, isComputed, isNonrotated, isStable, showCount, BlockOrder, orderField, orderShuffles } from './RandomizeLangTypes'
 import { shuffleMinDistance, shuffleMinDistanceIndexed } from '../lib/Random.js'
 import { times, intersperse } from '../lib/Array'
 import { mapCopy } from '../lib/Map'
@@ -250,6 +250,38 @@ function substituteInterpolate(line: RenderLine, marker: string, subst: Interpol
   return { ...line, contents: line.contents.replace(marker, interpolateSubtToString(subst)) }
 }
 
+// Replace a multi-tag source's marker with its generated tags' sub-markers,
+// space-separated, so each one renders in place like a `[]` of its own.
+function expandGroup(contents: string, marker: string, group: Substitution[]): string {
+  return contents.replace(marker, group.map(s => s.marker).join(' '))
+}
+
+// The template a line renders from: `source.contents` with each multi-tag
+// source's marker expanded into its generated tags' sub-markers.
+function templateContents(source: InterpolableLine): string {
+  const origins = _.uniq((source.substitutions || []).flatMap(s => s.origin === undefined ? [] : [s.origin]))
+  return origins.reduce((c, o) => expandGroup(c, o, (source.substitutions || []).filter(s => s.origin === o)), source.contents)
+}
+
+// A re-run keeps the tags the source generated before: the ones it returns
+// again take the new values and flags, the rest stay as they were, and new
+// names are appended with fresh sub-markers.
+function mergeGeneratedTags(marker: string, prior: Substitution[], generated: GeneratedTag[]): Substitution[] {
+  const byTag = new Map(generated.map(g => [g.tag, g]))
+  const kept = prior.map(p => {
+    const g = byTag.get(p.tag ?? '')
+    return g ? substitution(g.contents, p.marker, g.tag, g.tags, marker) : p
+  })
+  const known = new Set(prior.map(p => p.tag))
+  const added = [...byTag.values()].filter(g => !known.has(g.tag))
+    .map((g, k) => substitution(g.contents, subMarkerAt(marker, prior.length + k), g.tag, g.tags, marker))
+  return [...kept, ...added]
+}
+
+function substituteGroup(line: RenderLine, marker: string, group: Substitution[]): RenderLine {
+  return group.reduce((l, s) => substituteInterpolate(l, s.marker, s.contents), { ...line, contents: expandGroup(line.contents, marker, group) })
+}
+
 function isRenderLines(subst: any): RenderLine[] | undefined {
   return RenderLineSchema.array().safeParse(subst).data
 }
@@ -315,8 +347,13 @@ function evalInterpolate(
   const [l, ss] = lss
 
   // A frozen interpolation is not re-evaluated: reuse its prior substitution
-  // (matched by marker) instead of executing the command again.
+  // (matched by marker), or the tags it generated, instead of executing the
+  // command again.
   const priorFrozen = isFrozen(i) ? frozen.find(s => s.marker === i.marker) : undefined
+  const priorGroup = frozen.filter(s => s.origin === i.marker)
+
+  if (l.source) return [l, ss]
+  if (isFrozen(i) && priorGroup.length > 0) return [substituteGroup(l, i.marker, priorGroup), ss.concat(priorGroup)]
 
   let subst: InterpolateSubstT
   if (priorFrozen) {
@@ -326,13 +363,19 @@ function evalInterpolate(
     // ones (kept across re-eval) plus everything resolved earlier this pass.
     // `computed` fields, evaluated last, thus see every default/frozen field.
     const fields = fieldsContext([...frozen, ...ss])
-    const extra = { fields, frozen: fields }
+    const extra = { fields, frozen: fields, rotating: false }
     const substOut: any = executeCommand(i.command, context, extra)
     if (substOut?.kind === 'error') return [errorLine(`error: failed to compile: ${substOut}`), ss]
-    subst = toInterpolateSubst(substOut)
+
+    // Several tags: an empty result falls through to an empty tag named by the source.
+    const generated = toGeneratedTags(substOut)
+    if (generated && (generated.length > 0 || priorGroup.length > 0)) {
+      const group = mergeGeneratedTags(i.marker, priorGroup, generated)
+      return [substituteGroup(l, i.marker, group), ss.concat(group)]
+    }
+    subst = generated ? [''] : toInterpolateSubst(substOut)
   }
 
-  if (l.source) return [l, ss]
   return [substituteInterpolate(l, i.marker, subst), ss.concat([substitution(subst, i.marker, i.tag, i.tags)])]
 }
 
@@ -526,23 +569,46 @@ export function rotateInterpolableLine(l_: RenderLine, tag: string | null = null
   } else return l
 }
 
-// Re-derive each `computed` field against the given values, reusing the
-// command kept on its matching interpol (matched by marker), then re-render.
+// Runs the command of a `[]` again during a rotation, against the current
+// non-computed `fields` and with `rotating` set. Returns its raw output, or
+// null if the command is missing or errors — the caller then keeps the old
+// values.
+function rerunForRotation(command: string | undefined, fields: Record<string, InterpolateSubstT>, context: Context): unknown {
+  if (command === undefined) return null
+  const out: any = executeCommand(command, context, { fields, frozen: fields, rotating: true })
+  return out?.kind === 'error' ? null : out
+}
+
+// Re-derive each `computed` field against the given values, then re-render.
+// - A plain `computed` field re-runs the command kept on its interpol
+//   (matched by marker).
+// - A `computed` tag generated by a multi-tag source re-runs that source
+//   (matched by origin), once per source however many computed tags it has.
+//   Each such tag takes the value the source now returns under its name; a
+//   name the source no longer returns keeps its old value. The source's
+//   non-computed tags are never touched here: they keep their rotated values.
 function refreshComputedSubstitutions(l: RenderLine, source: NonNullable<RenderLine['source']>, substitutions: Substitution[], mem: Memory): RenderLine {
   const context = initContext(mem)
   const byMarker = new Map((source.interpols || []).map(i => [i.marker, i]))
+  const fields = fieldsContext(substitutions.filter(o => !isComputed(o)))
+
+  // origin marker -> tag name -> the values the re-run source gave it
+  const regenerate = _.memoize((origin: string) => new Map(
+    (toGeneratedTags(rerunForRotation(byMarker.get(origin)?.command, fields, context)) || []).map(g => [g.tag, g.contents]),
+  ))
+
   const newSubst = substitutions.map(s => {
     if (!isComputed(s)) return s
-    const command = byMarker.get(s.marker)?.command
-    if (!command) return s
-    const fields = fieldsContext(substitutions.filter(o => !isComputed(o)))
-    const substOut: any = executeCommand(command, context, { fields, frozen: fields })
-    if (substOut?.kind === 'error') return s
-    return { ...s, contents: toInterpolateSubst(substOut) }
+    if (s.origin !== undefined) {
+      const contents = regenerate(s.origin).get(s.tag ?? '')
+      return contents ? { ...s, contents } : s
+    }
+    const out = rerunForRotation(byMarker.get(s.marker)?.command, fields, context)
+    return out === null ? s : { ...s, contents: toInterpolateSubst(out) }
   })
 
   const resubst = newSubst.reduce<RenderLine>((l, s) =>
-    substituteInterpolate(l, s.marker, s.contents), { ...l, contents: source.contents }
+    substituteInterpolate(l, s.marker, s.contents), { ...l, contents: templateContents({ ...source, substitutions: newSubst }) }
   )
 
   return { ...resubst, source: { ...source, substitutions: newSubst } }
@@ -566,7 +632,7 @@ export function emptiedInterpolations(l_: RenderLine): RenderLine {
   if (!l.source?.substitutions) return l
   return (l.source.substitutions || []).reduce<RenderLine>(
     (l, s) => substituteInterpolate(l, s.marker, s.contents.length === 1 ? s.contents : ['-']),
-    { ...l, contents: l.source.contents },
+    { ...l, contents: templateContents(l.source) },
   )
 }
 
@@ -583,7 +649,7 @@ export function collapseToValues(l_: RenderLine, values: string[]): RenderLine {
 
   const resubst = newSubst.reduce<RenderLine>(
     (l, s) => substituteInterpolate(l, s.marker, s.contents),
-    { ...l, contents: l.source.contents },
+    { ...l, contents: templateContents(l.source) },
   )
 
   return { ...resubst, source: { ...l.source, interpols: [], substitutions: newSubst } }
@@ -608,7 +674,7 @@ export function renderLineContentWithTags(l: RenderLine): [ContentOrTag[], Map<S
   const markers = (l.source?.substitutions || []).map(s => s.marker || "")
   const allTagsRegex = new RegExp(markers.join('|'), 'g')
 
-  const c = (l.source?.contents || l.contents || "")
+  const c = (l.source?.contents ? templateContents(l.source) : l.contents) || ""
   const replaces = markers.length == 0 ? c : c.replaceAll(allTagsRegex, tag => `||##${byMarker.get(tag)?.tag}||`)
   const cwt: ContentOrTag[] = replaces.split('||').flatMap(s =>
     s == '' ? [] : [s.match(/^##/) ? ['tag', s.slice(2)] : ['string', s]]
@@ -625,7 +691,7 @@ export function setSubstitutionContents(l_: RenderLine, marker: string, contents
 
   const resubst = newSubst.reduce<RenderLine>(
     (l, s) => substituteInterpolate(l, s.marker, s.contents),
-    { ...l, contents: l.source.contents },
+    { ...l, contents: templateContents(l.source) },
   )
 
   return { ...resubst, source: { ...l.source, substitutions: newSubst } }
