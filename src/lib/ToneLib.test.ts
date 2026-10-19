@@ -615,6 +615,7 @@ describe('ToneLib', () => {
     expect(modulateModalKeyString('D', '+1')).toBe('Eb')
     expect(modulateModalKeyString('D', '-1')).toBe('Db')
     expect(modulateModalKeyString('D', 'sub')).toBe('Bbm')
+    expect(modulateModalKeyString('D', '+6')).toBe('Ab')
     expect(modulateModalKeyString('Bm', '+1')).toBe('Cm')
     expect(modulateModalKeyString('Am', 'sub')).toBe('Fm')
     expect(modulateModalKeyString('EM1', '-1')).toBe('EbM1')

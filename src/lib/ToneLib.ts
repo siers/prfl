@@ -372,11 +372,12 @@ export function parseModalKey(s: string): ModalKey | undefined {
 }
 
 // where a modal key moves: rooted this many semitones away, in the same mode unless the
-// modulation names one — sub lands on the minor (aeolian) a major third below
-export type Modulation = '+1' | '-1' | 'sub'
+// modulation names one — sub lands on the minor (aeolian) a major third below, +6 a tritone away
+export type Modulation = '+1' | '-1' | '+6' | 'sub'
 export const modulations: Record<Modulation, { semis: number, mode?: number }> = {
   '+1': { semis: 1 },
   '-1': { semis: -1 },
+  '+6': { semis: 6 },
   sub: { semis: -4, mode: minorMode },
 }
 

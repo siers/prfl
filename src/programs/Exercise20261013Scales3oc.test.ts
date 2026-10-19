@@ -3,8 +3,11 @@ import { evalContents, evalRenderLine, rotateInterpolableLine } from './Randomiz
 import type { RenderLine } from './RandomizeLangTypes'
 import { desMS } from './RandomizeLangUtils'
 
+const keyz = (keys: string[]) => `[\\[${keys.map(k => JSON.stringify(k)).join(',')}\\]]`
 const card = (...keys: string[]) =>
-  evalContents(`S-3oc: [\\[${keys.map(k => JSON.stringify(k)).join(',')}\\]]key:freeze:inline [ExScales3oc.tags(fields, rotating)]`)[0]
+  evalContents(`S-3oc: ${keyz(keys)}key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia hm mm' })]`)[0]
+const nearCard = (key: string) =>
+  evalContents(`S-3oc-near: ${keyz([key])}key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia,', modulations: '-1, +1, +6, sub' })]`)[0]
 
 const fields = (line: RenderLine): Record<string, string[]> =>
   Object.fromEntries((line.source?.substitutions || []).map(s => [s.tag ?? '', s.contents]))
@@ -68,5 +71,39 @@ describe('Scales3oc', () => {
     expect(fields(rotated).div).toStrictEqual(fields(line).div)
     expect(fields(rotated).additional).toStrictEqual([desMS(fields(rotated).mode[0]).additional || '-'])
     consistent(rotated)
+  })
+
+  describe('with modulations', () => {
+    test('rolls a modulation and deals the modes in the moved key', () => {
+      const line = nearCard('D')
+      const f = fields(line)
+      expect(line.key).toBe('S-3oc-near')
+      expect([...f.modulation].sort()).toStrictEqual(['+1', '+6', '-1', 'sub'])
+      expect(f.target).toStrictEqual([{ '+1': 'Eb', '-1': 'Db', '+6': 'Ab', sub: 'Bbm' }[f.modulation[0]]])
+      expect(f.mode.length).toBe(7)
+      consistent(line)
+    })
+
+    test('`dia,` is the one scale dia, not its characters', () => {
+      expect(fields(nearCard('D')).mode.every(m => m.includes('.dia:'))).toBe(true)
+    })
+
+    test('the modulation tags come first, after the frozen key', () => {
+      expect(nearCard('D').source?.substitutions?.map(s => s.tag)).toStrictEqual(
+        ['key', 'modulation', 'target', 'div', 'offset', 'metro', 'per', 'tempo', 'mode', 'inv', 'shifts', 'additional'])
+    })
+
+    test('clicking the modulation re-derives the target', () => {
+      const line = nearCard('D')
+      const rotated = rotateInterpolableLine(line, 'modulation')
+      expect(fields(rotated).modulation[0]).toBe(fields(line).modulation[1])
+      expect(fields(rotated).target).not.toStrictEqual(fields(line).target)
+    })
+
+    test('a re-roll keeps the key', () => {
+      const line = evalRenderLine(nearCard('F'))
+      expect(fields(line).key).toStrictEqual(['F'])
+      consistent(line)
+    })
   })
 })
