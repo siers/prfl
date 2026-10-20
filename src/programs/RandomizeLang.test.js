@@ -1049,6 +1049,14 @@ describe('computed rotation', () => {
     const rotated = rotateInterpolableLine(item, 'mirror')
     expect(rotated.contents).toBe("Line: [A B] [A B]")
   })
+
+  test('a computed field reading an earlier computed field sees its new value', () => {
+    const item = evalContents("Line: [s('A B')]a [j(fields.a)]mirror:computed [j(fields.mirror)]echo:computed")[0]
+    expect(item.contents).toBe("Line: [A B] [A B] [A B]")
+
+    const rotated = rotateInterpolableLine(item)
+    expect(rotated.contents).toBe("Line: [B A] [B A] [B A]")
+  })
 })
 
 describe('multi-tag source', () => {
