@@ -480,12 +480,14 @@ function initContext(memory: Memory, additionalContext: AdditionalContext = {}):
 // callable in the context as it is reached. Headers are evaluated as they are
 // reached too, unless `headers` from an earlier evaluation are given — those
 // are used as-is, so the block names never change after the first evaluation.
-// `orderOf` can override a named block's order (see evalBlockDeck).
-function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders, orderOf: (name: string) => BlockOrder | null = () => null): [...EvaluationContext, Line[]] {
+// `orderOf` can override a named block's order (see evalBlockDeck). With
+// `recall`, `remember(…)` reuses the values in memory rather than rolling them.
+function evalContentsContext(text: string, oldMemory: Memory, additionalContext: AdditionalContext, headers?: BlockHeaders, orderOf: (name: string) => BlockOrder | null = () => null, recall = false): [...EvaluationContext, Line[]] {
   const { blocks, definitions } = parseContents(text)
   const memory: Memory = mapCopy(oldMemory)
 
   const evaluationInit: EvaluationContext = [[], initContext(memory, additionalContext), []]
+  evaluationInit[1].set('recall', recall)
   const evaluated = blocks.reduce(([mainBlocks, context, evaluatedHeaders], b, index) => {
     if (isMainHeader(b.header)) {
       mainBlocks.push(evalBlock(b, context, b.header.shuffle))
@@ -516,11 +518,12 @@ export function blockDeckName(name: string): string {
 // The items of the subdeck instantiated from block `name`, ordered as
 // `scheduleBlocks(name)` would, unless its order says otherwise. The whole text is
 // re-evaluated first so the block sees every block and global a call from the text would — which means
-// globals assigned randomly are re-rolled, not the ones the root deck saw. The
+// globals assigned randomly are re-rolled, not the ones the root deck saw,
+// unless they're `remember(…)`ed: those are read back from `oldMemory`. The
 // headers are not: `headers` are the ones evaluated with the root deck.
 // `order`, from the pointing item's `order` field, overrides the block's own.
 export function evalBlockDeck(text: string, name: string, headers: BlockHeaders, oldMemory: Memory = new Map(), additionalContext: AdditionalContext = {}, order: BlockOrder | null = null): RenderLine[] {
-  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext, headers, n => n === name ? order : null)
+  const [_mainBlocks, context] = evalContentsContext(text, oldMemory, additionalContext, headers, n => n === name ? order : null, true)
   if (!blockNames(headers).has(name) || typeof context.get(name) !== 'function') return []
 
   return randomizeLangUtils(context, context.get('memory') as Memory).blockDeck(name)

@@ -68,8 +68,11 @@ gets a 📂: entering it instantiates the subdeck `name/` from that block, order
 like `scheduleBlocks('name')` (least-recently-reviewed first) — unless its
 [order](#block-order) says otherwise. It's lazy — the
 block is evaluated on 📂, not on 🔄. To do that the whole text is re-evaluated, so
-the block sees every block and global — but randomly assigned globals (e.g.
-`keyz`) are rolled again and can differ from what the root deck shows. A live deck
+the block sees every block and global — but randomly assigned globals are
+rolled again and can differ from what the root deck shows. Wrap one in
+`remember('name', () => …)` to keep it: evaluating the text stores its value in
+memory, and a subdeck reads it back instead of rolling it —
+`{keyz=remember('keyz', () => pickKeys()…);}`. A live deck
 is re-entered as-is; an exhausted or 🧹-cleaned one is instantiated fresh. Items
 inside a subdeck can open their own block subdecks the same way. `name*` puts the
 block's lines inline instead, ordered exactly as entering its subdeck would —
@@ -264,7 +267,7 @@ Arbitrary JavaScript, compiled with `new Function`. Errors become an
 `RandomizeLangUtils.ts` (`s`, `ss`, `pick`, `shuffle`, `shuffleX`, `zip*`,
 `divide`, `perm`, `pyramid`, `after`, `maybeEvery`, `metroS`, `frets`,
 `block`, `blockLines`, `scheduleBlocks`, …), the `ToneLib` and `ToneLibViolin`
-namespaces, `memory`, and — inside `[…]` only — `fields`.
+namespaces, `memory`, `remember`, and — inside `[…]` only — `fields`.
 
 ---
 

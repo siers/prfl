@@ -230,7 +230,8 @@ export function recalcMetro(old: Metro, diff: Metro): Metro {
 
 // ── items ──────────────────────────────────────────────────────────────────
 
-// On a (re)eval we rebuild, otherwise return previous
+// On a (re)eval we rebuild, otherwise return previous. The eval's memory comes
+// back too: it holds what the text `remember(…)`ed.
 function itemsAndTimer(
   decks: Decks<ItemRef>,
   lines: Lines,
@@ -242,15 +243,14 @@ function itemsAndTimer(
   images: ImageEntry[] | undefined,
   headers: BlockHeaders | undefined,
   defined: string[] | undefined,
-): [Decks<ItemRef>, Lines, Timer | undefined, DeckCursor[], BlockHeaders | undefined, string[] | undefined] {
-  if (!eval_) return [decks, lines, total, stack, headers, defined]
+): [Decks<ItemRef>, Lines, Timer | undefined, DeckCursor[], BlockHeaders | undefined, string[] | undefined, string | undefined] {
+  if (!eval_) return [decks, lines, total, stack, headers, defined, m]
 
-  let memory: Map<any, any> = memoryFromString(m)
-  const [evaluated, _, newHeaders, definitions] = evalContentsMem(contents, memory, { images })
+  const [evaluated, memory, newHeaders, definitions] = evalContentsMem(contents, memoryFromString(m), { images })
   const [pointedLines, refs] = storeLines({}, evaluated)
   const [newLines, newDefined] = storeDefinitions(pointedLines, definitions)
 
-  return [decksOf(markStartsDone(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders, newDefined]
+  return [decksOf(markStartsDone(memory, refs)), newLines, zeroedStoppedTimer(), [], newHeaders, newDefined, mapSerialize(memory)]
 }
 
 // How long a card must have been worked on for a review to be recorded: a ✅
@@ -477,13 +477,13 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
   const prevCursor: DeckCursor = s?.current || [DEFAULT_DECK, 0]
   const deck = a.eval ? DEFAULT_DECK : prevCursor[0]
 
-  const [initDecks, initLines, totalTimer, cursorStack, blockHeaders, defined] = itemsAndTimer(s?.items || decksOf<ItemRef>([]), s?.lines || {}, s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders, s?.defined)
+  const [initDecks, initLines, totalTimer, cursorStack, blockHeaders, defined, evalMemory] = itemsAndTimer(s?.items || decksOf<ItemRef>([]), s?.lines || {}, s?.memory, !!a?.eval, contentsOr, s?.totalTimer, s?.cursorStack || [], s?.images, s?.blockHeaders, s?.defined)
   const initItems = deckItems(initDecks, deck)
 
   // Exclusion is built from the locally-resolved hideDone (which a.hideDone may
   // be flipping in this very update), not a stale closure.
   const excludeSeek = excludeFor(hideDone !== false, initLines)
-  const [deckList, lines, memory, reorderedCurrent] = modifyItemState(initItems, initLines, s?.memory, prevCursor[1], deps.bpm, a.item || {}, excludeSeek, deps.now, s?.images)
+  const [deckList, lines, memory, reorderedCurrent] = modifyItemState(initItems, initLines, evalMemory, prevCursor[1], deps.bpm, a.item || {}, excludeSeek, deps.now, s?.images)
   const memoryMap = mapParse(memory)
 
   // The cursor is resolved by GenericList: a bury/unreview reorder already set
@@ -661,11 +661,11 @@ function carryProgress(old: ItemRef[], fresh: ItemRef[]): [ItemRef[], number[]] 
 export function reduceRefresh(s: RState | undefined, contents: string, now: number): RState {
   if (!s) return defaultState
 
-  const [evaluated, _, blockHeaders, definitions] = evalContentsMem(contents, memoryFromString(s.memory), { images: s.images })
+  const [evaluated, memory, blockHeaders, definitions] = evalContentsMem(contents, memoryFromString(s.memory), { images: s.images })
   const [pointedLines, refs] = storeLines(s.lines || {}, evaluated)
   const [fresh, defined] = storeDefinitions(pointedLines, definitions)
   const [carried, sources] = carryProgress(deckItems(s.items || {}, DEFAULT_DECK), refs)
-  const root = markStartsDone(memoryFromString(s.memory), carried, now)
+  const root = markStartsDone(memory, carried, now)
 
   const items: Decks<ItemRef> = { ...(s.items || {}), [DEFAULT_DECK]: root }
   const lines = pruneLines(fresh, items, defined)
@@ -681,6 +681,7 @@ export function reduceRefresh(s: RState | undefined, contents: string, now: numb
     ...s,
     version: currentStateVersion,
     text: contents,
+    memory: mapSerialize(memory),
     items,
     lines,
     defined,

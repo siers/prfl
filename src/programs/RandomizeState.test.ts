@@ -357,6 +357,15 @@ describe('block subdecks — an item keyed like a named block', () => {
     expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
     expect(hasSubdeck(s, scalesItem(s))).toBe(true) // still instantiable
   })
+
+  test('the subdeck sees the `remember`ed values the eval stored in memory', () => {
+    const text = "{k=remember('k', () => [String(Math.random())]);}\n-=-\nscales\n{k}\n-=- scales\n{k}"
+    let s = reduceRecalc({ version: 5 }, { eval: true, contents: text }, deps())
+    const rolled = labels(s)[1]
+
+    s = reduceEnterSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0], NOW)
+    expect(resolveDecks(s)['scales/'].map(i => i.contents)).toStrictEqual([rolled])
+  })
 })
 
 describe('reduceTimer', () => {

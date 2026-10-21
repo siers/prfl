@@ -608,6 +608,17 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     return [...fresh, ...pickTasksStateless(reviewed)]
   }
 
+  // `f()`, kept in memory under `name`. An evaluation rolls it and stores it;
+  // a subdeck's (context `recall`) reuses the stored one instead, so it sees
+  // what the root deck showed.
+  function remember<A>(name: string, f: () => A): A {
+    const remembered: Record<string, any> = memory.get('remembered') || {}
+    if (context.get('recall') && Object.hasOwn(remembered, name)) return remembered[name]
+    const value = f()
+    memory.set('remembered', { ...remembered, [name]: value })
+    return value
+  }
+
   // state
 
   function block(name: string, ...args: any): string[] {
@@ -720,6 +731,7 @@ export function randomizeLangUtils(context: Map<string, any>, memory: Map<string
     zipBlocksDiv,
     zipScheduleBlocks,
     pickTasksStateless,
+    remember,
     glob: (pattern: string) => glob(pattern, context.get('images') || []),
   }
 }

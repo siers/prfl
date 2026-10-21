@@ -559,6 +559,22 @@ describe('block subdecks', () => {
     expect(deckS("-=- sub\nb", 'nope')).toStrictEqual([])
     expect(deckS("-=- sub\nb", 'memory')).toStrictEqual([])
   })
+
+  test('a subdeck reads `remember`ed globals back from memory instead of rolling them', () => {
+    const text = "{k=remember('k', () => [String(Math.random())]);}\n-=- sub\n{k}\n-=-\n{k}"
+    const [[root], memory, headers] = evalContentsMem(text)
+
+    expect(memory.get('remembered')).toStrictEqual({ k: [root.contents] })
+    expect(evalBlockDeck(text, 'sub', headers, memory).map(rl => rl.contents)).toStrictEqual([root.contents])
+    expect(evalBlockDeck(text, 'sub', headers)[0].contents).not.toBe(root.contents)
+  })
+
+  test('evaluating the text rolls `remember`ed globals again', () => {
+    const text = "{k=remember('k', () => [String(Math.random())]);}\n{k}"
+    const [[first], memory] = evalContentsMem(text)
+
+    expect(evalContentsMem(text, memory)[0][0].contents).not.toBe(first.contents)
+  })
 })
 
 describe('memory', () => {
