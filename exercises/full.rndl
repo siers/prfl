@@ -10,7 +10,8 @@
 # RecognitionTasks
 ::FretSearch: [ \[...chunk(chunk(zipT(...ToneLibViolin.strings.map(s => zipT(...shuffle(divide(s.positions.slice(0, 13).map(p => { sen = pick(ToneLibViolin.embedNotePlusMinus(p, \[s.name\])); return \['GDAE'.split('').at(s.index), sen.note, pick(sen.availFingers) || '0'\]}), 2).map(shuffle))).flat() )).flatMap(shuffle).map((\[c, t, f\]) => ToneLib.renderSheet(t, 4, c, f)), 8).map(m => m.join(' ')), 2).map(b => b.join(' | ')), ''\]]examples:hide [fields.examples.at(0)]sheet:computed:hide [s('1n ' + '16f '.repeat(fields.examples.length - 1) + '4r')]next:hide
 ::ToneDiff: [zipLongest(shuffle(divide(range(ToneLib.semi(ToneLib.parseNote('c2')), ToneLib.semi(ToneLib.parseNote('e7'))), 5).map(pick)).map(s => ToneLib.semiToHertz(Number(s)).toFixed(2)), shuffle(\[50, 25, 12.5, 6.25, 3.125\]), shuffle(\[1, 1, -1, -1\])).flatMap(p => \[p, p, p\]).map(p => p.join('/'))]pairs:hide [fields.pairs.at(0).split('/').at(0)]base:computed:hide [(Number(fields.pairs.at(0).split('/').at(1)) * Number(fields.pairs.at(0).split('/').at(2))).toString()]cents:computed:hide [fields.pairs.map((p, i) => { const \[b, m, s\] = p.split('/'); return i % 3 == 0 ? `<${b}hz>2 <${(Number(b) * Math.pow(2, Number(m) * Number(s) / 1200)).toFixed(2)}hz>2` : `r1` })]toneSource:hide [fields.toneSource.at(0)]tones:computed:hide [fields.pairs.map((p, i) => { const \[b, m, s\] = p.split('/'); const c = Number(m) * Number(s); return i % 3 == 2 ? `${c > 0 ? 'HIGHER' : 'LOWER'} ${ToneLib.render(ToneLib.hertzCanonical(Number(b)))}/${forceSign(c)}c` : ` ` })]answer:show-2 [60]metro
-::Directions: [shuffle(timesUntil(8, shuffle(uniq(loopSubstringsG(`G,:D:A:E'`.split(':'), 4, 2))).at(0)))]over:hide [zipLongest(fields.over, ss(`vvvvnnnn`)).map(a=>a.join(''))]sheet:computed:hide [metroS(50, 8)]metro:show-1:inline 
+#::Directions: [shuffle(timesUntil(8, shuffle(uniq(loopSubstringsG(`G,:D:A:E'`.split(':'), 4, 2))).at(0)))]over:covered [zipLongest(fields.over, ss(`vvvvnnnn`)).map(a=>a.join(''))]sheet:computed:covered [metroS(50, 8)]metro:show-1:inline 
+::Directions: #br [shuffle(uniq(loopSubstringsG(`G,:D:A:E'`.split(':'), 4, 2))).at(0)]strings:covered:inline [shuffle(timesUntil(8, fields.strings))]permutation:computed:covered:inline [ss(`vvvvnnnn`)]pattern:covered:inline:computed [zipLongest(fields.permutation, fields.pattern).map(a=>a.join(''))]sheet:computed:hide [metroS(32, 5)]metro:show-1:inline #br
 # TODO: Directions: time signatures and divisions
 ::FindAllVln: [allKeys()] [ss(`GDAE`)]:computed
 ::FindAllVln2: [shuffle(range(40, 40+11).map(s => ToneLib.render(pick(ToneLib.enharmonics(s)),false)))]
@@ -34,29 +35,34 @@ BowDistribution4: [zipT(ss(`12345678`), zipLongest(ss(`GDAE`), ss(`(GD) (DA) (AE
 # Locations: [zipLongestShuf(pickRotation(zipInterleave(shuffleX(`⁰⁄₁ ¹⁄₁ ¼ ¾ ⅓ ⅔`), ss(`1/2 Flip 1/2 Flip 1/2 Flip`))), ss(`GDAE`))] [`f`]next
 ::Locations: [zipLongest(shuffleX(`0/1 1/1 1/2 1/4 3/4 1/3 2/3`, 4), ss(`GDAE`))] [`f`]next
 ::BowGym: [ss(`lowWrist seesaw minesweep frisbee rotate fwcircle bwcircle zigzaglevels lasso4 touch2 fingerSweep2 highLow tripods LR-in-front`)]
-::FroschColle: [zipLongest(\[...ss(`GDAE`), ...ss(`(GD) (DA) (AE)`) ...ss(`GD DG DA AD AE EA`)\], ss(`↑↓↑↓`))] [ss(`Sweep, “no T (light)”, Pinky`)]
+::FroschColle: [zipLongest(\[...ss(`GDAE`), ...ss(`(GD) (DA) (AE)`), ...ss(`GD DG DA AD AE EA`)\], ss(`↑↓↑↓`))] [ss(`Sweep, “no T (light)”, Pinky`)]
 ::BowingClicks: bow ends clicks exercise [ss(`GDAE`)] [metroS(55, 5)]metro:show-1:inline
 # ContactPoint
-ContactPoint::ContactCircles: [zipLongestShuf(ss(`n, v`), `:`, ss(`GDAE`), `:`, perm(ss(`P1, P2, P3, P4, P5`),2).map(p=>p.join(``)))] [metroS(42, 4)]metro:show-1:inline
-ContactPoint::ContactDirections: [zipLongestShuf(ss(`n, v`), `:`, ss(`+, –, +-, –+`), ss(`GDAE`))]
+::ContactCircles: [zipLongestShuf(ss(`n, v`), `:`, ss(`GDAE`), `:`, perm(ss(`P1, P2, P3, P4, P5`),2).map(p=>p.join(``)))] [metroS(42, 4)]metro:show-1:inline
+::ContactDirections: [zipLongestShuf(ss(`n, v`), `:`, ss(`+, –, +-, –+`), ss(`GDAE`))]
+::ContactRainbow: [zipLongestShuf(ss(`GE`), `::::`, ss(`nv`), `::::`, ss(`P5 P1`))]
 
 # Scales
 # TODO: build scales map and don’t throw out vln chrom
 # TODO: pick scales info from the whatsapp
 -=- Scales3
-S-3oc: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia hm mm pent skips' })]
-S-3oc-near: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia,', modulations: '-1, +1, +6, sub' })]
+S-3oc: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia hm mm' })]
+S-3ocSuper: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'holes skips' })]
+S-3ocNear: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia,', modulations: '-1, +1, +6, sub' })]
 S-Pos: [keyz]key:freeze:inline [ss(`1234567`)]:computed [`s 28r`]next
 S-Direction: [keyz]:inline [zip(shuffleX(`uudd`, 8))]:show-1:inline [`4f`]next:inline
 S-Direction2: [keyz]:inline [zipLongestShuf(shuffleX(`uudd`, 8), `/`, ss(`ABCDEFG`)).map(x=>x.join(``))]:show-1:inline [`4f`]next:inline
 S-String: [keyz]key:freeze [ss(`G D A E`)]string:show-1:inline [s(`-4321, -421, -321, 1233-4, -1, -1-2`)]inventory:show-1:nonrotated:inline [shiftsMD(stringShifts(fields.key.at(0), `dia`, fields.string.at(0)).at(0), fields.inventory.at(0), `${'GDAE'.indexOf(fields.string.at(0))}`.repeat(12))]:computed:show-1:inline add 4 notes
 S-Pos-Chrom: [zipLongest(keys(), ss(`↑↓`))] [ss(`triads 4ads 6bdom`)] [ss(`base inv1 inv2`)] [ss(`straight flips`)] [ss(`p1,p2a,p2b,p3a,p3b,p4,p5a,p5b,p6a,p6b,p7`)] [metroS(50, 8)]metro:show-1:inline
 -=- Arps3
-A-3oc: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia hm mm' })]
+A-3oc: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia pent sus2 sus4' })]
+A-3ocTritones: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: '2m 2M 3m 3M 4' })]
+A-3ocDims: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dim- dim dim+' })]
 ::DblStops: [keyz]:freeze [ss(`thirds fourths sixths octaves tenths harm unisons`)] [zipLongest(ss(`DAE`), ':', ss(`0+H-W+H, 0+W-H`), ss(`1234`))]
 # dia chr arp hm mm +1 -1 +6 sub wT wD pos
 # arps don’t have: positions, chromatics, arps have
 # Warmup Main
+::ThirdsPolyrhythm: [ss(`00, 01, 10, 11`)] [ss(``)]
 -=- keys
 {keyz}
 -=- warmup-key
@@ -71,12 +77,10 @@ Maple::Problem-Trio-Connect-Eyes
 Maple::Problem-Trio-End-Hands-Close
 Maple::Endings: [ss(`A1 A2 B1 B2 B3 T1 T2 F1 F2`)]
 # Voice Leading Implementations
-VL-Problems::VL-P1: 25-comp: recall 5 voicings [allKeys()] [ss(`2th 5th`)] 
-VL-Problems::VL-P2: TD: ton to dom(+-1c) [allKeys()]
-VL-Problems::VL-P3: I-IVd: [allKeys()] [ss(`2th 5th`)] [ss(`4673 7346`)]
 # Main Implementations
 ::FalseTuning: [zipT(s(`GDAE`), `::::`, maybeReverse(maybePolarizeL(s(pick(`0 0 0 0,  -2 0 2 4, -3 0 3 6, -4 0 4 8, -5 0 5 10`))).map(x=>''+x)))]
 ::Flesch: [keyz] [ss(`1234`)]
+::Kayser: [ss(`1234567`)]
 CarlosCues::CueCarlos1: LH shift order before bowchange, audial feedback
 # CarlosCues::CueCarlos2: LH sufficient force on the string
 # CarlosCues::CueCarlos3: LH shift isolate search to finger, record [allKeys()]
@@ -94,12 +98,16 @@ Bowing5: catch tip LH, look away
 BowingCue6: isolate elbow oscillations
 BowingCue7: maintain index finger
 -=- ContactPoint
-ContactCircles, ContactDirections
--=- ShiftingTasks
-# ShiftingSlides: [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')] [ss(`regular, quartertone`)]
-# ShiftingSevcik: Sevcik, no gliss [ss(`G D A E`)]
-ShiftingSnake: position: [ss(`2 3 4 5 6 7`)], [ss(`G D A E`)]
+ContactCircles, ContactDirections, ContactRainbow
+-=- FrameExercises
 SemitoneFrame: [ss(`GDEA`)] +[ss(`1 2 3 4 5 6 7`)]sem [zip(ss(`lyd, maj, min, phyr, `),shuffle(perm('1234')).map(x=>x.join('')))] zip
+ThirdsPolyrhythm
+MarijasDubult: [ss(`3/7, 6/4, 86/42`)]
+ViolinHighDrone: [ss(`major minor 5b`)]
+-=- ShiftingTasks
+ShiftingSlides: [(ss(`GDAE`).map(s=>chromaticSlide(key, s))).join(', ')] [ss(`regular, quartertone`)]
+ShiftingSevcik: Sevcik, no gliss [ss(`G D A E`)]
+ShiftingSnake: position: [ss(`2 3 4 5 6 7`)], [ss(`G D A E`)]
 # ShiftingAgainstWall: [ss(`snake, scale, ysaye`)]
 UnisonShifts: [ss(`GDAE`)] +[ss(`3 4 5 6 7`)]sem
 -=- VibratoTasks
@@ -138,10 +146,9 @@ Var-XIV: Finale: Allegro
 Holst
 Elgar
 Gregson
-# Piano
-# P, Standards, 25s, Voice Leading, Pieces
+# Jazz 
 -=- jazz-piece
-basics: [shuffle(comb(`BCM`, 2).concat(s(`Drop Locked`)))]
+basics: [shuffle(comb(`BCM`, 2)).map(c=>c.join(``)).concat(s(`Drop Locked B+Quarters`))]
 recall: [ss(`bass linear 37 73 thirds letters`)]
 melody: [ss(`connect linear`)]
 comp-sketch: [ss(`tension-points 25 licks tonics chromatics highlight altered mysterious highlight`)]
@@ -189,7 +196,6 @@ JF-head
 25s-Subs: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 25s-2b: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 25s-2b3b: [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
-25s-ChromaticCell: [`1, 7, 7b, 1`] [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 -=- VL-Drop2
 VL-Drop2-Bass: [ss(`52 25 22 55`)] [ss(`5 +c -c`)]
 VL-Drop2-Treble: [ss(`52 25 22 55`)]
@@ -201,6 +207,11 @@ VL-Drop2: [keys()] [ss(`25`)] [ss(`6 6b`)]
 VL-BDom: [keys()]
 VL-MinThird: [keys()]
 VL-Sub: [keys()]
+VL-P1: 25-comp: recall 5 voicings [allKeys()] [ss(`2th 5th`)] 
+VL-P2: TD: ton to dom(+-1c) [allKeys()]
+VL-P3: I-IVd: [allKeys()] [ss(`2th 5th`)] [ss(`4673 7346`)]
+-=- VL-Problems
+VL-P4: I-2bm: [allKeys()] [ss(`2th 5th`)] [ss(`fw bw`)]
 -=- Standards
 AllOfMe
 ILoveYou
@@ -225,14 +236,15 @@ ghost-rhythmical: purely
 list-ghost-phrases: until they start repeating
 Sophie-ghost: release, gliss-down, ghost
 MelodicDirection: [shuffleX(`uudd`, 8)]:show-1 [`8f`]next
-
 -=- JazzProblems
-Problem-Db-alt-difficult: violin/piano
-Problem-Db-sharp-spelling: derive from D, write down
-Problem-25s: violin
+Problem-FlatAlts: [ss(`F Bb Eb Ab Db Gb`)]
+Problem-25s: find missing minor/major one [allKeys()]
+25s-ChromaticCell: [`1, 7, 7b, 1`] [zipLongestShuf(keys(), ss(`↑c,↓c,doms`))]
 VL
 25s
+Dominants: play the melody [allKeys()] 
 Problem-HalfDim: piano, doms, chunk [ss(`2 3 4 5 6b 7b 7 1#`)]:show-1 [allKeys()]:show-1
+Problem-DomMinMaj: [allKeys()]:inline, start [ss(`min maj`)]:inline
 # Problem-SentimentalMood: comp
 # enclosures: [jazzKeysPlain] [ss(`1234567`)]
 # altered: [jazzKeysPlain] [ss(`1234567`)]
@@ -250,7 +262,6 @@ Attacas: with hand
 Choir: think
 ChestVoice: F#2-A#2
 Problem-IsolateVowels: any text
-
 -=- Physio
 ThrowRightArm: [zipLongest(ss(`H0 H45 H90`), `:`, ss(`V0 V45 V90 V135 V180`)).map(x=>x.join(``)).concat(s(`|`))]:show-1
 # Focus
@@ -260,10 +271,12 @@ GluckMelodie, Kayser, FSRS-Test20261019
 JMB, JKBL, TRN
 Maple, AllThYouAre, JazzProblems, VL-Problems*
 Standards, Composition, Singing
+ProcureNewTunes, Physio
 # Main
 -=- warmup
 CarlosCues*, ThirdsPolyrhythm, GluckBar1, Flesch
-RecognitionTasks, BowingTasks, ContactPoint, StartPlayingSmooth, warmup-key-tasks*
+RecognitionTasks, BowingTasks, ContactPoint, StartPlayingSmooth, FrameExercises, ShiftingTasks, warmup-key-tasks*
+-=- all
+warmup*, ScalesRecord, focus1*, focus2*
 -=-
-keys*, FalseTuning, warmup, ScalesRecord
-focus1*, focus2*
+keys*, FalseTuning, all*
