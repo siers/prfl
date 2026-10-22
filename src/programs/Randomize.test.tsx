@@ -255,11 +255,14 @@ describe('Randomize — item swipes', () => {
   })
 
   test('far W asks first; declining leaves the item alone', () => {
+    document.querySelectorAll('.burst').forEach(b => b.remove())
     const { container } = setupExecuting(THREE_LINES)
     const ask = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
     swipeCurrent(container, -250)
     expect(ask).toHaveBeenCalledOnce()
     expect(currentItemText(container)).toBe('alpha')
     expect(renderedItems(container)).toContain('alpha')
+    const bursts = [...document.querySelectorAll('.burst')].map(b => b.textContent)
+    expect(bursts).not.toContain('🚫')
   })
 })

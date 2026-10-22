@@ -399,7 +399,7 @@ function Randomize(controls: any): JSX.Element {
   // A review that also opts the card into FSRS scheduling. Only the opt-in
   // asks first; once on FSRS it's just a review.
   function itemReviewFsrs() {
-    if (!findCardFromMemory(state.memory, items[currentIndex])?.fsrs && !confirm('advance this card to FSRS?')) return
+    if (!findCardFromMemory(state.memory, items[currentIndex])?.fsrs && !confirm('advance this card to FSRS?')) return false
     recalc({ item: { reviewed: true, done: true, bury: false, fsrs: true } })
   }
 
@@ -412,7 +412,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function itemBan() {
-    if (!confirm('ban this card?')) return
+    if (!confirm('ban this card?')) return false
     recalc({ item: { done: true, ban: true } })
   }
 

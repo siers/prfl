@@ -1,4 +1,5 @@
-export function burstEmojiNotif(s: string) {
+/** Returns a function that removes the burst early. */
+export function burstEmojiNotif(s: string): () => void {
   const burst = document.createElement("div")
   burst.className = "burst"
 
@@ -15,4 +16,5 @@ export function burstEmojiNotif(s: string) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     star.style.animationPlayState = "running"
   }))
+  return () => burst.remove()
 }

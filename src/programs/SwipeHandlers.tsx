@@ -13,7 +13,8 @@ function directionOf(dx: number, dy: number): SwipeDirection {
 
 type Point = { x: number; y: number }
 
-export type WipeStep = { icon?: string; run: (e: PointerEvent) => void }
+// `run` returning false means it was declined (e.g. a confirm) — its icon is withdrawn.
+export type WipeStep = { icon?: string; run: (e: PointerEvent) => void | false }
 export type WipeSteps = WipeStep | [near: WipeStep, far: WipeStep]
 export type WipeMap = Partial<Record<SwipeDirection, WipeSteps>>
 
@@ -62,6 +63,7 @@ export function useWipe(
     const from: Point = { x: e.clientX, y: e.clientY }
     let captured = false
     let pending: WipeStep | undefined // step whose icon last burst
+    let unburst: (() => void) | undefined
 
     function onMove(ev: PointerEvent) {
       const dx = ev.clientX - from.x
@@ -82,14 +84,14 @@ export function useWipe(
       const step = stepAt(dx, dy)
       if (step === pending) return
       pending = step
-      if (step?.icon) burstEmojiNotif(step.icon)
+      unburst = step?.icon ? burstEmojiNotif(step.icon) : undefined
     }
 
     function onUp(ev: PointerEvent) {
       cleanup()
       // Never dragged → a tap. Native click flows through untouched.
       if (!captured) return
-      stepAt(ev.clientX - from.x, ev.clientY - from.y)?.run(ev)
+      if (stepAt(ev.clientX - from.x, ev.clientY - from.y)?.run(ev) === false) unburst?.()
     }
 
     function cleanup(_ev?: PointerEvent) {
