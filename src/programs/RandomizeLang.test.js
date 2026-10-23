@@ -570,7 +570,8 @@ describe('block subdecks', () => {
   })
 
   test('evaluating the text rolls `remember`ed globals again', () => {
-    const text = "{k=remember('k', () => [String(Math.random())]);}\n{k}"
+    // `-=-` keeps the order: a shuffled block may evaluate `{k}` before `k=`.
+    const text = "-=-\n{k=remember('k', () => [String(Math.random())]);}\n{k}"
     const [[first], memory] = evalContentsMem(text)
 
     expect(evalContentsMem(text, memory)[0][0].contents).not.toBe(first.contents)

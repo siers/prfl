@@ -95,13 +95,22 @@ export function shiftFormat(s: number[][]): string[] {
   return s.map(r => r.join(''))
 }
 
+// `distrib` names strings by index (`0123`) or by letter (`GDAE`), mixed freely.
 export function shiftStrings(distrib: string, shifts: number): string[] {
-  const strings = times(10).flatMap(_ => distrib.split(''))
+  const indices = distrib.split('').map(st => `GDAE`.includes(st) ? `${`GDAE`.indexOf(st)}` : st)
+  const strings = times(10).flatMap(_ => indices)
   return shuffle(strings).slice(0, shifts).sort().map(st => `GDAE`.split('')[+st])
 }
 
-export function shiftsDistributed(target: number = 7, inv: number[] = [-1, -2, -3], distrib: string): string[] {
-  return shifts(target, inv).map(fs => {
+// Single-digit shifts, each optionally negative: '4-3' → [4, -3].
+export function inventoryFromString(inv: string): number[] {
+  return [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item))
+}
+
+// `inv` as numbers, or as a string read by inventoryFromString.
+export function shiftsDistributed(target: number = 7, inv: number[] | string = [-1, -2, -3], distrib: string): string[] {
+  const invNums = typeof inv === 'string' ? inventoryFromString(inv) : inv
+  return shifts(target, invNums).map(fs => {
     const shiftLetters = zipT(fs.map(f => `${f}`), shiftStrings(distrib, fs.length))
     return shiftLetters.map(sl => sl.join('')).join('-')
   })

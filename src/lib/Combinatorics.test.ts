@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
+import { shiftStrings, sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
 
 describe('Combinatorics', () => {
   test('sumsTo base: negative target', () => {
@@ -131,4 +131,13 @@ describe('Combinatorics', () => {
       ]
     )
   })
+})
+
+test('shiftStrings: letters and indices name the same strings', () => {
+  for (const distrib of ['GD', '01', 'G1']) {
+    const out = shiftStrings(distrib, 12)
+    expect(out).toHaveLength(12)
+    expect(out.every(st => st == 'G' || st == 'D')).toBe(true)
+    expect(out).toStrictEqual([...out].sort((a, b) => 'GDAE'.indexOf(a) - 'GDAE'.indexOf(b)))
+  }
 })

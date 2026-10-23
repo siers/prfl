@@ -11,7 +11,7 @@ import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } 
 import * as ToneLibViolin from '../lib/ToneLibViolin'
 import { roundToNaive } from '../lib/Math'
 import { jitter } from '../lib/Jitter'
-import { shiftFormat, shifts as shiftsLib, shiftsDistributed } from '../lib/Combinatorics'
+import { inventoryFromString, shiftFormat, shifts as shiftsLib, shiftsDistributed } from '../lib/Combinatorics'
 import * as Comb from 'ts-combinatorics'
 
 import _ from 'lodash'
@@ -447,7 +447,7 @@ export * as ExScales3oc from './Exercise20261013Scales3oc'
 export { chromaticSlide } from '../lib/ToneLibViolin'
 export { modulateModalKeyString } from '../lib/ToneLib'
 export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
-export { shiftsDistributed }
+export { inventoryFromString, shiftsDistributed }
 export { ToneLib, ToneLibViolin }
 
 export const arrayRotate = arrayShift
@@ -580,14 +580,9 @@ export function glob(pattern: string, images: ImageEntry[]): string[] {
   })[0] || basenames
 }
 
-// Single-digit shifts, each optionally negative: '4-3' → [4, -3].
-export function inventoryFromString(inv: string): number[] {
-  return [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item))
-}
-
 export function shiftsMD(serMS: string, invStr: string, distrib: string): string[] {
   const ms = deserializeModeShift(serMS)
-  const [invDia, invChrom] = invStr.split(':').map(inventoryFromString)
+  const [invDia, invChrom] = invStr.split(':')
   const inv = ms.shifts < 16 ? invDia : invChrom
 
   return shiftsDistributed(ms.shifts, inv, distrib)
