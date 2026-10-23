@@ -156,15 +156,16 @@ function Randomize(controls: any): JSX.Element {
     if (action === 'r') recalc({ item: { regenerate: 'new' } })
   }
 
-  // Load contents and go into execution for the unattended `?load=` path.
-  // The timer is deliberately left stopped to wait for user's input to unblock audio.
   function newText(text: string) {
     setState((s: RState | undefined) => reduceNewText(s, text, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
   }
 
-  function loadFromDrive(text: string, file: DriveFile, execute?: boolean) {
-    newText(text)
-    setState((s: RState | undefined) => s && { ...s, driveFile: file, ...(execute && { execute }) })
+  // A pick keeps progress like typing does. The unattended `?load=` path starts
+  // over — full eval, zeroed timers — and goes into execution. The timer is
+  // deliberately left stopped to wait for user's input to unblock audio.
+  function loadFromDrive(text: string, file: DriveFile, autoLoad?: boolean) {
+    autoLoad ? recalc({ contents: text, eval: true, execute: true }) : newText(text)
+    setState((s: RState | undefined) => s && { ...s, driveFile: file })
   }
 
   // Reload the items without resetting progress: from Drive when the text came

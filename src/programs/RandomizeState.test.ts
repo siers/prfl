@@ -3,7 +3,7 @@ import { UserItem, toUserItem } from './RandomizeTypes.ts'
 import { evalContents } from './RandomizeLang.js'
 import { Decks, DEFAULT_DECK } from './Decks.ts'
 import { SpawnMode } from './RandomizeDecks.ts'
-import type { Timer } from './Timers.ts'
+import { type Timer, timerLength } from './Timers.ts'
 import * as ToneLib from '../lib/ToneLib.ts'
 import {
   RState, RecalcDeps, ItemActions,
@@ -1160,5 +1160,17 @@ describe('reduceNewText', () => {
     const s = reduceNewText({ ...doneA(), totalTimer: { kind: 'started', start: NOW - 11000, running: true } }, "-=-\nA: a\nB: b2", deps())
     expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined])
     expect(resolveDecks(s)[DEFAULT_DECK][1].contents).toBe('B: b2')
+  })
+
+  // What `?load=` does instead of reduceNewText: start over regardless of the timer.
+  test('an eval with new contents starts over past 10 seconds too', () => {
+    const running = { ...doneA(), totalTimer: { kind: 'started', start: NOW - 60000, running: true } } satisfies RState
+    const s = reduceRecalc(running, { contents: "-=-\nA: a\nB: b2", eval: true, execute: true }, deps())
+    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined])
+    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.execute).toBe(true)
+    expect(s.totalTimer?.kind).toBe('stopped')
+    expect(timerLength(s.totalTimer ?? null, NOW)).toBe(0)
+    expect(s.items![DEFAULT_DECK].every(r => timerLength(r.timer ?? null, NOW) === 0)).toBe(true)
   })
 })
