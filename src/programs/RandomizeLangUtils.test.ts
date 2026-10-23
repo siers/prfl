@@ -32,6 +32,7 @@ import {
   metroS,
   avgPairwiseDiff,
   metro,
+  inventoryFromString,
   maybePolarize,
   maybePolarizeL,
 } from './RandomizeLangUtils'
@@ -495,4 +496,10 @@ test('maybePolarizeL parses strings', () => {
   random.mockReturnValue(0.99)
   expect(maybePolarizeL(['1', '0', '-2'])).toStrictEqual([-1, 0, 2])
   random.mockRestore()
+})
+
+test('inventoryFromString', () => {
+  expect(inventoryFromString('4-3')).toStrictEqual([4, -3])
+  expect(inventoryFromString('1233-4')).toStrictEqual([1, 2, 3, 3, -4])
+  expect(inventoryFromString('')).toStrictEqual([])
 })

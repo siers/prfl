@@ -567,9 +567,14 @@ export function glob(pattern: string, images: ImageEntry[]): string[] {
   })[0] || basenames
 }
 
+// Single-digit shifts, each optionally negative: '4-3' → [4, -3].
+export function inventoryFromString(inv: string): number[] {
+  return [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item))
+}
+
 export function shiftsMD(serMS: string, invStr: string, distrib: string): string[] {
   const ms = deserializeModeShift(serMS)
-  const [invDia, invChrom] = invStr.split(':').map(inv => [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item)))
+  const [invDia, invChrom] = invStr.split(':').map(inventoryFromString)
   const inv = ms.shifts < 16 ? invDia : invChrom
 
   return shiftsDistributed(ms.shifts, inv, distrib)
