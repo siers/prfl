@@ -186,6 +186,15 @@ export const isNonrotated = (x: Tagged): boolean => (x.tags || []).includes('non
 export const isStable = (x: Tagged): boolean => (x.tags || []).includes('stable')
 export const isInline =(x: Tagged): boolean => (x.tags || []).includes('inline')
 export const monospace = (x: Tagged): boolean => (x.tags || []).includes('mono')
+// Renders each value as a link opening in a new tab.
+export const isLink = (x: Tagged): boolean => (x.tags || []).includes('link')
+// The href for a `link` value: http(s) as-is, a bare `example.com` gets https,
+// any other scheme (`javascript:` and co.) none, so it renders as plain text.
+export const linkHref = (value: string): string | null => {
+  if (/^https?:\/\//i.test(value)) return value
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return null
+  return value.length > 0 ? `https://${value}` : null
+}
 export const isCutSemi = (x: Tagged): boolean => (x.tags || []).includes('cut-semi')
 // Feeds the sheet/image displays and stays re-rollable, but renders no text.
 export const isHidden = (x: Tagged): boolean => (x.tags || []).includes('hide')

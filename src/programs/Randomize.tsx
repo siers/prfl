@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server'
 import React, { JSX, MouseEventHandler, RefObject, useEffect, useRef, useState } from 'react'
 
 import { interpolateSubtToString, interpolateSubtToStringPlain, renderLineContentWithTags } from './RandomizeLang.js'
-import { ContentOrTag, coverLabel, isCutSemi, isHidden, isInline, isLineBreak, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
+import { ContentOrTag, coverLabel, isCutSemi, isHidden, isInline, isLineBreak, isLink, linkHref, makeEmptyMemory, maxLen, monospace, RenderLine, Substitution } from './RandomizeLangTypes.js'
 import { CardData, UserItem, findCard } from './RandomizeTypes.js'
 import { Timer, padRight, timerLength, hm_ms, ms, hoursBetweenNow } from './Timers.ts'
 
@@ -304,8 +304,20 @@ function Randomize(controls: any): JSX.Element {
           const fontFamily = subst && monospace(subst) ? { fontFamily: 'monospace' } : {}
           const fontSize = isCurrent ? string ? '2rem' : '1.5rem' : ''
 
+          // `link` turns each value into its own link; the brackets around them
+          // still rotate the field. Covered fields keep their label.
+          const links = tag && cover === null && isLink(subst!) && subst!.contents.filter(v => v.length > 0)
+          const linked = links && <>[{links.map((v, i) => {
+            const href = linkHref(v)
+            const text = v.length > maxLen(subst!, 50) ? `${v.slice(0, maxLen(subst!, 50))}...` : v
+            return <React.Fragment key={i}>
+              {i > 0 && ' '}
+              {href ? <a href={href} target="_blank" rel="noopener noreferrer" className="underline" onClick={e => e.stopPropagation()}>{text}</a> : text}
+            </React.Fragment>
+          })}]</>
+
           return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && recalcF()} style={{ fontSize, ...fontFamily }} >
-            {content}
+            {linked || content}
           </TagName>
         })
       }

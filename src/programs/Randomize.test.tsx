@@ -266,3 +266,27 @@ describe('Randomize — item swipes', () => {
     expect(bursts).not.toContain('🚫')
   })
 })
+
+describe('Randomize — link tag', () => {
+  const LINKS = "-=-\nRead: [s('https://example.com/a,docs.dev,javascript:alert(1)')]ref:link:show-3\nnext"
+
+  test('each value renders as a link; unsafe schemes stay plain text', () => {
+    const { container } = setupExecuting(LINKS)
+    const anchors = [...container.querySelectorAll('div.current-item a[target="_blank"]')] as HTMLAnchorElement[]
+
+    expect(anchors.map(a => [a.textContent, a.getAttribute('href')])).toStrictEqual([
+      ['https://example.com/a', 'https://example.com/a'],
+      ['docs.dev', 'https://docs.dev'],
+    ])
+    expect(currentItemText(container)).toContain('javascript:alert(1)')
+  })
+
+  test('clicking a link neither advances nor rotates the item', () => {
+    const { container } = setupExecuting(LINKS)
+    const before = currentItemText(container)
+
+    act(() => { fireEvent.click(container.querySelector('div.current-item a[target="_blank"]')!) })
+
+    expect(currentItemText(container)).toBe(before)
+  })
+})
