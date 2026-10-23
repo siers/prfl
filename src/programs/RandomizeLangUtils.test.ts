@@ -33,6 +33,7 @@ import {
   avgPairwiseDiff,
   metro,
   inventoryFromString,
+  metroIncr,
   maybePolarize,
   maybePolarizeL,
 } from './RandomizeLangUtils'
@@ -502,4 +503,20 @@ test('inventoryFromString', () => {
   expect(inventoryFromString('4-3')).toStrictEqual([4, -3])
   expect(inventoryFromString('1233-4')).toStrictEqual([1, 2, 3, 3, -4])
   expect(inventoryFromString('')).toStrictEqual([])
+})
+
+test('metroIncr', () => {
+  const out = metroIncr(`40-120 +2 x4`)
+  expect(out.slice(0, 8)).toStrictEqual(['40', '40', '40', '40', '42', '42', '42', '42'])
+  expect(out.slice(-4)).toStrictEqual(['120', '120', '120', '120'])
+  expect(out.length).toBe(41 * 4)
+  expect(metroIncr(`40-43`)).toStrictEqual(['40', '41', '42', '43'])
+  expect(metroIncr(`40-45 +2`)).toStrictEqual(['40', '42', '44'])
+  expect(() => metroIncr(`40 120`)).toThrow()
+})
+
+test('metroIncr: edge cases', () => {
+  expect(metroIncr(`60-60 x3`)).toStrictEqual(['60', '60', '60'])
+  expect(metroIncr(`120-40 +2`)).toStrictEqual([])
+  expect(metroIncr(`40-50 x0`)).toStrictEqual([])
 })

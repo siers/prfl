@@ -505,6 +505,19 @@ export function stringShifts(keyIn: Note | string, scales: string, string: ToneL
   return ToneLibViolin.stringShiftsGen(key, scales, string).map(ToneLibViolin.serializeModeShift)
 }
 
+// Tempos rising from..to (inclusive) by `+step`, each repeated `xReps` times;
+// step and reps default to 1: `40-120 +2 x4` → 40,40,40,40, 42,42,42,42, …
+export function metroIncr(spec: string): string[] {
+  const m = spec.trim().match(/^(\d+)\s*-\s*(\d+)(?:\s*\+(\d+))?(?:\s*x(\d+))?$/)
+  if (!m) throw new Error(`metroIncr: invalid spec ${spec}, expected e.g. \`40-120 +2 x4\``)
+  const [from, to, step, reps] = [m[1], m[2], m[3] ?? '1', m[4] ?? '1'].map(Number)
+  if (step <= 0) throw new Error(`metroIncr: step must be positive in ${spec}`)
+
+  const tempos: string[] = []
+  for (let t = from; t <= to; t += step) tempos.push(...times(reps, `${t}`))
+  return tempos
+}
+
 export function metroS(base: number, diff: number): string[] {
   return zipInterleave(...zipInterleave(...divide(divide(metro(base, diff), 6).map(shuffle), 3)))
 }
