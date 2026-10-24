@@ -17,7 +17,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import {
   Args, Metro, RState, RStateV6, RStateV7, RecalcDeps, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, hasSubdeck, liveSubdeckName, migrateV5, migrateV6, migrateV7, withSession, reduceOpenPicker, reduceLoadSession, reduceDeleteSession, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
+  deckPath, hasSubdeck, liveSubdeckName, migrateV5, migrateV6, migrateV7, reduceLoadDrive, reduceOpenPicker, reduceLoadSession, reduceDeleteSession, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
@@ -181,12 +181,10 @@ function Randomize(controls: any): JSX.Element {
     return true
   }
 
-  // A pick keeps progress like typing does. The unattended `?load=` path starts
-  // over — full eval, zeroed timers — and goes into execution. The timer is
-  // deliberately left stopped to wait for user's input to unblock audio.
+  // The `?load=` path leaves the timer stopped on purpose: it waits for user's
+  // input to unblock audio.
   function loadFromDrive(text: string, file: DriveFile, autoLoad?: boolean) {
-    autoLoad ? recalc({ contents: text, eval: true, execute: true }) : newText(text)
-    setState((s: RState | undefined) => s && withSession({ ...s, driveFile: file }, { name: file.name }))
+    setState((s: RState | undefined) => reduceLoadDrive(s, text, file, depsOf(s), autoLoad))
   }
 
   // Reload the items without resetting progress: from Drive when the text came

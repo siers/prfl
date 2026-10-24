@@ -846,6 +846,11 @@ function stashActive(s: RState, now: number): RState {
   return { ...s, session: undefined, sessions: { ...sessions, [key]: { ...stopped, created, opened: now } } }
 }
 
+// Without any state there's no active session to stash.
+function stashOrEmpty(s: RState | undefined, now: number): RState {
+  return s ? stashActive(s, now) : { version: currentStateVersion }
+}
+
 // Make a stashed session the active one, stashing the active one.
 export function reduceLoadSession(s: RState | undefined, key: string, now: number): RState {
   const loaded = s?.sessions?.[key]
@@ -853,6 +858,20 @@ export function reduceLoadSession(s: RState | undefined, key: string, now: numbe
 
   const { [key]: _loaded, ...sessions } = s.sessions!
   return { ...stashActive({ ...s, sessions }, now), session: { ...loaded, opened: now } }
+}
+
+// A Drive file names its session. Loading the file the active session came
+// from refreshes it like typing does; any other file stashes the active session
+// and starts a fresh one. The unattended `?load=` path always starts over, in
+// execution.
+export function reduceLoadDrive(s: RState | undefined, text: string, file: DriveFile, deps: RecalcDeps, autoLoad = false): RState {
+  const base: RState = s && s.session?.name === file.name
+    ? s
+    : { ...stashOrEmpty(s, deps.now), session: { name: file.name } }
+  const loaded = autoLoad
+    ? reduceRecalc(base, { contents: text, eval: true, execute: true }, deps)
+    : reduceNewText(base, text, deps)
+  return { ...loaded, driveFile: file }
 }
 
 // A line per stashed session, the most recently active first. The buttons carry
@@ -870,7 +889,7 @@ export function pickerText(sessions: Record<string, Session>): string {
 
 // The picker is a session too: opening it stashes the active one.
 export function reduceOpenPicker(s: RState | undefined, deps: RecalcDeps): RState {
-  const stashed = stashActive(s ?? defaultState, deps.now)
+  const stashed = stashOrEmpty(s, deps.now)
   const picker: Session = { picker: true, opened: deps.now }
   return reduceRecalc({ ...stashed, session: picker }, { contents: pickerText(stashed.sessions || {}), eval: true }, deps)
 }

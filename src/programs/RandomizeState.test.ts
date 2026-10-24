@@ -9,7 +9,7 @@ import {
   RState, RecalcDeps, ItemActions,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
-  RStateV6, Session, migrateV5, migrateV6, migrateV7, withSession, reduceOpenPicker, reduceLoadSession, reduceDeleteSession, sessionStamp, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
+  RStateV6, Session, migrateV5, migrateV6, migrateV7, withSession, reduceOpenPicker, reduceLoadSession, reduceDeleteSession, reduceLoadDrive, sessionStamp, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -1302,6 +1302,52 @@ describe('sessions — stashing, the picker, loading', () => {
     const s = reduceNewText(reduceOpenPicker(evaluated('-=-\na'), deps({ now: T })), '-=-\nmine', deps({ now: T }))
     expect(s.session?.picker).toBeUndefined()
     expect(reduceOpenPicker(s, deps({ now: T + 60_000 })).sessions!['session-20261024-1408']?.text).toBe('-=-\nmine')
+  })
+
+  describe('loading from Drive', () => {
+    const file = (name: string) => ({ id: name, name, mimeType: 'text/plain' })
+    const drive = (s: RState | undefined, name: string, text: string, now = T) => reduceLoadDrive(s, text, file(name), deps({ now }))
+
+    test('switching between two files keeps both sessions', () => {
+      let s = drive(undefined, 'A.rndl', '-=-\na')
+      s = drive(s, 'B.rndl', '-=-\nb')
+      expect(s.session?.name).toBe('B.rndl')
+      expect(labels(s)).toStrictEqual(['b'])
+      expect(s.driveFile?.name).toBe('B.rndl')
+      expect(s.sessions!['A.rndl'].text).toBe('-=-\na')
+
+      s = reduceOpenPicker(s, deps({ now: T }))
+      expect(keys(s).sort()).toStrictEqual(['A.rndl', 'B.rndl'])
+    })
+
+    test('a session not from Drive is stashed too', () => {
+      const s = drive(evaluated('-=-\ntyped'), 'A.rndl', '-=-\na')
+      expect(s.sessions!['session-20261024-1407'].text).toBe('-=-\ntyped')
+    })
+
+    test('the same file again refreshes in place, keeping progress', () => {
+      let s = drive(undefined, 'A.rndl', '-=-\na1\na2')
+      s = reduceRecalc(reduceTimer(s, 'start', null, T), { item: { done: true } }, deps({ now: T + 20_000 }))
+      s = drive(s, 'A.rndl', '-=-\na1\na2\na3', T + 30_000)
+      expect(s.sessions ?? {}).toStrictEqual({})
+      expect(labels(s)).toStrictEqual(['a1', 'a2', 'a3'])
+      expect(resolveDecks(s)[DEFAULT_DECK][0].done).toBe(true)
+    })
+
+    test('a file loaded again from elsewhere starts afresh, the old session kept', () => {
+      let s = drive(undefined, 'A.rndl', '-=-\na')
+      s = drive(s, 'B.rndl', '-=-\nb')
+      s = drive(s, 'A.rndl', '-=-\na')
+      s = reduceOpenPicker(s, deps({ now: T }))
+      expect(Object.keys(s.sessions!).sort()).toStrictEqual(['A.rndl', 'A.rndl-2', 'B.rndl'])
+    })
+
+    test('the unattended load starts over in execution', () => {
+      const s = reduceLoadDrive(drive(undefined, 'A.rndl', '-=-\na'), '-=-\nb', file('B.rndl'), deps({ now: T }), true)
+      expect(s.execute).toBe(true)
+      expect(labels(s)).toStrictEqual(['b'])
+      expect(Object.keys(s.sessions!)).toStrictEqual(['A.rndl'])
+    })
   })
 
   test('a version 7 state moves its text into the session', () => {
