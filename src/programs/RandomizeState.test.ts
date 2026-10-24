@@ -9,7 +9,7 @@ import {
   RState, RecalcDeps, ItemActions,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
-  migrateV5, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
+  RStateV6, Session, migrateV5, migrateV6, withSession, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -22,23 +22,24 @@ const NOW = 1_000_000
 const deps = (over: Partial<RecalcDeps> = {}): RecalcDeps => ({ hideDone: true, bpm: defaultBpm, now: NOW, ...over })
 
 // Whole items split into pointers and lines, the way state keeps them.
-function decked(decks: Decks<UserItem>): Pick<RState, 'items' | 'lines'> {
+function decked(decks: Decks<UserItem>): Pick<Session, 'items' | 'lines'> {
   const { items, lines } = migrateV5({ version: 5, items: decks })
   return { items, lines }
 }
 
-function stateOf(contents: string[], current = 0, over: Partial<RState> = {}): RState {
-  return { version: 6, ...decked({ [DEFAULT_DECK]: contents.map(c => item(c)) }), current: [DEFAULT_DECK, current], ...over }
+// Fixtures are written flat, the way version 6 kept them.
+function stateOf(contents: string[], current = 0, over: Partial<RStateV6> = {}): RState {
+  return migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: contents.map(c => item(c)) }), current: [DEFAULT_DECK, current], ...over })
 }
 
 const labels = (s: RState) => (resolveDecks(s)[DEFAULT_DECK] || []).map(i => i.contents)
-const at = (s: RState) => resolveDecks(s)[DEFAULT_DECK]?.[s.current?.[1] ?? -1]?.contents
+const at = (s: RState) => resolveDecks(s)[DEFAULT_DECK]?.[s.session?.current?.[1] ?? -1]?.contents
 
 describe('reduceRecalc — advance', () => {
   test('seek forward / backward moves the in-deck index, deck name preserved', () => {
     let s = stateOf(['a', 'b', 'c'])
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 1])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 1])
     expect(at(s)).toBe('b')
 
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
@@ -51,7 +52,7 @@ describe('reduceRecalc — advance', () => {
   test('set jumps to an index within the same deck', () => {
     let s = stateOf(['a', 'b', 'c', 'd'])
     s = reduceRecalc(s, { advance: ['set', 2] }, deps())
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 2])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 2])
     expect(at(s)).toBe('c')
   })
 
@@ -95,7 +96,7 @@ describe('reduceRecalc — item actions', () => {
     let s = stateOf(['a', 'b', 'c', 'd', 'e', 'f'])
     s = reduceRecalc(s, { item: { bury: true } }, deps())
     expect(labels(s)).toStrictEqual(['b', 'c', 'd', 'a', 'e', 'f'])
-    expect(s.current?.[0]).toBe(DEFAULT_DECK) // still the same deck
+    expect(s.session?.current?.[0]).toBe(DEFAULT_DECK) // still the same deck
   })
 
   test('bury skips done items when counting three, and clamps to the end if fewer remain', () => {
@@ -103,7 +104,7 @@ describe('reduceRecalc — item actions', () => {
     let s = stateOf(['a', 'b', 'c'], 0, decked({ [DEFAULT_DECK]: [item('a'), item('b', { done: true }), item('c')] }))
     s = reduceRecalc(s, { item: { bury: true } }, deps())
     expect(labels(s)).toStrictEqual(['b', 'c', 'a']) // 'b' (done) is not counted; only 'c' remains, so 'a' clamps to the end
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 1]) // reorder keeps the in-deck index; the render layer skips 'b' when showing
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 1]) // reorder keeps the in-deck index; the render layer skips 'b' when showing
   })
 
   test('bury marks the item dropped, and a first drop never competes with fresher items', () => {
@@ -137,7 +138,7 @@ describe('reduceRecalc — item actions', () => {
     s = reduceRecalc(s, { advance: ['set', labels(s).indexOf('c')] }, deps({ hideDone: false }))
     s = reduceRecalc(s, { item: { unreview: true } }, deps())
     expect(resolveDecks(s)[DEFAULT_DECK]?.[0].dropped).toBeFalsy()
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
   })
 
   test('records review time using the injected now, not the wall clock', () => {
@@ -152,7 +153,7 @@ describe('reduceRecalc — item actions', () => {
     const minutes = (n: number) => n * 60 * 1000
     const reviewsAfter = (item: ItemActions, length: number) => {
       const s = stateOf(['a', 'b'])
-      s.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length, running: false }
+      s.session!.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length, running: false }
       const after = reduceRecalc(s, { item }, deps({ now: 42 }))
       return Object.fromEntries(JSON.parse(after.memory!)).cards?.['a']?.reviews
     }
@@ -168,7 +169,7 @@ describe('reduceRecalc — item actions', () => {
     const cardAfter = (s: RState) => Object.fromEntries(JSON.parse(s.memory!)).cards['a']
     const fsrsReview: ItemActions = { reviewed: true, done: true, fsrs: true }
     let s = stateOf(['a', 'b'])
-    s.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length: 60 * 1000, running: false }
+    s.session!.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length: 60 * 1000, running: false }
     s = reduceRecalc(s, { item: fsrsReview }, deps({ now: 42 }))
 
     expect(cardAfter(s)).toStrictEqual(expect.objectContaining({ fsrs: 42, reviewed: 42, reviews: [{ time: 42, length: 60 * 1000, accepted: true }] }))
@@ -199,7 +200,7 @@ describe('reduceRecalc — ban', () => {
 
     const onAlpha = reduceRecalc({ ...s, hideDone: false }, { advance: ['set', 0] }, deps())
     const surfaced = reduceRecalc(onAlpha, { item: { done: false, ban: false } }, deps())
-    const refreshed = reduceRefresh({ ...surfaced, items: { [DEFAULT_DECK]: [] } }, '-=-\nalpha\nbravo', NOW)
+    const refreshed = reduceRefresh(withSession(surfaced, { items: { [DEFAULT_DECK]: [] } }), '-=-\nalpha\nbravo', NOW)
     expect(resolveDecks(refreshed)[DEFAULT_DECK]?.map(i => !!i.done)).toStrictEqual([false, false])
     expect(cardsOf(surfaced)['alpha'].banned).toBeUndefined()
   })
@@ -210,20 +211,19 @@ describe('reduceRecalc — eval & deck wiring', () => {
     let s: RState = { version: 5 }
     s = reduceRecalc(s, { eval: true, contents: '-=-\nalpha\nbravo\ncharlie' }, deps())
     expect(labels(s)).toStrictEqual(['alpha', 'bravo', 'charlie'])
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(s.outLineCount).toBe(3)
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
   })
 
   test('eval drops every spawned deck and resets the breadcrumb stack', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
-    expect(Object.keys(s.items!)).toContain('Scale/zip')
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+    expect(Object.keys(s.session!.items!)).toContain('Scale/zip')
 
     s = reduceRecalc(s, { eval: true, contents: '-=-\none\ntwo' }, deps()) // -=- keeps order
-    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
+    expect(Object.keys(s.session!.items!)).toStrictEqual([DEFAULT_DECK])
     expect(labels(s)).toStrictEqual(['one', 'two'])
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(s.cursorStack).toStrictEqual([])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.session?.cursorStack).toStrictEqual([])
   })
 
   test('reads text/execute/hideDone from the passed state, not a stale closure', () => {
@@ -237,7 +237,7 @@ describe('reduceRecalc — eval & deck wiring', () => {
   test('empty / undefined state is handled without throwing', () => {
     const out = reduceRecalc(undefined, { advance: ['seek', 1] }, deps())
     expect(resolveDecks(out)[DEFAULT_DECK]).toStrictEqual([])
-    expect(out.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(out.session?.current).toStrictEqual([DEFAULT_DECK, 0])
   })
 })
 
@@ -251,7 +251,7 @@ describe('block subdecks — an item keyed like a named block', () => {
     const s = evaluated()
 
     expect(labels(s)).toStrictEqual(['alpha', 'scales: warm up first'])
-    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
+    expect(Object.keys(s.session!.items!)).toStrictEqual([DEFAULT_DECK])
   })
 
   test('the keyed item has a subdeck to enter, an unrelated one does not', () => {
@@ -266,12 +266,12 @@ describe('block subdecks — an item keyed like a named block', () => {
     let s = onScales()
     s = reduceEnterSubdeck(s, scalesItem(s), NOW)
 
-    expect(s.current).toStrictEqual(['scales/', 0])
+    expect(s.session?.current).toStrictEqual(['scales/', 0])
     expect(resolveDecks(s)['scales/'].map(i => i.contents).sort()).toStrictEqual(['MAJ', 'MIN'])
     expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'scales/'])
 
     s = reducePopOne(s, NOW)
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 1])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 1])
     expect(liveSubdeckName(s, scalesItem(s))).toBe('scales/')
   })
 
@@ -295,7 +295,7 @@ describe('block subdecks — an item keyed like a named block', () => {
     expect(liveSubdeckName(s, scalesItem(s))).toBeNull()
 
     s = reduceEnterSubdeck(s, scalesItem(s), NOW)
-    expect(s.current![0]).toBe('scales/')
+    expect(s.session!.current![0]).toBe('scales/')
     expect(resolveDecks(s)['scales/'].every(i => !i.done)).toBe(true)
   })
 
@@ -319,7 +319,7 @@ describe('block subdecks — an item keyed like a named block', () => {
 
   test('a header names its block by its evaluated key, kept from the eval', () => {
     let s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=-\nscales\n-=- sc{[\'ales\']}: warm up first\nMAJ' }, deps())
-    expect(s.blockHeaders?.map(h => h?.key ?? null)).toStrictEqual([null, 'scales'])
+    expect(s.session?.blockHeaders?.map(h => h?.key ?? null)).toStrictEqual([null, 'scales'])
 
     s = reduceEnterSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0], NOW)
     expect(resolveDecks(s)['scales/'].map(i => i.contents)).toStrictEqual(['MAJ'])
@@ -333,10 +333,10 @@ describe('block subdecks — an item keyed like a named block', () => {
   test('nested: an item inside a block deck instantiates its own block', () => {
     let s = reduceRecalc({ version: 5 }, { eval: true, contents: '-=-\nouter\n-=- outer\ninner\n-=- inner\nX' }, deps())
     s = reduceEnterSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0], NOW)
-    s = reduceEnterSubdeck(s, resolveAt(s, s.current!)!, NOW)
+    s = reduceEnterSubdeck(s, resolveAt(s, s.session!.current!)!, NOW)
 
     expect(deckPath(s)).toStrictEqual([DEFAULT_DECK, 'outer/', 'inner/'])
-    expect(resolveAt(s, s.current!)!.contents).toBe('X')
+    expect(resolveAt(s, s.session!.current!)!.contents).toBe('X')
   })
 
   test('re-eval drops instantiated decks and clears the stack', () => {
@@ -344,9 +344,9 @@ describe('block subdecks — an item keyed like a named block', () => {
     s = reduceEnterSubdeck(s, scalesItem(s), NOW)
 
     s = reduceRecalc(s, { eval: true }, deps())
-    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(s.cursorStack).toStrictEqual([])
+    expect(Object.keys(s.session!.items!)).toStrictEqual([DEFAULT_DECK])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.session?.cursorStack).toStrictEqual([])
   })
 
   test('cleaning from the keyed item drops its instantiated deck, same as a spawned one', () => {
@@ -354,7 +354,7 @@ describe('block subdecks — an item keyed like a named block', () => {
     s = reducePopOne(reduceEnterSubdeck(s, scalesItem(s), NOW), NOW)
 
     s = reduceCleanSubdeck(s, scalesItem(s))
-    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK])
+    expect(Object.keys(s.session!.items!)).toStrictEqual([DEFAULT_DECK])
     expect(hasSubdeck(s, scalesItem(s))).toBe(true) // still instantiable
   })
 
@@ -379,23 +379,23 @@ describe('reduceTimer', () => {
   })
 
   test('only the cursor’s deck is touched; other decks are left intact', () => {
-    const s: RState = {
-      version: 5,
+    const s: RState = migrateV6({
+      version: 6,
       current: [DEFAULT_DECK, 0],
       ...decked({ [DEFAULT_DECK]: [item('a')], other: [item('z')] }),
-    }
+    })
     const out = reduceTimer(s, 'start', null, NOW)
-    expect(out.items!.other).toBe(s.items!.other) // untouched reference
+    expect(out.session!.items!.other).toBe(s.session!.items!.other) // untouched reference
     expect(resolveDecks(out)[DEFAULT_DECK][0].timer?.running).toBe(true)
   })
 
   test('undefined state returns the default state, no throw', () => {
-    expect(reduceTimer(undefined, 'start', null, NOW).version).toBe(6)
+    expect(reduceTimer(undefined, 'start', null, NOW).version).toBe(7)
   })
 
   test('stop/start while nested propagates up the cursorStack chain, not just the leaf', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder) // descends, starts the leaf timer
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer?.running).toBe(true) // parent item still running
 
     s = reduceTimer(s, 'stop', null, NOW + 1000)
@@ -415,31 +415,31 @@ describe('reduceTimer', () => {
 
   test('subtract-and-restart at the top level discounts totalTimer by the leaf item’s elapsed time', () => {
     let s = stateOf(['a', 'b'])
-    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } } // 5s elapsed so far
-    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf ran for 1s
+    s = withSession(s, { totalTimer: { kind: 'started', start: NOW - 5000, running: true } }) // 5s elapsed so far
+    s.session!.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf ran for 1s
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
-    expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true })
+    expect(s.session?.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true })
   })
 
   test('subtract-and-restart while nested discounts totalTimer and the ancestor alike', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } } // 5s elapsed so far
-    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 4000, running: true } // ancestor: 4s elapsed
-    s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s elapsed
+    s = withSession(s, { totalTimer: { kind: 'started', start: NOW - 5000, running: true } }) // 5s elapsed so far
+    s.session!.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 4000, running: true } // ancestor: 4s elapsed
+    s.session!.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s elapsed
 
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
-    expect(s.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // 5s - 1s
+    expect(s.session?.totalTimer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // 5s - 1s
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'started', start: NOW - 3000, running: true }) // 4s - 1s
     expect(resolveDecks(s)['Scale/zip'][0].timer).toStrictEqual({ kind: 'started', start: NOW, running: true }) // leaf restarted
   })
 
   test('subtract-and-restart two levels deep takes the same interval off every ancestor', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    s = { ...s, cursorStack: [...s.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], ...decked({ ...resolveDecks(s), leaf: [item('x')] }) }
-    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } }
-    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 5000, running: true } // outer: 5s
-    s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 3000, running: true } // inner: 3s
-    s.items!.leaf[0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s
+    s = withSession(s, { cursorStack: [...s.session!.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], ...decked({ ...resolveDecks(s), leaf: [item('x')] }) })
+    s = withSession(s, { totalTimer: { kind: 'started', start: NOW - 5000, running: true } })
+    s.session!.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 5000, running: true } // outer: 5s
+    s.session!.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 3000, running: true } // inner: 3s
+    s.session!.items!.leaf[0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s
 
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'started', start: NOW - 4000, running: true }) // 5s - 1s, not compounded
@@ -448,9 +448,9 @@ describe('reduceTimer', () => {
 
   test('an ancestor shorter than the discounted interval clamps to zero rather than going negative', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    s = { ...s, totalTimer: { kind: 'started', start: NOW - 5000, running: true } }
-    s.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 400, running: true } // ancestor: only 0.4s
-    s.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s
+    s = withSession(s, { totalTimer: { kind: 'started', start: NOW - 5000, running: true } })
+    s.session!.items![DEFAULT_DECK][0].timer = { kind: 'started', start: NOW - 400, running: true } // ancestor: only 0.4s
+    s.session!.items!['Scale/zip'][0].timer = { kind: 'started', start: NOW - 1000, running: true } // leaf: 1s
 
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'started', start: NOW, running: true }) // clamped to 0, still running
@@ -458,26 +458,26 @@ describe('reduceTimer', () => {
 
   test('subtract-and-restart with totalTimer stopped subtracts up the chain and leaves it stopped', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    s = { ...s, totalTimer: { kind: 'stopped', length: 5000, running: false } }
-    s.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length: 4000, running: false } // ancestor: 4s
-    s.items!['Scale/zip'][0].timer = { kind: 'stopped', length: 1000, running: false } // leaf: 1s
+    s = withSession(s, { totalTimer: { kind: 'stopped', length: 5000, running: false } })
+    s.session!.items![DEFAULT_DECK][0].timer = { kind: 'stopped', length: 4000, running: false } // ancestor: 4s
+    s.session!.items!['Scale/zip'][0].timer = { kind: 'stopped', length: 1000, running: false } // leaf: 1s
 
     s = reduceTimer(s, 'subtract-and-restart', null, NOW)
-    expect(s.totalTimer).toStrictEqual({ kind: 'stopped', length: 4000, running: false })
+    expect(s.session?.totalTimer).toStrictEqual({ kind: 'stopped', length: 4000, running: false })
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer).toStrictEqual({ kind: 'stopped', length: 3000, running: false }) // subtracted, and still stopped
   })
 
   test('a refresh leaves totalTimer stopped at zero, not silently running', () => {
     let s = stateOf(['a', 'b'], 0, { totalTimer: { kind: 'started', start: NOW - 5000, running: true } })
     s = reduceRecalc(s, { eval: true, contents: 'alpha\nbravo' }, deps())
-    expect(s.totalTimer).toStrictEqual({ kind: 'stopped', length: 0, running: false })
-    expect(resolveAt(s, s.current!)?.timer?.running).toBe(false) // leaf agrees
+    expect(s.session?.totalTimer).toStrictEqual({ kind: 'stopped', length: 0, running: false })
+    expect(resolveAt(s, s.session!.current!)?.timer?.running).toBe(false) // leaf agrees
   })
 
   test('subtract-and-restart two levels deep resyncs every ancestor to totalTimer', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    s = { ...s, cursorStack: [...s.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], ...decked({ ...resolveDecks(s), leaf: [item('x')] }) }
-    s = { ...s, totalTimer: { kind: 'stopped', length: 5000, running: false } } // totalTimer currently stopped
+    s = withSession(s, { cursorStack: [...s.session!.cursorStack!, ['Scale/zip', 0]], current: ['leaf', 0], ...decked({ ...resolveDecks(s), leaf: [item('x')] }) })
+    s = withSession(s, { totalTimer: { kind: 'stopped', length: 5000, running: false } }) // totalTimer currently stopped
     s = reduceTimer(s, 'subtract-and-restart', null, NOW + 1000)
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer?.running).toBe(false) // outer ancestor resynced to totalTimer (stopped)
     expect(resolveDecks(s)['Scale/zip'][0].timer?.running).toBe(false) // inner ancestor resynced too
@@ -509,8 +509,8 @@ describe('reduceSetBpm / reduceMetro', () => {
 describe('metro tag — an item authors its own tempo', () => {
   const tagged = (src: string): UserItem => toUserItem(evalContents(src)[0])
 
-  function deckWith(items: UserItem[], over: Partial<RState> = {}): RState {
-    return { version: 6, ...decked({ [DEFAULT_DECK]: items }), current: [DEFAULT_DECK, 0], ...over }
+  function deckWith(items: UserItem[], over: Partial<RStateV6> = {}): RState {
+    return migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: items }), current: [DEFAULT_DECK, 0], ...over })
   }
 
   test('reads the bpm off a metro tag when landing on the item', () => {
@@ -607,7 +607,7 @@ describe('metro tag — an item authors its own tempo', () => {
 
 function stateWithSpawnable(): RState {
   const parent = toUserItem(evalContents("Scale: play [s('C,D')]key [s('up,down')]bow")[0])
-  return { version: 6, ...decked({ [DEFAULT_DECK]: [parent, item('after')] }), current: [DEFAULT_DECK, 0] }
+  return migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: [parent, item('after')] }), current: [DEFAULT_DECK, 0] })
 }
 
 describe('reduceSpawn — descend into a spawned deck', () => {
@@ -616,8 +616,8 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     expect(resolveDecks(out)['Scale/cartesian']?.map(i => i.contents)).toStrictEqual([
       'Scale: play [C] [up]', 'Scale: play [C] [down]', 'Scale: play [D] [up]', 'Scale: play [D] [down]',
     ])
-    expect(out.current).toStrictEqual(['Scale/cartesian', 0])
-    expect(out.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent pushed
+    expect(out.session?.current).toStrictEqual(['Scale/cartesian', 0])
+    expect(out.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent pushed
     expect(resolveDecks(out)[DEFAULT_DECK]?.length).toBe(2) // default deck untouched
   })
 
@@ -655,14 +655,14 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     const original = resolveDecks(s)[deck].map(i => i.contents)
 
     s = reducePopOne(s, NOW)
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
 
     const reversing: Scheduler = items => [...items].reverse()
     s = reduceSpawn(s, 'cartesian', NOW, reversing)
 
     expect(resolveDecks(s)[deck].map(i => i.contents)).toStrictEqual(original) // not reversed
-    expect(s.current).toStrictEqual([deck, 0]) // still descends
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent re-pushed
+    expect(s.session?.current).toStrictEqual([deck, 0]) // still descends
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent re-pushed
   })
 
   test('cleaning an item drops its subdeck(s) without moving the cursor or stack', () => {
@@ -672,13 +672,13 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     s = reducePopOne(s, NOW)
     s = reduceSpawn(s, 'cartesian', NOW, keepOrder)
     s = reducePopOne(s, NOW)
-    expect(Object.keys(s.items!)).toEqual(expect.arrayContaining(['Scale/zip', 'Scale/cartesian']))
+    expect(Object.keys(s.session!.items!)).toEqual(expect.arrayContaining(['Scale/zip', 'Scale/cartesian']))
 
     s = reduceCleanSubdeck(s, parentItem)
 
-    expect(Object.keys(s.items!)).toStrictEqual([DEFAULT_DECK]) // both subdecks gone
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0]) // cursor untouched
-    expect(s.cursorStack ?? []).toStrictEqual([]) // stack untouched
+    expect(Object.keys(s.session!.items!)).toStrictEqual([DEFAULT_DECK]) // both subdecks gone
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0]) // cursor untouched
+    expect(s.session?.cursorStack ?? []).toStrictEqual([]) // stack untouched
   })
 
   test('re-spawning after a clean rebuilds the subdeck fresh', () => {
@@ -697,7 +697,7 @@ describe('reduceSpawn — descend into a spawned deck', () => {
 
   test('cleaning an item with no spawned subdeck leaves items unchanged', () => {
     const s = stateOf(['a', 'b'], 1)
-    expect(reduceCleanSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0]).items).toStrictEqual(s.items)
+    expect(reduceCleanSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0]).session?.items).toStrictEqual(s.session?.items)
   })
 
   test('liveSubdeckName goes null again after cleaning the subdeck', () => {
@@ -723,7 +723,7 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
     expect(liveSubdeckName(s, parentItem)).toBe(deck)
 
-    s = { ...s, items: { ...s.items, [deck]: s.items![deck].map(i => ({ ...i, done: true })) } }
+    s = withSession(s, { items: { ...s.session?.items, [deck]: s.session!.items![deck].map(i => ({ ...i, done: true })) } })
     expect(liveSubdeckName(s, parentItem)).toBeNull()
   })
 
@@ -732,12 +732,12 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
     const before = resolveDecks(s)[deck].map(i => i.contents)
     s = reducePopOne(s, NOW)
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
 
     s = reduceEnterDeck(s, deck, NOW)
 
-    expect(s.current).toStrictEqual([deck, 0]) // descended
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent pushed
+    expect(s.session?.current).toStrictEqual([deck, 0]) // descended
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // parent pushed
     expect(resolveDecks(s)[deck].map(i => i.contents)).toStrictEqual(before) // untouched
   })
 
@@ -751,7 +751,7 @@ describe('reduceSpawn — descend into a spawned deck', () => {
   function reentered(mode: SpawnMode, doneCount: number, descend: Descend): RState {
     const deck = `Scale/${mode}`
     let s = reducePopOne(reduceSpawn(stateWithSpawnable(), mode, NOW, keepOrder), NOW)
-    s = { ...s, items: { ...s.items, [deck]: s.items![deck].map((i, n) => n < doneCount ? { ...i, done: true } : i) } }
+    s = withSession(s, { items: { ...s.session?.items, [deck]: s.session!.items![deck].map((i, n) => n < doneCount ? { ...i, done: true } : i) } })
     return descend(s, mode)
   }
 
@@ -763,12 +763,12 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     ['re-spawning into', bySpawn, 3, 3],
   ] satisfies [string, Descend, number, number][])('%s a partly-done deck lands on the first live item', (_name, descend, doneCount, want) => {
     const s = reentered('cartesian', doneCount, descend) // 4 children
-    expect(s.current).toStrictEqual(['Scale/cartesian', want])
-    expect(resolveAt(s, s.current!)?.done).toBeFalsy()
+    expect(s.session?.current).toStrictEqual(['Scale/cartesian', want])
+    expect(resolveAt(s, s.session!.current!)?.done).toBeFalsy()
   })
 
   test('entering an all-done deck stays at the top rather than running off the end', () => {
-    expect(reentered('zip', 2, byEnter).current).toStrictEqual(['Scale/zip', 0])
+    expect(reentered('zip', 2, byEnter).session?.current).toStrictEqual(['Scale/zip', 0])
   })
 
   test('spawning into an all-done subdeck regenerates it instead of reusing', () => {
@@ -778,7 +778,7 @@ describe('reduceSpawn — descend into a spawned deck', () => {
     s = reducePopOne(s, NOW)
 
     // exhaust the subdeck
-    s = { ...s, items: { ...s.items, [deck]: s.items![deck].map(i => ({ ...i, done: true })) } }
+    s = withSession(s, { items: { ...s.session?.items, [deck]: s.session!.items![deck].map(i => ({ ...i, done: true })) } })
 
     // a reordering scheduler proves regeneration (fresh, undone, reversed)
     const reversing: Scheduler = items => [...items].reverse()
@@ -792,18 +792,18 @@ describe('reduceRecalc — finishing a spawned deck does NOT auto-leave it', () 
   test('seeking off the end stays on the last item, keeping the stack', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder) // deck of 2
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // -> last item
-    expect(s.current).toStrictEqual(['Scale/zip', 1])
+    expect(s.session?.current).toStrictEqual(['Scale/zip', 1])
 
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // past the end: clamp, no pop
-    expect(s.current).toStrictEqual(['Scale/zip', 1]) // still on the last item
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still in the deck
+    expect(s.session?.current).toStrictEqual(['Scale/zip', 1]) // still on the last item
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]]) // still in the deck
   })
 
   test('seeking forward mid-deck stays in the deck', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder) // deck of 4
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps())
-    expect(s.current).toStrictEqual(['Scale/cartesian', 1])
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+    expect(s.session?.current).toStrictEqual(['Scale/cartesian', 1])
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
   })
 })
 
@@ -813,9 +813,8 @@ describe('defaultState eval', () => {
     const defaultItems = resolveDecks(out)[DEFAULT_DECK] ?? []
     expect(defaultItems.length).toBe(3)
     expect(defaultItems.map(i => i.contents).sort()).toStrictEqual(['Juggling: do it', 'Lullaby: play it', 'Squats: do it'])
-    expect(out.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(out.outLineCount).toBe(3)
-    expect(out.version).toBe(6)
+    expect(out.session?.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(out.version).toBe(7)
     expect(out.text).toBe(defaultState.text)
   })
 })
@@ -831,8 +830,8 @@ describe('breadcrumb / pop navigation', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
     s = reduceRecalc(s, { advance: ['seek', 1] }, deps()) // move within the deck
     s = reducePopOne(s, NOW)
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0]) // back on the parent item
-    expect(s.cursorStack).toStrictEqual([])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0]) // back on the parent item
+    expect(s.session?.cursorStack).toStrictEqual([])
   })
 
   test('popOne stops the timer of the item left behind in the subdeck', () => {
@@ -847,35 +846,34 @@ describe('breadcrumb / pop navigation', () => {
   test('popTo stops the timers of every level left behind', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
     const running = (start: number) => ({ kind: 'started', start, running: true }) satisfies Timer
-    s = {
-      ...s,
+    s = withSession(s, {
       ...decked({ ...resolveDecks(s), mid: [item('m', { timer: running(NOW) })], leaf: [item('l', { timer: running(NOW) })] }),
       cursorStack: [[DEFAULT_DECK, 0], ['mid', 0]],
       current: ['leaf', 0],
-    }
+    })
     s = reduceTimer(s, 'start', null, NOW)
     s = reducePopTo(s, 0, NOW + 1000)
-    expect(s.items!.mid[0].timer?.running).toBe(false)
-    expect(s.items!.leaf[0].timer?.running).toBe(false)
+    expect(s.session!.items!.mid[0].timer?.running).toBe(false)
+    expect(s.session!.items!.leaf[0].timer?.running).toBe(false)
     expect(resolveDecks(s)[DEFAULT_DECK][0].timer?.running).toBe(true)
   })
 
   test('popOne at the top level is a no-op', () => {
     const s = stateOf(['a', 'b'], 1)
-    expect(reducePopOne(s, NOW).current).toStrictEqual([DEFAULT_DECK, 1])
+    expect(reducePopOne(s, NOW).session?.current).toStrictEqual([DEFAULT_DECK, 1])
   })
 
   test('popTo a level trims the stack to that level and restores its cursor', () => {
     let s = reduceSpawn(stateWithSpawnable(), 'cartesian', NOW, keepOrder)
-    s = { ...s, cursorStack: [[DEFAULT_DECK, 0], ['mid', 3]], current: ['leaf', 2] }
+    s = withSession(s, { cursorStack: [[DEFAULT_DECK, 0], ['mid', 3]], current: ['leaf', 2] })
     const out = reducePopTo(s, 1, NOW) // level 1 = 'mid'
-    expect(out.current).toStrictEqual(['mid', 3])
-    expect(out.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
+    expect(out.session?.current).toStrictEqual(['mid', 3])
+    expect(out.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 0]])
   })
 
   test('popTo the last (current) level is a no-op', () => {
     const s = reduceSpawn(stateWithSpawnable(), 'zip', NOW, keepOrder)
-    expect(reducePopTo(s, 1, NOW).current).toStrictEqual(['Scale/zip', 0])
+    expect(reducePopTo(s, 1, NOW).session?.current).toStrictEqual(['Scale/zip', 0])
   })
 })
 
@@ -922,14 +920,14 @@ describe('tones tag — the pitches the metro sounds', () => {
 describe('reduceMetroClick — the `next` tag counting off the metronome', () => {
   // A card whose programme is written in the DSL, so the tag is parsed the way
   // it is in the editor rather than hand-built.
-  const carded = (programme: string, over: Partial<RState> = {}): RState => ({
-    version: 5,
+  const carded = (programme: string, over: Partial<RStateV6> = {}): RState => migrateV6({
+    version: 6,
     ...decked({ [DEFAULT_DECK]: evalContents(`Etude: [\'${programme}\'.split(\' \')]next`).map(toUserItem) }),
     current: [DEFAULT_DECK, 0],
     ...over,
   })
 
-  const shown = (s: RState) => resolveAt(s, s.current!)?.contents
+  const shown = (s: RState) => resolveAt(s, s.session!.current!)?.contents
 
   test('a click spends into the head step and shows it on the card', () => {
     const [s, action] = reduceMetroClick(carded('4f 4r'))
@@ -969,11 +967,11 @@ describe('reduceMetroClick — the `next` tag counting off the metronome', () =>
 
   test('only the current item counts down', () => {
     // `-=-` keeps the two in the order written; the default block shuffles.
-    const two: RState = {
-      version: 5,
+    const two: RState = migrateV6({
+      version: 6,
       ...decked({ [DEFAULT_DECK]: evalContents("-=-\nA: ['2f']next\nB: ['2f']next").map(toUserItem) }),
       current: [DEFAULT_DECK, 1],
-    }
+    })
     const [s] = reduceMetroClick(two)
     expect((resolveDecks(s)[DEFAULT_DECK] || []).map(i => i.contents)).toEqual(['A: [2f]', 'B: [1:1f]'])
   })
@@ -988,9 +986,9 @@ describe('pointers', () => {
 
   test('decks hold only keys and progress; the line lives once under its key', () => {
     const s = evaluated("-=-\nFoo: do it\nBar: do that")
-    expect(s.items![DEFAULT_DECK].map(r => r.key)).toStrictEqual(['Foo', 'Bar'])
-    expect(s.items![DEFAULT_DECK].every(r => !('contents' in r))).toBe(true)
-    expect(Object.keys(s.lines!)).toStrictEqual(['Foo', 'Bar'])
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.key)).toStrictEqual(['Foo', 'Bar'])
+    expect(s.session!.items![DEFAULT_DECK].every(r => !('contents' in r))).toBe(true)
+    expect(Object.keys(s.session!.lines!)).toStrictEqual(['Foo', 'Bar'])
   })
 
   test('a re-roll refreshes the line, so every pointer to it shows the new roll', () => {
@@ -1004,25 +1002,63 @@ describe('pointers', () => {
   test('progress stays on the pointer, not the shared line', () => {
     let s = evaluated("-=-\n2x Foo: do it")
     s = reduceRecalc(s, { item: { done: true } }, deps())
-    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined])
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined])
   })
 
   test('separators get a key too', () => {
     const s = evaluated("-=-\na\n-=-\nb")
     expect(resolveDecks(s)[DEFAULT_DECK].map(i => i.separator)).toStrictEqual([null, true, null])
-    expect(s.items![DEFAULT_DECK].every(r => typeof r.key === 'string')).toBe(true)
+    expect(s.session!.items![DEFAULT_DECK].every(r => typeof r.key === 'string')).toBe(true)
   })
 
   test('cleaning a subdeck drops the lines nothing points at any more', () => {
     const s = stateOf(['a'], 0, decked({ [DEFAULT_DECK]: [item('a')], 'a/zip': [item('z')] }))
-    expect(Object.keys(reduceCleanSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0]).lines!)).toStrictEqual(['a'])
+    expect(Object.keys(reduceCleanSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0]).session?.lines!)).toStrictEqual(['a'])
   })
 
   test('a version 5 state splits into pointers and lines, keeping progress', () => {
     const migrated = migrateV5({ version: 5, items: { [DEFAULT_DECK]: [item('a', { done: true }), item('b')] } })
     expect(migrated.version).toBe(6)
     expect(migrated.items![DEFAULT_DECK]).toStrictEqual([{ key: 'a', done: true }, { key: 'b' }])
-    expect(resolveDecks(migrated)[DEFAULT_DECK].map(i => i.contents)).toStrictEqual(['a', 'b'])
+    expect(resolveDecks(migrateV6(migrated))[DEFAULT_DECK].map(i => i.contents)).toStrictEqual(['a', 'b'])
+  })
+
+  test('a version 6 state moves its session under `session`, the rest stays on top', () => {
+    const totalTimer: Timer = { kind: 'stopped', length: 5000, running: false }
+    const v6: RStateV6 = {
+      version: 6,
+      text: 'a',
+      memory: 'm',
+      hideDone: false,
+      metro: { bpm: 90 },
+      ...decked({ [DEFAULT_DECK]: [item('a')], 'a/zip': [item('z')] }),
+      defined: ['a'],
+      blockHeaders: [],
+      outLineCount: 1,
+      current: ['a/zip', 0],
+      cursorStack: [[DEFAULT_DECK, 0]],
+      totalTimer,
+    }
+    const { items, lines } = v6
+    expect(migrateV6(v6)).toStrictEqual({
+      version: 7,
+      text: 'a',
+      memory: 'm',
+      hideDone: false,
+      metro: { bpm: 90 },
+      session: { items, lines, defined: ['a'], blockHeaders: [], current: ['a/zip', 0], cursorStack: [[DEFAULT_DECK, 0]], totalTimer },
+    })
+  })
+
+  test('a migrated version 6 state carries on where it was', () => {
+    const s = migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: [item('a'), item('b'), item('c')] }), current: [DEFAULT_DECK, 1] })
+    expect(at(reduceRecalc(s, { advance: ['seek', 1] }, deps()))).toBe('c')
+  })
+
+  test('a version 5 state migrates all the way through', () => {
+    const s = migrateV6(migrateV5({ version: 5, items: { [DEFAULT_DECK]: [item('a', { done: true }), item('b')] } }))
+    expect(s.version).toBe(7)
+    expect(s.session?.items![DEFAULT_DECK]).toStrictEqual([{ key: 'a', done: true }, { key: 'b' }])
   })
 })
 
@@ -1033,7 +1069,7 @@ describe('definitions — a card without a pointer', () => {
   test('a bare key points at the definition, wherever it is written', () => {
     const s = evaluated("-=-\nScales:\nother\n::Scales: three octaves")
     expect(contents(s)).toStrictEqual(['Scales: three octaves', 'other'])
-    expect(s.defined).toStrictEqual(['Scales'])
+    expect(s.session?.defined).toStrictEqual(['Scales'])
   })
 
   test('a key list points at each definition in turn', () => {
@@ -1044,7 +1080,7 @@ describe('definitions — a card without a pointer', () => {
   test('a definition alone stores the line and places nothing', () => {
     const s = evaluated("-=-\nother\n::Scales: three octaves")
     expect(contents(s)).toStrictEqual(['other'])
-    expect(s.lines!.Scales.contents).toBe('Scales: three octaves')
+    expect(s.session!.lines!.Scales.contents).toBe('Scales: three octaves')
   })
 
   test('a definition beats a full line with the same key', () => {
@@ -1072,7 +1108,7 @@ describe('definitions — a card without a pointer', () => {
     s = reduceSpawn(s, 'zip', NOW, keepOrder)
     s = reducePopOne(s, NOW)
     s = reduceCleanSubdeck(s, resolveDecks(s)[DEFAULT_DECK][0])
-    expect(s.lines!.Arps.contents).toBe('Arps: broken')
+    expect(s.session!.lines!.Arps.contents).toBe('Arps: broken')
   })
 
   test('a refresh keeps the progress of a pointer to a definition', () => {
@@ -1091,7 +1127,7 @@ describe('definitions — a card without a pointer', () => {
 
 describe('reduceRefresh', () => {
   const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
-  const keys = (s: RState) => s.items![DEFAULT_DECK].map(r => r.key)
+  const keys = (s: RState) => s.session!.items![DEFAULT_DECK].map(r => r.key)
 
   test('progress carries over by key, in the new text order', () => {
     let s = evaluated("-=-\nA: a\nB: b\nC: c")
@@ -1099,7 +1135,7 @@ describe('reduceRefresh', () => {
     s = reduceRefresh(s, "-=-\nC: c\nNew: n\nA: a2", NOW)
 
     expect(keys(s)).toStrictEqual(['C', 'New', 'A'])
-    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined, true])
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined, true])
     expect(resolveDecks(s)[DEFAULT_DECK][2].contents).toBe('A: a2') // the line is the new one
   })
 
@@ -1107,33 +1143,33 @@ describe('reduceRefresh', () => {
     let s = evaluated("-=-\n2x Foo: do it")
     s = reduceRecalc(s, { item: { done: true } }, deps())
     s = reduceRefresh(s, "-=-\n3x Foo: do it", NOW)
-    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined, undefined])
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined, undefined])
   })
 
   test('timers carry over, and so does the total timer', () => {
     let s = evaluated("-=-\nA: a\nB: b")
     s = reduceTimer(s, 'start', null, NOW)
-    const timerA = s.items![DEFAULT_DECK][0].timer
-    const total = s.totalTimer
+    const timerA = s.session!.items![DEFAULT_DECK][0].timer
+    const total = s.session?.totalTimer
     s = reduceRefresh(s, "-=-\nB: b\nA: a", NOW)
 
-    expect(s.totalTimer).toStrictEqual(total)
-    expect(s.items![DEFAULT_DECK][1].timer).toStrictEqual(timerA)
+    expect(s.session?.totalTimer).toStrictEqual(total)
+    expect(s.session!.items![DEFAULT_DECK][1].timer).toStrictEqual(timerA)
   })
 
   test('the cursor follows its item to its new place', () => {
     let s = evaluated("-=-\nA: a\nB: b\nC: c")
     s = reduceRecalc(s, { advance: ['set', 1] }, deps()) // on B
     s = reduceRefresh(s, "-=-\nC: c\nA: a\nB: b", NOW)
-    expect(resolveAt(s, s.current)?.key).toBe('B')
+    expect(resolveAt(s, s.session?.current)?.key).toBe('B')
   })
 
   test('a cursor whose item is gone lands inside the shrunk deck', () => {
     let s = evaluated("-=-\nA: a\nB: b\nC: c")
     s = reduceRecalc(s, { advance: ['set', 2] }, deps()) // on C
     s = reduceRefresh(s, "x", NOW)
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(resolveAt(s, s.current)?.contents).toBe('x')
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(resolveAt(s, s.session?.current)?.contents).toBe('x')
   })
 
   test('subdecks and the stack survive, with the stacked root cursor following its item', () => {
@@ -1141,8 +1177,8 @@ describe('reduceRefresh', () => {
     s = reduceEnterDeck(s, 'Scale/zip', NOW)
     s = reduceRefresh(s, "-=-\nother\nScale", NOW)
 
-    expect(s.current).toStrictEqual(['Scale/zip', 0])
-    expect(s.cursorStack).toStrictEqual([[DEFAULT_DECK, 1]])
+    expect(s.session?.current).toStrictEqual(['Scale/zip', 0])
+    expect(s.session?.cursorStack).toStrictEqual([[DEFAULT_DECK, 1]])
     expect(resolveDecks(s)['Scale/zip'].map(i => i.contents)).toStrictEqual(['z'])
   })
 })
@@ -1152,25 +1188,25 @@ describe('reduceNewText', () => {
   const doneA = () => reduceRecalc(evaluated("-=-\nA: a\nB: b"), { item: { done: true } }, deps())
 
   test('within the first 10 seconds new text starts over', () => {
-    const s = reduceNewText({ ...doneA(), totalTimer: { kind: 'started', start: NOW - 5000, running: true } }, "-=-\nA: a\nB: b2", deps())
-    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined])
+    const s = reduceNewText(withSession(doneA(), { totalTimer: { kind: 'started', start: NOW - 5000, running: true } }), "-=-\nA: a\nB: b2", deps())
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined])
   })
 
   test('past 10 seconds new text keeps the progress', () => {
-    const s = reduceNewText({ ...doneA(), totalTimer: { kind: 'started', start: NOW - 11000, running: true } }, "-=-\nA: a\nB: b2", deps())
-    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined])
+    const s = reduceNewText(withSession(doneA(), { totalTimer: { kind: 'started', start: NOW - 11000, running: true } }), "-=-\nA: a\nB: b2", deps())
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([true, undefined])
     expect(resolveDecks(s)[DEFAULT_DECK][1].contents).toBe('B: b2')
   })
 
   // What `?load=` does instead of reduceNewText: start over regardless of the timer.
   test('an eval with new contents starts over past 10 seconds too', () => {
-    const running = { ...doneA(), totalTimer: { kind: 'started', start: NOW - 60000, running: true } } satisfies RState
+    const running = withSession(doneA(), { totalTimer: { kind: 'started', start: NOW - 60000, running: true } }) satisfies RState
     const s = reduceRecalc(running, { contents: "-=-\nA: a\nB: b2", eval: true, execute: true }, deps())
-    expect(s.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined])
-    expect(s.current).toStrictEqual([DEFAULT_DECK, 0])
+    expect(s.session!.items![DEFAULT_DECK].map(r => r.done)).toStrictEqual([undefined, undefined])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 0])
     expect(s.execute).toBe(true)
-    expect(s.totalTimer?.kind).toBe('stopped')
-    expect(timerLength(s.totalTimer ?? null, NOW)).toBe(0)
-    expect(s.items![DEFAULT_DECK].every(r => timerLength(r.timer ?? null, NOW) === 0)).toBe(true)
+    expect(s.session?.totalTimer?.kind).toBe('stopped')
+    expect(timerLength(s.session?.totalTimer ?? null, NOW)).toBe(0)
+    expect(s.session!.items![DEFAULT_DECK].every(r => timerLength(r.timer ?? null, NOW) === 0)).toBe(true)
   })
 })

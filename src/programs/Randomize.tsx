@@ -15,9 +15,9 @@ import { Synth, unlockAudio } from './Synth.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
 import {
-  Args, Metro, RState, TimerCommand,
+  Args, Metro, RState, RStateV6, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, hasSubdeck, liveSubdeckName, migrateV5, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
+  deckPath, hasSubdeck, liveSubdeckName, migrateV5, migrateV6, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
@@ -52,21 +52,22 @@ function Randomize(controls: any): JSX.Element {
 
   useEffect(() => {
     if (!controls.state) { setState((_: any) => defaultState); return }
-    if (stateVersion == 5) setState((s: Parameters<typeof migrateV5>[0]) => migrateV5(s))
+    if (stateVersion == 5) setState((s: Parameters<typeof migrateV5>[0]) => migrateV6(migrateV5(s)))
+    else if (stateVersion == 6) setState((s: RStateV6) => migrateV6(s))
     else if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
   }, [controls.state, stateVersion])
 
   // Memoized: fresh items every render would restart the synth's tone loop.
-  const decks: Decks<UserItem> = React.useMemo(() => resolveDecks(state), [state?.items, state?.lines])
-  const outLineCount: number = state?.outLineCount || 0
+  const decks: Decks<UserItem> = React.useMemo(() => resolveDecks(state), [state?.session?.items, state?.session?.lines])
 
-  const current: DeckCursor = state?.current || [DEFAULT_DECK, 0]
+  const current: DeckCursor = state?.session?.current || [DEFAULT_DECK, 0]
   // The cursor's deck flattened out, plus the in-deck index — the rest of the
   // render code still works against a single flat list.
   const items: UserItem[] = deckItems(decks, current[0])
   const currentIndex: number = current[1]
 
-  const globalTimer = (state.cursorStack?.length != 0 ? deckGet(decks, state.cursorStack?.at(-1))?.timer : undefined) || state.totalTimer
+  const cursorStack = state.session?.cursorStack
+  const globalTimer = (cursorStack?.length != 0 ? deckGet(decks, cursorStack?.at(-1))?.timer : undefined) || state.session?.totalTimer
   const localTimer = deckGet(decks, current)?.timer
   const localTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
   const totalTimerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement("div"))
@@ -100,7 +101,7 @@ function Randomize(controls: any): JSX.Element {
 
     if (advanceDelta == 0) return
 
-    // if (Math.abs(advanceDelta) == 1 && current + 1 == outLineCount) recalc({ eval: true })
+    // if (Math.abs(advanceDelta) == 1 && current + 1 == items.length) recalc({ eval: true })
     if (Math.abs(advanceDelta) == 1) recalc({ advance: ['seek', advanceDelta] })
   }
 
@@ -205,13 +206,13 @@ function Randomize(controls: any): JSX.Element {
       />
 
       <span className="pr-3">
-        {state?.outLineCount ? <>{state?.outLineCount} items</> : <></>}
+        {items.length ? <>{items.length} items</> : <></>}
       </span>
     </>
   }
 
   function executionControlButtons(): JSX.Element {
-    const nested = (state?.cursorStack?.length || 0) > 0
+    const nested = (state?.session?.cursorStack?.length || 0) > 0
     return <>
       <a className="pr-3 select-none" style={{ opacity: hideDone ? '0.5' : '1' }} onClick={() => recalc({ hideDone: !hideDone, })}>👁️</a>
       <a className="pr-3 microbreak-button select-none" onClick={e => microBreakTransparencyControl(e)}>🅱️</a>
@@ -459,7 +460,7 @@ function Randomize(controls: any): JSX.Element {
     const undoneCount = currentMap.length
 
     const countTotal = state?.countTotal === true
-    const denominator = countTotal ? outLineCount : undoneCount
+    const denominator = countTotal ? items.length : undoneCount
     const itemCounter = <span className="cursor-pointer select-none" onClick={toggleCountTotal} title={countTotal ? 'total items' : 'remaining items'}>
       {currentItemNr || '-'}/{denominator}
     </span>
