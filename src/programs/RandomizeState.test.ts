@@ -9,7 +9,7 @@ import {
   RState, RecalcDeps, ItemActions,
   reduceRecalc, reduceTimer, reduceSetBpm, reduceMetro, reduceMetroClick, reduceSpawn, reduceCleanSubdeck, reduceEnterDeck, reduceEnterSubdeck, hasSubdeck, liveSubdeckName, reducePopOne, reducePopTo, deckPath,
   defaultBpm, defaultState, Scheduler, itemMetroBpm, itemMetroTones, recalcMetro,
-  RStateV6, Session, migrateV5, migrateV6, withSession, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
+  RStateV6, Session, migrateV5, migrateV6, migrateV7, withSession, reduceOpenPicker, reduceLoadSession, reduceDeleteSession, sessionStamp, resolveDecks, resolveAt, reduceRefresh, reduceNewText, reduceInsertItem,
 } from './RandomizeState.ts'
 
 const keepOrder: Scheduler = items => items
@@ -28,8 +28,10 @@ function decked(decks: Decks<UserItem>): Pick<Session, 'items' | 'lines'> {
 }
 
 // Fixtures are written flat, the way version 6 kept them.
+const fromV6 = (s: RStateV6): RState => migrateV7(migrateV6(s))
+
 function stateOf(contents: string[], current = 0, over: Partial<RStateV6> = {}): RState {
-  return migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: contents.map(c => item(c)) }), current: [DEFAULT_DECK, current], ...over })
+  return fromV6({ version: 6, ...decked({ [DEFAULT_DECK]: contents.map(c => item(c)) }), current: [DEFAULT_DECK, current], ...over })
 }
 
 const labels = (s: RState) => (resolveDecks(s)[DEFAULT_DECK] || []).map(i => i.contents)
@@ -227,7 +229,7 @@ describe('reduceRecalc — eval & deck wiring', () => {
   })
 
   test('reads text/execute/hideDone from the passed state, not a stale closure', () => {
-    const s: RState = { version: 5, text: '-=-\nx\ny', execute: true, hideDone: false }
+    const s: RState = { version: 8, session: { text: '-=-\nx\ny' }, execute: true, hideDone: false }
     const out = reduceRecalc(s, { eval: true }, deps({ hideDone: false }))
     expect(labels(out)).toStrictEqual(['x', 'y'])
     expect(out.execute).toBe(true)
@@ -379,7 +381,7 @@ describe('reduceTimer', () => {
   })
 
   test('only the cursor’s deck is touched; other decks are left intact', () => {
-    const s: RState = migrateV6({
+    const s: RState = fromV6({
       version: 6,
       current: [DEFAULT_DECK, 0],
       ...decked({ [DEFAULT_DECK]: [item('a')], other: [item('z')] }),
@@ -390,7 +392,7 @@ describe('reduceTimer', () => {
   })
 
   test('undefined state returns the default state, no throw', () => {
-    expect(reduceTimer(undefined, 'start', null, NOW).version).toBe(7)
+    expect(reduceTimer(undefined, 'start', null, NOW).version).toBe(8)
   })
 
   test('stop/start while nested propagates up the cursorStack chain, not just the leaf', () => {
@@ -510,7 +512,7 @@ describe('metro tag — an item authors its own tempo', () => {
   const tagged = (src: string): UserItem => toUserItem(evalContents(src)[0])
 
   function deckWith(items: UserItem[], over: Partial<RStateV6> = {}): RState {
-    return migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: items }), current: [DEFAULT_DECK, 0], ...over })
+    return fromV6({ version: 6, ...decked({ [DEFAULT_DECK]: items }), current: [DEFAULT_DECK, 0], ...over })
   }
 
   test('reads the bpm off a metro tag when landing on the item', () => {
@@ -607,7 +609,7 @@ describe('metro tag — an item authors its own tempo', () => {
 
 function stateWithSpawnable(): RState {
   const parent = toUserItem(evalContents("Scale: play [s('C,D')]key [s('up,down')]bow")[0])
-  return migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: [parent, item('after')] }), current: [DEFAULT_DECK, 0] })
+  return fromV6({ version: 6, ...decked({ [DEFAULT_DECK]: [parent, item('after')] }), current: [DEFAULT_DECK, 0] })
 }
 
 describe('reduceSpawn — descend into a spawned deck', () => {
@@ -814,8 +816,8 @@ describe('defaultState eval', () => {
     expect(defaultItems.length).toBe(3)
     expect(defaultItems.map(i => i.contents).sort()).toStrictEqual(['Juggling: do it', 'Lullaby: play it', 'Squats: do it'])
     expect(out.session?.current).toStrictEqual([DEFAULT_DECK, 0])
-    expect(out.version).toBe(7)
-    expect(out.text).toBe(defaultState.text)
+    expect(out.version).toBe(8)
+    expect(out.session?.text).toBe(defaultState.session?.text)
   })
 })
 
@@ -920,7 +922,7 @@ describe('tones tag — the pitches the metro sounds', () => {
 describe('reduceMetroClick — the `next` tag counting off the metronome', () => {
   // A card whose programme is written in the DSL, so the tag is parsed the way
   // it is in the editor rather than hand-built.
-  const carded = (programme: string, over: Partial<RStateV6> = {}): RState => migrateV6({
+  const carded = (programme: string, over: Partial<RStateV6> = {}): RState => fromV6({
     version: 6,
     ...decked({ [DEFAULT_DECK]: evalContents(`Etude: [\'${programme}\'.split(\' \')]next`).map(toUserItem) }),
     current: [DEFAULT_DECK, 0],
@@ -967,7 +969,7 @@ describe('reduceMetroClick — the `next` tag counting off the metronome', () =>
 
   test('only the current item counts down', () => {
     // `-=-` keeps the two in the order written; the default block shuffles.
-    const two: RState = migrateV6({
+    const two: RState = fromV6({
       version: 6,
       ...decked({ [DEFAULT_DECK]: evalContents("-=-\nA: ['2f']next\nB: ['2f']next").map(toUserItem) }),
       current: [DEFAULT_DECK, 1],
@@ -982,7 +984,7 @@ describe('reduceMetroClick — the `next` tag counting off the metronome', () =>
 })
 
 describe('pointers', () => {
-  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const evaluated = (text: string) => reduceRecalc({ version: 8, session: { text } }, { eval: true }, deps())
 
   test('decks hold only keys and progress; the line lives once under its key', () => {
     const s = evaluated("-=-\nFoo: do it\nBar: do that")
@@ -1020,7 +1022,7 @@ describe('pointers', () => {
     const migrated = migrateV5({ version: 5, items: { [DEFAULT_DECK]: [item('a', { done: true }), item('b')] } })
     expect(migrated.version).toBe(6)
     expect(migrated.items![DEFAULT_DECK]).toStrictEqual([{ key: 'a', done: true }, { key: 'b' }])
-    expect(resolveDecks(migrateV6(migrated))[DEFAULT_DECK].map(i => i.contents)).toStrictEqual(['a', 'b'])
+    expect(resolveDecks(fromV6(migrated))[DEFAULT_DECK].map(i => i.contents)).toStrictEqual(['a', 'b'])
   })
 
   test('a version 6 state moves its session under `session`, the rest stays on top', () => {
@@ -1051,19 +1053,20 @@ describe('pointers', () => {
   })
 
   test('a migrated version 6 state carries on where it was', () => {
-    const s = migrateV6({ version: 6, ...decked({ [DEFAULT_DECK]: [item('a'), item('b'), item('c')] }), current: [DEFAULT_DECK, 1] })
+    const s = fromV6({ version: 6, ...decked({ [DEFAULT_DECK]: [item('a'), item('b'), item('c')] }), current: [DEFAULT_DECK, 1] })
     expect(at(reduceRecalc(s, { advance: ['seek', 1] }, deps()))).toBe('c')
   })
 
   test('a version 5 state migrates all the way through', () => {
-    const s = migrateV6(migrateV5({ version: 5, items: { [DEFAULT_DECK]: [item('a', { done: true }), item('b')] } }))
-    expect(s.version).toBe(7)
+    const s = migrateV7(migrateV6(migrateV5({ version: 5, text: 't', items: { [DEFAULT_DECK]: [item('a', { done: true }), item('b')] } })))
+    expect(s.version).toBe(8)
+    expect(s.session?.text).toBe('t')
     expect(s.session?.items![DEFAULT_DECK]).toStrictEqual([{ key: 'a', done: true }, { key: 'b' }])
   })
 })
 
 describe('definitions — a card without a pointer', () => {
-  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const evaluated = (text: string) => reduceRecalc({ version: 8, session: { text } }, { eval: true }, deps())
   const contents = (s: RState) => resolveDecks(s)[DEFAULT_DECK].map(i => i.contents)
 
   test('a bare key points at the definition, wherever it is written', () => {
@@ -1126,7 +1129,7 @@ describe('definitions — a card without a pointer', () => {
 })
 
 describe('reduceRefresh', () => {
-  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const evaluated = (text: string) => reduceRecalc({ version: 8, session: { text } }, { eval: true }, deps())
   const keys = (s: RState) => s.session!.items![DEFAULT_DECK].map(r => r.key)
 
   test('progress carries over by key, in the new text order', () => {
@@ -1184,7 +1187,7 @@ describe('reduceRefresh', () => {
 })
 
 describe('reduceNewText', () => {
-  const evaluated = (text: string) => reduceRecalc({ version: 6, text }, { eval: true }, deps())
+  const evaluated = (text: string) => reduceRecalc({ version: 8, session: { text } }, { eval: true }, deps())
   const doneA = () => reduceRecalc(evaluated("-=-\nA: a\nB: b"), { item: { done: true } }, deps())
 
   test('within the first 10 seconds new text starts over', () => {
@@ -1208,5 +1211,101 @@ describe('reduceNewText', () => {
     expect(s.session?.totalTimer?.kind).toBe('stopped')
     expect(timerLength(s.session?.totalTimer ?? null, NOW)).toBe(0)
     expect(s.session!.items![DEFAULT_DECK].every(r => timerLength(r.timer ?? null, NOW) === 0)).toBe(true)
+  })
+})
+
+describe('sessions — stashing, the picker, loading', () => {
+  const T = new Date(2026, 9, 24, 14, 7).getTime()
+  const evaluated = (text: string, over: Partial<RState> = {}) => reduceRecalc({ version: 8, ...over }, { eval: true, contents: text }, deps({ now: T }))
+  // The session key each picker row's buttons carry, top to bottom.
+  const rows = (s: RState) => (resolveDecks(s)[DEFAULT_DECK] || []).map(i => i.source?.substitutions?.map(t => [t.tag, t.contents[0]]))
+  const keys = (s: RState) => rows(s).map(r => r?.[0]?.[1])
+
+  test('the stamp is local time, to the minute', () => {
+    expect(sessionStamp(T)).toBe('session-20261024-1407')
+  })
+
+  test('opening the picker stashes the active session under its stamp, timers stopped', () => {
+    const s = reduceOpenPicker(reduceTimer(evaluated('-=-\na\nb'), 'start', null, T), deps({ now: T }))
+    const stashed = s.sessions!['session-20261024-1407']
+    expect(Object.keys(s.sessions!)).toStrictEqual(['session-20261024-1407'])
+    expect(stashed.text).toBe('-=-\na\nb')
+    expect(stashed.totalTimer?.kind).toBe('stopped')
+    expect(stashed.items![DEFAULT_DECK][0].timer?.kind).toBe('stopped')
+    expect(s.session?.picker).toBe(true)
+  })
+
+  test('each row is a covered load and delete button carrying the key', () => {
+    const s = reduceOpenPicker(evaluated('-=-\na'), deps({ now: T }))
+    expect(rows(s)).toStrictEqual([[['load', 'session-20261024-1407'], ['delete', 'session-20261024-1407']]])
+    expect(resolveDecks(s)[DEFAULT_DECK][0].source?.substitutions?.every(t => t.tags?.includes('covered'))).toBe(true)
+  })
+
+  test('a named session is stashed under its name, a taken key gets a suffix', () => {
+    const named = () => withSession(evaluated('-=-\na'), { name: 'Etudes.rndl' })
+    let s = reduceOpenPicker(named(), deps({ now: T }))
+    s = reduceOpenPicker({ ...named(), sessions: s.sessions }, deps({ now: T + 1 }))
+    expect(Object.keys(s.sessions!).sort()).toStrictEqual(['Etudes.rndl', 'Etudes.rndl-2'])
+  })
+
+  test('the picker lists the most recently active first, and is never stashed itself', () => {
+    let s = reduceOpenPicker(withSession(evaluated('-=-\nold'), { name: 'old' }), deps({ now: T }))
+    s = reduceOpenPicker({ ...withSession(evaluated('-=-\nnew'), { name: 'new' }), sessions: s.sessions }, deps({ now: T + 1000 }))
+    expect(keys(s)).toStrictEqual(['new', 'old'])
+
+    s = reduceOpenPicker(s, deps({ now: T + 2000 }))
+    expect(keys(s)).toStrictEqual(['new', 'old'])
+  })
+
+  test('loading takes the session out of the stash, picks up where it was, and drops the picker', () => {
+    let a = evaluated('-=-\na1\na2\na3')
+    a = reduceRecalc(a, { advance: ['seek', 1] }, deps({ now: T }))
+    let s = reduceOpenPicker(withSession(a, { name: 'a' }), deps({ now: T }))
+    s = reduceLoadSession(s, 'a', T + 5000)
+    expect(s.session?.name).toBe('a')
+    expect(s.session?.text).toBe('-=-\na1\na2\na3')
+    expect(s.session?.opened).toBe(T + 5000)
+    expect(at(s)).toBe('a2')
+    expect(s.sessions).toStrictEqual({})
+  })
+
+  test('loading from an ordinary session swaps it into the stash', () => {
+    const a = withSession(evaluated('-=-\na'), { name: 'a' }).session!
+    const s = reduceLoadSession({ ...withSession(evaluated('-=-\nb'), { name: 'b' }), sessions: { a } }, 'a', T + 1000)
+    expect(s.session?.name).toBe('a')
+    expect(Object.keys(s.sessions!)).toStrictEqual(['b'])
+    expect(s.sessions!.b.text).toBe('-=-\nb')
+  })
+
+  test('loading a key that is not stashed changes nothing', () => {
+    const s = evaluated('-=-\na')
+    expect(reduceLoadSession(s, 'nope', T)).toBe(s)
+  })
+
+  test('an empty session is not stashed', () => {
+    const s = reduceOpenPicker(evaluated(''), deps({ now: T }))
+    expect(s.sessions ?? {}).toStrictEqual({})
+  })
+
+  test('deleting in the picker rebuilds it, the cursor on the row that took its place', () => {
+    const stash = Object.fromEntries(['x', 'y', 'z'].map((k, i) => [k, { text: k, opened: T - i }]))
+    let s = reduceOpenPicker({ version: 8, sessions: stash }, deps({ now: T }))
+    s = reduceRecalc(s, { advance: ['seek', 1] }, deps({ now: T }))
+    s = reduceDeleteSession(s, 'y', deps({ now: T }))
+    expect(Object.keys(s.sessions!)).toStrictEqual(['x', 'z'])
+    expect(keys(s)).toStrictEqual(['x', 'z'])
+    expect(s.session?.current).toStrictEqual([DEFAULT_DECK, 1])
+    expect(s.session?.picker).toBe(true)
+  })
+
+  test('typing into the picker makes it an ordinary session', () => {
+    const s = reduceNewText(reduceOpenPicker(evaluated('-=-\na'), deps({ now: T })), '-=-\nmine', deps({ now: T }))
+    expect(s.session?.picker).toBeUndefined()
+    expect(reduceOpenPicker(s, deps({ now: T + 60_000 })).sessions!['session-20261024-1408']?.text).toBe('-=-\nmine')
+  })
+
+  test('a version 7 state moves its text into the session', () => {
+    expect(migrateV7({ version: 7, text: 't', memory: 'm', session: { current: [DEFAULT_DECK, 0] } }))
+      .toStrictEqual({ version: 8, memory: 'm', session: { current: [DEFAULT_DECK, 0], text: 't' } })
   })
 })

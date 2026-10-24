@@ -15,9 +15,9 @@ import { Synth, unlockAudio } from './Synth.tsx'
 import SheetOSMD from './SheetOSMD.tsx'
 import { ErrorBoundary } from 'react-error-boundary'
 import {
-  Args, Metro, RState, RStateV6, TimerCommand,
+  Args, Metro, RState, RStateV6, RStateV7, RecalcDeps, TimerCommand,
   currentStateVersion, defaultBpm, defaultState,
-  deckPath, hasSubdeck, liveSubdeckName, migrateV5, migrateV6, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
+  deckPath, hasSubdeck, liveSubdeckName, migrateV5, migrateV6, migrateV7, withSession, reduceOpenPicker, reduceLoadSession, reduceDeleteSession, resolveDecks, reduceRefresh, reduceNewText, itemMetroTones, itemSkipped, reduceMetro, reduceMetroClick, reducePopOne, reducePopTo, reduceRecalc, reduceSpawn, reduceCleanSubdeck, reduceEnterSubdeck, reduceInsertItem, reduceTimer,
 } from './RandomizeState.ts'
 import { SpawnMode, isSpawnable } from './RandomizeDecks.ts'
 import { findNextSubstitution, nextAction, parseNextSteps } from './RandomizeNext.ts'
@@ -52,8 +52,9 @@ function Randomize(controls: any): JSX.Element {
 
   useEffect(() => {
     if (!controls.state) { setState((_: any) => defaultState); return }
-    if (stateVersion == 5) setState((s: Parameters<typeof migrateV5>[0]) => migrateV6(migrateV5(s)))
-    else if (stateVersion == 6) setState((s: RStateV6) => migrateV6(s))
+    if (stateVersion == 5) setState((s: Parameters<typeof migrateV5>[0]) => migrateV7(migrateV6(migrateV5(s))))
+    else if (stateVersion == 6) setState((s: RStateV6) => migrateV7(migrateV6(s)))
+    else if (stateVersion == 7) setState((s: RStateV7) => migrateV7(s))
     else if (stateVersion != 0 && stateVersion != currentStateVersion) setState((_: any) => null)
   }, [controls.state, stateVersion])
 
@@ -106,7 +107,7 @@ function Randomize(controls: any): JSX.Element {
   }
 
   useEffect(() => {
-    if (state?.text && items.length == 0) recalc({ eval: true })
+    if (state?.session?.text && items.length == 0) recalc({ eval: true })
   }, [])
 
   useEffect(() => {
@@ -117,8 +118,12 @@ function Randomize(controls: any): JSX.Element {
   // Thin wrappers over the pure reducers in RandomizeState: bind setState and
   // inject the bits the reducers need (bpm, now). All the actual state logic —
   // and its tests — live in that module.
+  function depsOf(s: RState | undefined): RecalcDeps {
+    return { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }
+  }
+
   function recalc(a: Args) {
-    setState((s: RState | undefined) => reduceRecalc(s, a, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
+    setState((s: RState | undefined) => reduceRecalc(s, a, depsOf(s)))
   }
 
   function modifyTimer(commandIn: TimerCommand, target: null | 'local' = null) {
@@ -158,7 +163,20 @@ function Randomize(controls: any): JSX.Element {
   }
 
   function newText(text: string) {
-    setState((s: RState | undefined) => reduceNewText(s, text, { hideDone: s?.hideDone, bpm: s?.metro?.bpm || defaultBpm, now: Date.now() }))
+    setState((s: RState | undefined) => reduceNewText(s, text, depsOf(s)))
+  }
+
+  function openPicker() {
+    setState((s: RState | undefined) => reduceOpenPicker(s, depsOf(s)))
+  }
+
+  // The picker's buttons: covered tags named after what they do, carrying the
+  // session's key as their value.
+  function sessionAction(action: string, key: string): boolean {
+    if (action === 'load') setState((s: RState | undefined) => reduceLoadSession(s, key, Date.now()))
+    else if (action === 'delete') confirm(`delete session ${key}?`) && setState((s: RState | undefined) => reduceDeleteSession(s, key, depsOf(s)))
+    else return false
+    return true
   }
 
   // A pick keeps progress like typing does. The unattended `?load=` path starts
@@ -166,7 +184,7 @@ function Randomize(controls: any): JSX.Element {
   // deliberately left stopped to wait for user's input to unblock audio.
   function loadFromDrive(text: string, file: DriveFile, autoLoad?: boolean) {
     autoLoad ? recalc({ contents: text, eval: true, execute: true }) : newText(text)
-    setState((s: RState | undefined) => s && { ...s, driveFile: file })
+    setState((s: RState | undefined) => s && withSession({ ...s, driveFile: file }, { name: file.name }))
   }
 
   // Reload the items without resetting progress: from Drive when the text came
@@ -174,7 +192,7 @@ function Randomize(controls: any): JSX.Element {
   async function refreshItems() {
     try {
       const file = state?.driveFile
-      const text = file ? await fetchFileText(file.id, file.mimeType) : state?.text || ''
+      const text = file ? await fetchFileText(file.id, file.mimeType) : state?.session?.text || ''
       setState((s: RState | undefined) => reduceRefresh(s, text, Date.now()))
     } catch (e) {
       alert(`reload failed: ${e instanceof Error ? e.message : e}`)
@@ -230,6 +248,7 @@ function Randomize(controls: any): JSX.Element {
     return <>
       <a className="sidebar-toggle select-none" title="switch program" onClick={_ => setSwitcherOpen(o => !o)}>{switcherOpen ? '✕' : '☰'}</a>
       <div className={`sidebar ${switcherOpen ? 'sidebar-open' : ''}`}>
+        <div className="sidebar-item select-none" title="pick a session" onClick={_ => { openPicker(); setSwitcherOpen(false) }}>🗂️ sessions</div>
         <div className="sidebar-item select-none" title="insert letters item after cursor" onClick={_ => { insertItem(INSERT_LETTERS); setSwitcherOpen(false) }}>🔤 letters</div>
         <div className="sidebar-item select-none" title="insert keys item after cursor" onClick={_ => { insertItem(INSERT_KEYS); setSwitcherOpen(false) }}>🎹 keys</div>
       </div>
@@ -256,7 +275,7 @@ function Randomize(controls: any): JSX.Element {
 
     return <div className={"w-full flex flex-row selection:red text-sm flex-grow"}>
       <div className="grow p-[10px]">
-        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newText(e.target.value)} value={state?.text}></textarea>
+        <textarea className="block w-full h-full p-[5px] border" cols={130} onChange={e => newText(e.target.value)} value={state?.session?.text}></textarea>
       </div>
 
       <div className="grow p-[10px]">
@@ -293,6 +312,7 @@ function Randomize(controls: any): JSX.Element {
 
           const content = string ? ct[1] : cover !== null ? `[${cover}]` : interpolate
           const recalcF = () => recalc({ item: { 'regenerate': 'next', 'regenerateKey': ct[1] } })
+          const clickTag = () => (state.session?.picker && subst?.tag && sessionAction(subst.tag, String(subst.contents[0]))) || recalcF()
 
           if (tag && !isCurrent) return null
 
@@ -317,7 +337,7 @@ function Randomize(controls: any): JSX.Element {
             </React.Fragment>
           })}]</>
 
-          return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && recalcF()} style={{ fontSize, ...fontFamily }} >
+          return (string ? content.length > 0 : interpolate.length > 2) && <TagName key={idx} onClick={_ => tag && clickTag()} style={{ fontSize, ...fontFamily }} >
             {linked || content}
           </TagName>
         })

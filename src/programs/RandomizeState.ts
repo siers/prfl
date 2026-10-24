@@ -15,7 +15,7 @@ import { Decks, DeckCursor, DEFAULT_DECK, decksOf, deckItems, deckGet, deckMapAt
 import { SpawnMode, spawnChildren, spawnDeckName } from './RandomizeDecks.ts'
 import { NextAction, findNextSubstitution, parseNextSteps, renderNextSteps, stepNext } from './RandomizeNext.ts'
 
-export const currentStateVersion = 7
+export const currentStateVersion = 8
 export const defaultBpm = 60
 
 export type DeckIndex = DeckCursor
@@ -28,9 +28,20 @@ export type Metro = {
   timer?: TimerCommand,
 }
 
-// What a full eval starts over: the decks walked through, where you are in
-// them, and the clock. Everything outside it carries across sessions.
+// One run through a text: the decks walked through, where you are in them,
+// and the clock — what a full eval starts over. Everything outside it carries
+// across sessions.
 export type Session = {
+  text?: string,
+  // The Drive file's name, when the text came from one.
+  name?: string,
+  // When it was first stashed: an unnamed session's stash key is stamped with it.
+  created?: number,
+  // When it was last the active one; the picker lists the newest first.
+  opened?: number,
+  // The session picker itself: rebuilt from `sessions` on opening, never stashed.
+  picker?: boolean,
+
   // Decks point at their lines by key; the lines live once, in `lines`.
   items?: Decks<ItemRef>,
   lines?: Lines,
@@ -49,7 +60,6 @@ export type Session = {
 
 export type RState = {
   version: number,
-  text?: string,
 
   // Card memory, and what the text `remember(…)`ed — the latter rewritten on
   // every eval.
@@ -63,6 +73,8 @@ export type RState = {
   metro?: Metro,
 
   session?: Session,
+  // The sessions not active right now, by stash key.
+  sessions?: Record<string, Session>,
 
   // The Drive file the text was loaded from, for ♻️ to fetch again.
   driveFile?: DriveFile,
@@ -72,9 +84,9 @@ export type RState = {
 }
 
 export const defaultState: RState = {
-  version: 7,
+  version: 8,
 
-  text: "Lullaby: play it\nJuggling: do it\nSquats: do it"
+  session: { text: "Lullaby: play it\nJuggling: do it\nSquats: do it" },
 }
 
 export type Seek = ['seek', number] | ['set', number] | []
@@ -187,10 +199,18 @@ function pruneLines(lines: Lines, decks: Decks<ItemRef>, defined: string[] = [])
   return Object.fromEntries(Object.entries(lines).filter(([key]) => used.has(key)))
 }
 
-// Version 6 kept the session's fields at the top level.
-export type RStateV6 = Omit<RState, 'session'> & Session & { outLineCount?: number }
+// Version 7 kept the text at the top level.
+export type RStateV7 = Omit<RState, 'session'> & { text?: string, session?: Omit<Session, 'text'> }
 
-export function migrateV6(s: RStateV6): RState {
+export function migrateV7(s: RStateV7): RState {
+  const { text, ...rest } = s
+  return { ...rest, version: 8, session: { ...s.session, text } }
+}
+
+// Version 6 kept the session's fields at the top level.
+export type RStateV6 = Omit<RStateV7, 'session'> & Omit<Session, 'text'> & { outLineCount?: number }
+
+export function migrateV6(s: RStateV6): RStateV7 {
   const { items, lines, defined, blockHeaders, outLineCount: _derived, current, cursorStack, totalTimer, ...rest } = s
   return { ...rest, version: 7, session: { items, lines, defined, blockHeaders, current, cursorStack, totalTimer } }
 }
@@ -487,7 +507,7 @@ export type RecalcDeps = {
 // The core advance/item/eval reducer. Works deck-locally on the cursor's deck:
 // pull that deck's flat list out, reorder/seek within it, fold it back in.
 export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): RState {
-  const contentsOr: string = a.contents === '' ? a.contents : (a.contents || s?.text || '')
+  const contentsOr: string = a.contents === '' ? a.contents : (a.contents || s?.session?.text || '')
   const execute = a.execute === undefined ? s?.execute : a.execute
   const hideDone = a.hideDone === undefined ? s?.hideDone : a.hideDone
 
@@ -538,7 +558,6 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
     version: currentStateVersion,
 
     ...s,
-    text: contentsOr,
     memory: newKey ? setItemBpmMemory(newKey, memory, metro.bpm || newBpm) : memory,
 
     execute: execute,
@@ -548,6 +567,7 @@ export function reduceRecalc(s: RState | undefined, a: Args, deps: RecalcDeps): 
 
     session: {
       ...ss,
+      text: contentsOr,
       items: resolvedDecks,
       lines,
       defined,
@@ -644,7 +664,7 @@ export function reduceEnterSubdeck(s: RState | undefined, item: UserItem, now: n
   if (name === null) return s
 
   const ss = s.session || {}
-  const lines = evalBlockDeck(s.text || '', name, ss.blockHeaders || [], memoryFromString(s.memory), { images: s.images }, orderField(item))
+  const lines = evalBlockDeck(ss.text || '', name, ss.blockHeaders || [], memoryFromString(s.memory), { images: s.images }, orderField(item))
   if (lines.length === 0) return s
 
   const deckName = blockDeckName(name)
@@ -700,7 +720,8 @@ export function reduceRefresh(s: RState | undefined, contents: string, now: numb
   }
   const [, current] = deckSeek(items, follow(ss.current || [DEFAULT_DECK, 0]), Direction.Zero, excludeFor(s.hideDone !== false, lines))
 
-  const newState: RState = withSession({ ...s, version: currentStateVersion, text: contents, memory: mapSerialize(memory) }, {
+  const newState: RState = withSession({ ...s, version: currentStateVersion, memory: mapSerialize(memory) }, {
+    text: contents,
     items,
     lines,
     defined,
@@ -713,10 +734,12 @@ export function reduceRefresh(s: RState | undefined, contents: string, now: numb
 
 // New text keeps the progress once a session is underway — the total timer past
 // 10 seconds; before that it starts over.
+// Typing into the picker makes it an ordinary session.
 export function reduceNewText(s: RState | undefined, contents: string, deps: RecalcDeps): RState {
-  return timerLength(s?.session?.totalTimer ?? null, deps.now) > 10
-    ? reduceRefresh(s, contents, deps.now)
-    : reduceRecalc(s, { contents, eval: true }, deps)
+  const typed = s?.session?.picker ? withSession(s, { picker: undefined }) : s
+  return timerLength(typed?.session?.totalTimer ?? null, deps.now) > 10
+    ? reduceRefresh(typed, contents, deps.now)
+    : reduceRecalc(typed, { contents, eval: true }, deps)
 }
 
 export function reduceInsertItem(s: RState | undefined, dsl: string, now: number): RState {
@@ -792,4 +815,75 @@ export function reducePopTo(s: RState | undefined, level: number, now: number): 
 export function reducePopOne(s: RState | undefined, now: number): RState {
   const stack = s?.session?.cursorStack || []
   return reducePopTo(s, stack.length - 1, now)
+}
+
+// ── sessions ─────────────────────────────────────────────────────────────────
+
+// session-YYYYMMDD-HHMM, in local time.
+export function sessionStamp(time: number): string {
+  const d = new Date(time)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `session-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`
+}
+
+function freeKey(sessions: Record<string, Session>, base: string): string {
+  let key = base
+  for (let n = 2; key in sessions; n++) key = `${base}-${n}`
+  return key
+}
+
+// Put the active session away under its name, or else its creation stamp, with
+// its timers stopped. The picker and an empty session are dropped instead.
+function stashActive(s: RState, now: number): RState {
+  const active = s.session
+  const empty = !active?.text && Object.values(active?.items || {}).every(deck => deck.length === 0)
+  if (!active || active.picker || empty) return { ...s, session: undefined }
+
+  const sessions = s.sessions || {}
+  const stopped = reduceTimer(s, 'stop', null, now).session!
+  const created = stopped.created ?? now
+  const key = freeKey(sessions, stopped.name ?? sessionStamp(created))
+  return { ...s, session: undefined, sessions: { ...sessions, [key]: { ...stopped, created, opened: now } } }
+}
+
+// Make a stashed session the active one, stashing the active one.
+export function reduceLoadSession(s: RState | undefined, key: string, now: number): RState {
+  const loaded = s?.sessions?.[key]
+  if (!s || !loaded) return s ?? defaultState
+
+  const { [key]: _loaded, ...sessions } = s.sessions!
+  return { ...stashActive({ ...s, sessions }, now), session: { ...loaded, opened: now } }
+}
+
+// A line per stashed session, the most recently active first. The buttons carry
+// the session's key as their value, so it's looked up from there rather than
+// from the line's own key.
+export function pickerText(sessions: Record<string, Session>): string {
+  const rows = Object.entries(sessions)
+    .sort(([, a], [, b]) => (b.opened ?? 0) - (a.opened ?? 0))
+    .map(([key]) => {
+      const value = JSON.stringify(key)
+      return `${key}: [${value}]load:covered [${value}]delete:covered`
+    })
+  return ['-=-', ...rows].join('\n')
+}
+
+// The picker is a session too: opening it stashes the active one.
+export function reduceOpenPicker(s: RState | undefined, deps: RecalcDeps): RState {
+  const stashed = stashActive(s ?? defaultState, deps.now)
+  const picker: Session = { picker: true, opened: deps.now }
+  return reduceRecalc({ ...stashed, session: picker }, { contents: pickerText(stashed.sessions || {}), eval: true }, deps)
+}
+
+// Deleting from within the picker rebuilds it, the cursor staying on the row
+// that took the deleted one's place.
+export function reduceDeleteSession(s: RState | undefined, key: string, deps: RecalcDeps): RState {
+  if (!s?.sessions?.[key]) return s ?? defaultState
+
+  const { [key]: _deleted, ...sessions } = s.sessions
+  const without: RState = { ...s, sessions }
+  if (!s.session?.picker) return without
+
+  const rebuilt = reduceRecalc(without, { contents: pickerText(sessions), eval: true }, deps)
+  return reduceRecalc(rebuilt, { advance: ['set', s.session.current?.[1] ?? 0] }, deps)
 }
