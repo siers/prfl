@@ -401,6 +401,16 @@ export function allKeys(settings?: PickKeysInt): string[] {
   return pickKeysShuf(settings).flat()
 }
 
+// allKeys, in minor: Am, Ebm, …
+export function allKeysMin(settings?: PickKeysInt): string[] {
+  return allKeys({ ...settings, mode: 5 })
+}
+
+// every major key, then every minor one, each in pickKeys order: Cb, B, C, …, Abm, G#m, Am, …
+export function allKeysMinMaj(settings?: PickKeysInt): string[] {
+  return [0, 5].flatMap(mode => pickKeys({ ...settings, mode }).flat())
+}
+
 export function letterKeys(): string[] {
   return majorKeyCentersWeighted().map(([, ...chunks]) => {
     const weights = chunks.flatMap(([notes, weight]) => keyChunkWeights(notes, weight))
