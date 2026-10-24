@@ -5,7 +5,7 @@ import type { ImageEntry } from '../lib/PrflAssets'
 
 import { pick as pickArray, randInt, shuffleArray, shuffleMinDistance } from '../lib/Random'
 import { zipT, zipLongest as zipLongestLib, timesUntil as timesUntilLib, directRange, arrayShift, arrayMove, indices as arrayIndices } from '../lib/Array'
-import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, semi } from '../lib/ToneLib'
+import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, renderN, renderModalKey, semi } from '../lib/ToneLib'
 import * as ToneLib from '../lib/ToneLib'
 import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } from '../lib/ToneLibViolin'
 import * as ToneLibViolin from '../lib/ToneLibViolin'
@@ -369,10 +369,11 @@ export function aba<A>(as: A[], bs: A[]): A[] {
   return [...a1, ...bs, ...a2]
 }
 
+// rendered as modal keys: D, Bm, EM1
 export function pickKeys(settings?: PickKeysInt): string[][] {
   settings = settings || {}
 
-  const keys = keyCenters(settings?.mode || 0).map(k => k.root)
+  const keys = keyCenters(settings?.mode || 0)
 
   if (typeof settings?.split == 'number') {
     settings.div = Math.round(12 / settings.split)
@@ -380,8 +381,8 @@ export function pickKeys(settings?: PickKeysInt): string[][] {
   }
 
   const ordered = _.sortBy(keys, k => {
-    const base = keys[0]
-    const based = semi(rebase(k, base))
+    const base = keys[0].root
+    const based = semi(rebase(k.root, base))
     return ((based - semi(base)) * (settings.order || 1) % 12) + semi(base)
   })
 
@@ -389,7 +390,7 @@ export function pickKeys(settings?: PickKeysInt): string[][] {
   const chunks = divide(ordered, settings.div || 1).map(c => shuf ? shuffle(c) : c)
   const shufChunks = shuf ? shuffle(chunks) : chunks
 
-  return shufChunks.map(c => c.map(k => renderN(k)))
+  return shufChunks.map(c => c.map(renderModalKey))
 }
 
 export function pickKeysShuf(settings?: PickKeysInt): string[][] {

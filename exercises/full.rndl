@@ -4,7 +4,7 @@
 # 0/1 1/1 1/2 1/4 3/4 1/3 ⅔
 # Keys
 -=- key-deck
-{pickKeys().flat()}
+{[...pickKeys().flat(), ...pickKeys({ mode: 5 \}).flat()]}
 -=-
 {keyz=remember('keyz', () => [...shuffle(scheduleBlocks('key-deck').slice(0, 2)).slice(0, 1).map(k=>k.key), ``].filter(a=>a));}
 # RecognitionTasks
