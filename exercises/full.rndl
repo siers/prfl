@@ -15,7 +15,7 @@
 # TODO: Directions: time signatures and divisions
 ::FindAllVln: [allKeys()] [ss(`GDAE`)]:computed
 ::FindAllVln2: [shuffle(range(40, 40+11).map(s => ToneLib.render(pick(ToneLib.enharmonics(s)),false)))]
-::PositionSearch: [allKeys()]key:show-1:inline:nonrotated:covered [ss(`1234567`)]pos:show-1:inline:covered [ss(`seqBlocks mixBlocks`)]blocks:show-1:inline [ss(`norm ver`)]scramble:show-1:inline [s(`fw bw`)]flip:show-1:inline #br [ExScales.gen(fields)]sheet:hide:computed
+::PositionSearch: [allKeys()]key:show-1:inline:nonrotated:covered [ss(`1234567`)]pos:show-1:inline:covered [ss(`seqBlocks mixBlocks`)]blocks:show-1:inline [ss(`norm ver rand`)]scramble:show-1:inline [s(`fw bw`)]flip:show-1:inline #br [ExScales.gen(fields)]sheet:hide:computed
 ::BassAgainstStatic: [allKeys()]:show-1 against [allKeys()]:stable:computed
 # BowDistribution
 -=- BowDistribution #unscheduled

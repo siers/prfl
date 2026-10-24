@@ -2,7 +2,7 @@ import { identity } from "lodash";
 import { pipe } from "../lib/Function";
 import { findMajor, parseNote, renderSheet } from "../lib/ToneLib";
 import { positionsForKey } from "../lib/ToneLibViolin";
-import { shuffleArray } from "../lib/Random";
+import { pick, shuffleArray } from "../lib/Random";
 import { transpose } from "../lib/Array";
 
 export function gen(fieldsIn: any = undefined) {
@@ -23,6 +23,8 @@ export function gen(fieldsIn: any = undefined) {
     flip == 'bw' ? a => a.reverse().map(a => a.reverse()) : identity,
     blocks == 'mixBlocks' ? shuffleArray : identity,
     scramble.match(/ver/) ? a => a.map(shuffleArray) : identity,
+    // rand: each block independently either ver-scrambled or left norm
+    scramble.match(/rand/) ? a => a.map(b => pick([true, false]) ? shuffleArray(b) : b) : identity,
     scramble.match(/hor/) ? a => transpose(transpose(a).map(shuffleArray)) : identity,
   )
 
