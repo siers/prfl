@@ -38,9 +38,8 @@ function findCardFromMemory(memory?: string, item?: UserItem): CardData | null {
 // text; `[...]` interpolates the command's result — the same syntax the editor
 // uses.
 const INSERT_LETTERS = 'Letters: [letterKeys()]'
-const INSERT_KEYS = 'Keys: [pickKeysShuf().flat()]'
-const INSERT_KEYS_MM = 'KeysMM: [shuffle(allKeysMinMaj())]'
-const INSERT_KEYS_MIN = 'KeysMin: [allKeysMin()]'
+// click `mode` to switch the key set; the keys reshuffle on every ⏩
+const INSERT_KEYS = 'Keys: [s(`maj min minmaj`)]mode:show-1:inline:nonrotated [keysOf(fields.mode.at(0))]keys:computed'
 
 function Randomize(controls: any): JSX.Element {
   const { setState, advanceRef } = controls
@@ -251,8 +250,6 @@ function Randomize(controls: any): JSX.Element {
         <div className="sidebar-item select-none" title="pick a session" onClick={_ => { openPicker(); setSwitcherOpen(false) }}>🗂️ sessions</div>
         <div className="sidebar-item select-none" title="insert letters item after cursor" onClick={_ => { insertItem(INSERT_LETTERS); setSwitcherOpen(false) }}>🔤 letters</div>
         <div className="sidebar-item select-none" title="insert keys item after cursor" onClick={_ => { insertItem(INSERT_KEYS); setSwitcherOpen(false) }}>🎹 keys</div>
-        <div className="sidebar-item select-none" title="insert major and minor keys item after cursor" onClick={_ => { insertItem(INSERT_KEYS_MM); setSwitcherOpen(false) }}>🎹 keysMM</div>
-        <div className="sidebar-item select-none" title="insert minor keys item after cursor" onClick={_ => { insertItem(INSERT_KEYS_MIN); setSwitcherOpen(false) }}>🎹 keysMin</div>
       </div>
     </>
   }
