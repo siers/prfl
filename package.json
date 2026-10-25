@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/build-sw.js",
+    "prod:hash": "u=https://raitis.veinbahs.lv/perflab/; curl -s $u$(curl -s $u | grep -oE \"assets/index-[^\\\"]+\\.js\" | head -1) | grep -oE \"\\\"buildHash\\\",\\\"[0-9a-f]+\\\"\" | cut -d\\\" -f4",
+    "prod:tag": "h=$(npm run -s prod:hash) && test -n \"$h\" && git tag -f prod-$(date +%Y%m%d) $h",
     "build:rndl": "node scripts/build-rndl.js",
     "lint": "eslint .",
     "preview": "vite preview",
