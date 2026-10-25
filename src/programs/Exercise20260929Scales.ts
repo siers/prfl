@@ -21,6 +21,8 @@ export function gen(fieldsIn: any = undefined) {
   const ps = pipe(
     psRaw,
     flip == 'bw' ? a => a.reverse().map(a => a.reverse()) : identity,
+    // rand: each block independently either reversed or left fw
+    flip == 'rand' ? a => a.map(b => pick([true, false]) ? b.reverse() : b) : identity,
     blocks == 'mixBlocks' ? shuffleArray : identity,
     scramble.match(/ver/) ? a => a.map(shuffleArray) : identity,
     // rand: each block independently either ver-scrambled or left norm
