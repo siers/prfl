@@ -65,6 +65,31 @@ describe('ToneLibViolin', () => {
     ])
   })
 
+  // Illustrations of how the fingerboard behaves; nothing depends on them.
+  describe('theorems', () => {
+    test('letters per position: in the 4x4 grid of strings by fingers, the first two letters of the G string appear 3 times, the rest 2', () => {
+      // finger f in position p sits on letter column p + f - 1 (see positionOf)
+      const lettersIn = (p: number) => {
+        const counts = _.countBy(strings.flatMap(s => [1, 2, 3, 4].map(f => s.positions[p + f - 1])), n => n.name)
+        return `${p}: ${Object.entries(counts).map(([letter, count]) => `${letter}${count}`).join(' ')}`
+      }
+
+      expect(_.range(1, 12).map(lettersIn)).toStrictEqual([
+        '1: a3 b3 c2 d2 e2 f2 g2',
+        '2: b3 c3 d2 e2 f2 g2 a2',
+        '3: c3 d3 e2 f2 g2 a2 b2',
+        '4: d3 e3 f2 g2 a2 b2 c2',
+        '5: e3 f3 g2 a2 b2 c2 d2',
+        '6: f3 g3 a2 b2 c2 d2 e2',
+        '7: g3 a3 b2 c2 d2 e2 f2',
+        '8: a3 b3 c2 d2 e2 f2 g2',
+        '9: b3 c3 d2 e2 f2 g2 a2',
+        '10: c3 d3 e2 f2 g2 a2 b2',
+        '11: d3 e3 f2 g2 a2 b2 c2',
+      ])
+    })
+  })
+
   describe('fingerPosition', () => {
     const table: [StringName, string, number | undefined, number, number][] = [
       ['G', 'G3', undefined, 1, 0],
