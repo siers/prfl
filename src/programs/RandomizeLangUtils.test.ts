@@ -36,11 +36,13 @@ import {
   metroIncr,
   modeShifts,
   shiftsFingered,
+  shiftsFingeredGen,
   desMS,
   maybePolarize,
   maybePolarizeL,
 } from './RandomizeLangUtils'
 import _ from 'lodash'
+import { expectPlays } from '../lib/ToneLibViolinFingerizator.expect'
 
 
 test('s', () => {
@@ -536,4 +538,15 @@ test('shiftsFingered: fingered plans for a mode, major or minor key', () => {
       })
     }
   expect(() => shiftsFingered('H', 'ion.dia:14;s5:a', '-1', 'GDAE')).toThrow()
+})
+
+test('shiftsFingeredGen: every trace plays the 3-oc scale up, major or minor key', () => {
+  for (const key of ['C', 'D', 'Bm', 'F#', 'Gb', 'Ebm', 'G#m'])
+    for (let trial = 0; trial < 3; trial++)
+      for (const mode of modeShifts(key, 'dia')) {
+        const { ms, fingerings } = shiftsFingeredGen(key, mode, '-1-2', '011222233333')
+        expect([ms.mode, ms.start, ms.end]).toStrictEqual([desMS(mode).mode, desMS(mode).start, desMS(mode).end])
+        if (ms.diatonicShifts >= 0) expect(fingerings.length).toBeGreaterThan(0)
+        fingerings.slice(0, 10).forEach(f => expectPlays(ms, f))
+      }
 })

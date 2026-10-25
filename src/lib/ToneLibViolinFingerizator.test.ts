@@ -1,10 +1,34 @@
 import { describe, expect, test } from 'vitest'
 import _ from 'lodash'
+import { shiftsDistributed } from './Combinatorics.ts'
 import { findMajor, parseNote, renderN } from './ToneLib.ts'
 import { modeShiftsGen } from './ToneLibViolin.ts'
+import { expectPlays } from './ToneLibViolinFingerizator.expect.ts'
 import { Fingering, modeFingeringGen, parseShiftPlan, renderShiftPlan, sketchesFingeringGen, sketchFingeringGen } from './ToneLibViolinFingerizator.ts'
 
 describe('ToneLibViolinFingerizator', () => {
+  describe('the trace plays the three-octave scale up', () => {
+    const modes = 'C G D A E B F# C# F Bb Eb Ab Db Gb Cb'.split(' ').flatMap(k =>
+      _.range(3).flatMap(() => modeShiftsGen(findMajor(parseNote(k)!)!, 'dia', 0, 0)).filter(ms => ms.diatonicShifts >= 0))
+
+    test('from shiftsDistributed sketches', () => {
+      modes.forEach(ms => {
+        const sketches = shiftsDistributed(ms.diatonicShifts, '-1-2', '011222233333', ms.startString).slice(0, 10)
+        const fingerings = sketchesFingeringGen(ms, sketches)
+        expect(fingerings.length).toBeGreaterThan(0)
+        fingerings.forEach(f => expectPlays(ms, f))
+      })
+    })
+
+    test('from an inventory', () => {
+      modes.forEach(ms => {
+        const fingering = modeFingeringGen(ms, '1-2-34', 'GDAE')
+        expect(fingering).not.toBeNull()
+        expectPlays(ms, fingering!)
+      })
+    })
+  })
+
   describe('modeFingeringGen', () => {
     // G ionian from the open G, three octaves ending on 4: five diatonic shifts
     const gIon = () => modeShiftsGen(findMajor(parseNote('g')!)!, 'maj', 0, 4)[0]

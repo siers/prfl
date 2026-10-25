@@ -9,7 +9,7 @@ import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, ren
 import * as ToneLib from '../lib/ToneLib'
 import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } from '../lib/ToneLibViolin'
 import * as ToneLibViolin from '../lib/ToneLibViolin'
-import { sketchesFingeringGen } from '../lib/ToneLibViolinFingerizator'
+import { Fingering, sketchesFingeringGen } from '../lib/ToneLibViolinFingerizator'
 import { roundToNaive } from '../lib/Math'
 import { jitter } from '../lib/Jitter'
 import { inventoryFromString, shiftFormat, shifts as shiftsLib, shiftsDistributed } from '../lib/Combinatorics'
@@ -535,16 +535,21 @@ export function stringShifts(keyIn: Note | string, scales: string, string: ToneL
 
 // Like `shiftsMD`, but fingered: the ModeShiftGen behind `serMS` (from
 // `modeShifts` on the ModalKey `keyIn`) is rebuilt, its `shiftsDistributed`
-// sketches are kept to its starting string and up, and the playable ones get the
-// fingers their shifts start from: `2yG-1xD-2zA`.
-export function shiftsFingered(keyIn: string, serMS: string, inv: string, distrib: string): string[] {
+// sketches are kept to its starting string and up, and the playable ones are
+// fingered, each with its trace.
+export function shiftsFingeredGen(keyIn: string, serMS: string, inv: string, distrib: string): { ms: ToneLibViolin.ModeShiftGen, fingerings: Fingering[] } {
   const key = ToneLib.parseModalKey(keyIn)?.key
   if (!key) throw new Error(`shiftsFingered: invalid key ${keyIn}`)
   const { modeNr, scale, start, end } = deserializeModeShift(serMS)
   // non-zero finger targets are picked as given, and an open start has only 0
   const ms = ToneLibViolin.modeShiftsGen(key, scale, start, end)[modeNr]
   const sketches = shiftsDistributed(ms.diatonicShifts, inv, distrib, ms.startString)
-  return sketchesFingeringGen(ms, sketches).map(f => f.plan)
+  return { ms, fingerings: sketchesFingeringGen(ms, sketches) }
+}
+
+// The plans of `shiftsFingeredGen`, with the fingers their shifts start from: `2yG-1xD-4A`.
+export function shiftsFingered(keyIn: string, serMS: string, inv: string, distrib: string): string[] {
+  return shiftsFingeredGen(keyIn, serMS, inv, distrib).fingerings.map(f => f.plan)
 }
 
 // Tempos rising from..to (inclusive) by `+step`, each repeated `xReps` times;
