@@ -6,9 +6,9 @@ import { times, zipLongest, zipT } from './Array'
 
 const { groupBy, identity, shuffle, sortBy, uniqBy } = _l
 
-type Stock = { value: number, count: number }
+export type Stock = { value: number, count: number }
 
-function stockFromInventory(inv: number[]): Stock[] {
+export function stockFromInventory(inv: number[]): Stock[] {
   const finite = new Map<number, number>()
   const infinite = new Set<number>()
 
@@ -95,9 +95,12 @@ export function shiftFormat(s: number[][]): string[] {
   return s.map(r => r.join(''))
 }
 
-// `distrib` names strings by index (`0123`) or by letter (`GDAE`), mixed freely.
-export function shiftStrings(distrib: string, shifts: number): string[] {
-  const indices = distrib.split('').map(st => `GDAE`.includes(st) ? `${`GDAE`.indexOf(st)}` : st)
+// `distrib` names strings by index (`0123`) or by letter (`GDAE`), mixed freely;
+// the strings below `from` are left out.
+export function shiftStrings(distrib: string, shifts: number, from: string = 'G'): string[] {
+  const indices = distrib.split('')
+    .map(st => `GDAE`.includes(st) ? `${`GDAE`.indexOf(st)}` : st)
+    .filter(st => +st >= `GDAE`.indexOf(from))
   const strings = times(10).flatMap(_ => indices)
   return shuffle(strings).slice(0, shifts).sort().map(st => `GDAE`.split('')[+st])
 }
@@ -107,11 +110,14 @@ export function inventoryFromString(inv: string): number[] {
   return [...(inv.match(/-?\d/g) || [])].map(item => parseInt(item))
 }
 
-// `inv` as numbers, or as a string read by inventoryFromString.
-export function shiftsDistributed(target: number = 7, inv: number[] | string = [-1, -2, -3], distrib: string): string[] {
+// `inv` as numbers, or as a string read by inventoryFromString. Shifts land
+// only on `from` and the strings above it: none when `distrib` has none there.
+export function shiftsDistributed(target: number = 7, inv: number[] | string = [-1, -2, -3], distrib: string, from: string = 'G'): string[] {
   const invNums = typeof inv === 'string' ? inventoryFromString(inv) : inv
-  return shifts(target, invNums).map(fs => {
-    const shiftLetters = zipT(fs.map(f => `${f}`), shiftStrings(distrib, fs.length))
-    return shiftLetters.map(sl => sl.join('')).join('-')
+  return shifts(target, invNums).flatMap(fs => {
+    const strings = shiftStrings(distrib, fs.length, from)
+    if (strings.length < fs.length) return []
+    const shiftLetters = zipT(fs.map(f => `${f}`), strings)
+    return [shiftLetters.map(sl => sl.join('')).join('-')]
   })
 }

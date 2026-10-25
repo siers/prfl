@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { shiftStrings, sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
+import { shiftsDistributed, shiftStrings, sumsTo, sumsToFair, sumsToG, sumsToU, uniqueShifts, uniqueShiftsF } from './Combinatorics.ts'
 
 describe('Combinatorics', () => {
   test('sumsTo base: negative target', () => {
@@ -140,4 +140,20 @@ test('shiftStrings: letters and indices name the same strings', () => {
     expect(out.every(st => st == 'G' || st == 'D')).toBe(true)
     expect(out).toStrictEqual([...out].sort((a, b) => 'GDAE'.indexOf(a) - 'GDAE'.indexOf(b)))
   }
+})
+
+test('shiftStrings: leaves out the strings below from', () => {
+  const out = shiftStrings('0123', 20, 'A')
+  expect(out).toHaveLength(20)
+  expect(out.every(st => st == 'A' || st == 'E')).toBe(true)
+})
+
+test('shiftsDistributed: shifts only from the given string up', () => {
+  const plans = shiftsDistributed(5, '-1-2', '011222233333', 'D')
+  expect(plans.length).toBeGreaterThan(0)
+  plans.forEach(plan => expect(plan).not.toMatch(/G/))
+})
+
+test('shiftsDistributed: none when distrib has no string from there', () => {
+  expect(shiftsDistributed(5, '-1-2', 'GD', 'A')).toStrictEqual([])
 })

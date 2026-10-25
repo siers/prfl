@@ -9,6 +9,7 @@ import { keyCenters, keyChunkWeights, majorKeyCentersWeighted, Note, rebase, ren
 import * as ToneLib from '../lib/ToneLib'
 import { frets as fretsLib, modeShifts as modeShiftsLib, deserializeModeShift } from '../lib/ToneLibViolin'
 import * as ToneLibViolin from '../lib/ToneLibViolin'
+import { sketchesFingeringGen } from '../lib/ToneLibViolinFingerizator'
 import { roundToNaive } from '../lib/Math'
 import { jitter } from '../lib/Jitter'
 import { inventoryFromString, shiftFormat, shifts as shiftsLib, shiftsDistributed } from '../lib/Combinatorics'
@@ -470,6 +471,7 @@ export * as ExExample from './Exercise20260919Example'
 export * as ExBowedTies from './ExerciseBowedTies'
 export * as ExScales from './Exercise20260929Scales'
 export * as ExScales3oc from './Exercise20261013Scales3oc'
+export * as ExFingered3oc from './Exercise20261025Fingered3oc'
 export { chromaticSlide } from '../lib/ToneLibViolin'
 export { modulateModalKeyString } from '../lib/ToneLib'
 export { shiftStrings, uniqueShiftsF as uniqueShifts } from '../lib/Combinatorics'
@@ -529,6 +531,20 @@ export function stringShifts(keyIn: Note | string, scales: string, string: ToneL
   const key = typeof keyIn === 'string' ? ToneLib.parseModalKey(keyIn)?.key : ToneLib.findMajor(keyIn)
   if (!key) throw new Error(`stringShifts: invalid key ${keyIn}`)
   return ToneLibViolin.stringShiftsGen(key, scales, string).map(ToneLibViolin.serializeModeShift)
+}
+
+// Like `shiftsMD`, but fingered: the ModeShiftGen behind `serMS` (from
+// `modeShifts` on the ModalKey `keyIn`) is rebuilt, its `shiftsDistributed`
+// sketches are kept to its starting string and up, and the playable ones get the
+// fingers their shifts start from: `2yG-1xD-2zA`.
+export function shiftsFingered(keyIn: string, serMS: string, inv: string, distrib: string): string[] {
+  const key = ToneLib.parseModalKey(keyIn)?.key
+  if (!key) throw new Error(`shiftsFingered: invalid key ${keyIn}`)
+  const { modeNr, scale, start, end } = deserializeModeShift(serMS)
+  // non-zero finger targets are picked as given, and an open start has only 0
+  const ms = ToneLibViolin.modeShiftsGen(key, scale, start, end)[modeNr]
+  const sketches = shiftsDistributed(ms.diatonicShifts, inv, distrib, ms.startString)
+  return sketchesFingeringGen(ms, sketches).map(f => f.plan)
 }
 
 // Tempos rising from..to (inclusive) by `+step`, each repeated `xReps` times;

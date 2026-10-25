@@ -77,3 +77,26 @@ export function seededRandom(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
+
+// Past picks per key, oldest first.
+export type ChoiceStats<K, A> = Map<K, A[]>
+
+// Fair, non-repeating preference order for `key`: least-picked first, the
+// previous pick last (unless it is the only option), ties shuffled.
+export function balanceOrder<K, A>(stats: ChoiceStats<K, A>, key: K, available: A[]): A[] {
+  const past = stats.get(key) ?? []
+  const count = (a: A) => past.filter(p => p === a).length
+  const rank = (a: A) => (available.length > 1 && a === past.at(-1) ? Infinity : count(a))
+  return shuffleArray([...available]).sort((a, b) => rank(a) - rank(b))
+}
+
+export function recordChoice<K, A>(stats: ChoiceStats<K, A>, key: K, choice: A): ChoiceStats<K, A> {
+  return new Map(stats).set(key, [...(stats.get(key) ?? []), choice])
+}
+
+// Fair, non-repeating pick: the first of `balanceOrder`. Returns the pick and
+// the stats with it recorded; `stats` is left untouched.
+export function balance<K, A>(stats: ChoiceStats<K, A>, key: K, available: A[]): [A, ChoiceStats<K, A>] {
+  const choice = balanceOrder(stats, key, available)[0]
+  return [choice, recordChoice(stats, key, choice)]
+}

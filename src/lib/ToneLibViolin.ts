@@ -80,7 +80,7 @@ export type FingerPosition = {
   note: Note,
 }
 
-function stringIndex(string: StringName): number {
+export function stringIndex(string: StringName): number {
   return 'GDAE'.indexOf(string)
 }
 
@@ -171,11 +171,11 @@ export function positionsQuiz(): string[] {
   })
 }
 
-function columnOfLetter(positions: Note[], n: Note): number {
+export function columnOfLetter(positions: Note[], n: Note): number {
   return positions.findIndex(p => p.name == n.name && p.octave == n.octave)
 }
 
-function positionOf(column: number, finger: number): number {
+export function positionOf(column: number, finger: number): number {
   return finger == 0 ? column + 1 : column - (finger - 1)
 }
 
@@ -258,6 +258,9 @@ export type ModeShift = {
 // fully computed variant: carries the root and both shift types.
 export type ModeShiftGen = ModeShift & {
   root: Note,
+  key: Key,
+  startString: StringName,
+  endNote: Note,
   diatonicShifts: number,
   chromShifts: number,
 }
@@ -327,6 +330,9 @@ export function modeShiftsGen(
       mode: modes[modeIdx],
       scale,
       root: note,
+      key,
+      startString: beginPos.string.name,
+      endNote,
       start: startFinger,
       end: endFinger,
       diatonicShifts,

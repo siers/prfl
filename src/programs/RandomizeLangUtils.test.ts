@@ -34,6 +34,9 @@ import {
   metro,
   inventoryFromString,
   metroIncr,
+  modeShifts,
+  shiftsFingered,
+  desMS,
   maybePolarize,
   maybePolarizeL,
 } from './RandomizeLangUtils'
@@ -519,4 +522,18 @@ test('metroIncr: edge cases', () => {
   expect(metroIncr(`60-60 x3`)).toStrictEqual(['60', '60', '60'])
   expect(metroIncr(`120-40 +2`)).toStrictEqual([])
   expect(metroIncr(`40-50 x0`)).toStrictEqual([])
+})
+
+test('shiftsFingered: fingered plans for a mode, major or minor key', () => {
+  for (const key of ['D', 'Bm', 'Gb', 'Ebm'])
+    for (const mode of modeShifts(key, 'dia')) {
+      const plans = shiftsFingered(key, mode, '-1-2', '011222233333')
+      if (desMS(mode).shifts < 0) continue
+      expect(plans.length).toBeGreaterThan(0)
+      plans.forEach(plan => {
+        expect(plan).toMatch(/^(([1-3][xywz]|4)[GDAE](-([1-3][xywz]|4)[GDAE])*)?$/)
+        expect(_.sum(plan.split('-').filter(x => x).map(x => Number(x[0])))).toBe(desMS(mode).shifts)
+      })
+    }
+  expect(() => shiftsFingered('H', 'ion.dia:14;s5:a', '-1', 'GDAE')).toThrow()
 })
