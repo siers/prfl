@@ -16,7 +16,7 @@ const consistent = (line: RenderLine) => {
   expect(f.tempo).toStrictEqual([`${Number(f.div[0]) * Number(f.metro[0])}`])
   expect(line.contents).not.toMatch(/error|undefined|NaN/)
   f.shifts.forEach(plan => {
-    expect(plan).toMatch(/^(([1-3][xywz]|4)[GDAE](-([1-3][xywz]|4)[GDAE])*)?$/)
+    expect(plan).toMatch(/^((1[xywz]|2[xyw]|3[xy]|4)[GDAE](-(1[xywz]|2[xyw]|3[xy]|4)[GDAE])*)?$/)
     expect(_.sum(plan.split('-').filter(x => x).map(x => Number(x[0])))).toBe(desMS(f.mode[0]).shifts)
   })
 }

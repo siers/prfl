@@ -14,22 +14,23 @@ export type PlannedShift = {
   string: StringName,
 }
 
-// x y w z: shift starting from finger 1 2 3 4
+// x y w z: the fingers a shift can start from, counting up from the first one:
+// a shift of n from finger n, n + 1, …, 4 (1x 1y 1w 1z, 2x 2y 2w, 3x 3y, 4)
 const shiftFingerLetters = 'xywz'
 
-// '2yG-3wD' → [{ size: 2, finger: 2, string: 'G' }, { size: 3, finger: 3, string: 'D' }].
-// Without a letter the shift starts from the first finger it can: a shift of n from n.
+// '2yG-3D' → [{ size: 2, finger: 3, string: 'G' }, { size: 3, finger: 3, string: 'D' }].
+// Without a letter the shift starts from the first finger it can, as with x.
 export function parseShiftPlan(plan: string): PlannedShift[] {
   return [...plan.matchAll(/(\d)([xywz]?)([GDAE])/g)].map(([, size, letter, string]) => ({
     size: Number(size),
-    finger: letter ? shiftFingerLetters.indexOf(letter) + 1 : Number(size),
+    finger: Number(size) + (letter ? shiftFingerLetters.indexOf(letter) : 0),
     string: stringNames['GDAE'.indexOf(string)],
   }))
 }
 
 // A shift of 4 can only start from 4, so it goes without a letter: '2yG-4D'.
 export function renderShiftPlan(shifts: PlannedShift[]): string {
-  return shifts.map(sh => `${sh.size}${sh.size == 4 ? '' : shiftFingerLetters[sh.finger - 1]}${sh.string}`).join('-')
+  return shifts.map(sh => `${sh.size}${sh.size == 4 ? '' : shiftFingerLetters[sh.finger - sh.size]}${sh.string}`).join('-')
 }
 
 export type FingeringStep = {
@@ -99,7 +100,7 @@ type WalkState = {
 }
 
 // Walks the scale of a ModeShiftGen note by note up from the root, searching
-// for a fingering and the shift plan it took ('2yG-3wD'). Fingers go up within
+// for a fingering and the shift plan it took ('2yG-3xD'). Fingers go up within
 // the position; a shift of n from finger f (n <= f) lands on f + 1 - n; out of
 // fingers it crosses to the next string, whose open note the crossed-to note
 // may not be below. The shifts come from `source` and add up to the diatonic

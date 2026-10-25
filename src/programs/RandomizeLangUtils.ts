@@ -547,7 +547,7 @@ export function shiftsFingeredGen(keyIn: string, serMS: string, inv: string, dis
   return { ms, fingerings: sketchesFingeringGen(ms, sketches) }
 }
 
-// The plans of `shiftsFingeredGen`, with the fingers their shifts start from: `2yG-1xD-4A`.
+// The plans of `shiftsFingeredGen`, with the fingers their shifts start from: `2yG-1xD-4A`, see `parseShiftPlan`.
 export function shiftsFingered(keyIn: string, serMS: string, inv: string, distrib: string): string[] {
   return shiftsFingeredGen(keyIn, serMS, inv, distrib).fingerings.map(f => f.plan)
 }

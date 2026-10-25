@@ -1,5 +1,6 @@
 # Three-octave diatonic modes, S-3oc style, with fingered shifts.
-# 2yG = a shift of 2 on G, starting from finger 2 (x y w z: fingers 1 2 3 4).
+# 2yG = a shift of 2 on G from the second finger it can start from, 3:
+# 1x 1y 1w 1z = fingers 1 2 3 4, 2x 2y 2w = 2 3 4, 3x 3y = 3 4, 4 = 4.
 -=-
 {key=pick(allKeysMinMaj());}
 S-3ocFingered: [key]key:freeze:inline [ExFingered3oc.tags(fields, rotating)]

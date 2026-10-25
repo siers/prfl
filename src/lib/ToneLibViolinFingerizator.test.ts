@@ -102,21 +102,28 @@ describe('ToneLibViolinFingerizator', () => {
         { size: 2, finger: 2, string: 'G' },
         { size: 4, finger: 4, string: 'D' },
         { size: 1, finger: 4, string: 'E' },
-      ])).toBe('2yG-4D-1zE')
+      ])).toBe('2xG-4D-1zE')
     })
 
     test('round-trips through parseShiftPlan', () => {
-      expect(renderShiftPlan(parseShiftPlan('3wA-4D-1xE'))).toBe('3wA-4D-1xE')
+      expect(renderShiftPlan(parseShiftPlan('3yA-2wD-4D-1xE'))).toBe('3yA-2wD-4D-1xE')
     })
   })
 
   describe('parseShiftPlan', () => {
-    test('parses the starting finger, the first available without a letter', () => {
-      expect(parseShiftPlan('2yG-3D-1xE')).toStrictEqual([
-        { size: 2, finger: 2, string: 'G' },
-        { size: 3, finger: 3, string: 'D' },
-        { size: 1, finger: 1, string: 'E' },
+    test('the letter counts up from the first finger a shift can start from', () => {
+      expect(parseShiftPlan('1xG-1zG-2yD-2wD-3yA-4E')).toStrictEqual([
+        { size: 1, finger: 1, string: 'G' },
+        { size: 1, finger: 4, string: 'G' },
+        { size: 2, finger: 3, string: 'D' },
+        { size: 2, finger: 4, string: 'D' },
+        { size: 3, finger: 4, string: 'A' },
+        { size: 4, finger: 4, string: 'E' },
       ])
+    })
+
+    test('without a letter, the first finger it can', () => {
+      expect(parseShiftPlan('1G-2D-3A')).toStrictEqual(parseShiftPlan('1xG-2xD-3xA'))
     })
   })
 })

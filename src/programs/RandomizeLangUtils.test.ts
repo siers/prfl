@@ -533,7 +533,7 @@ test('shiftsFingered: fingered plans for a mode, major or minor key', () => {
       if (desMS(mode).shifts < 0) continue
       expect(plans.length).toBeGreaterThan(0)
       plans.forEach(plan => {
-        expect(plan).toMatch(/^(([1-3][xywz]|4)[GDAE](-([1-3][xywz]|4)[GDAE])*)?$/)
+        expect(plan).toMatch(/^((1[xywz]|2[xyw]|3[xy]|4)[GDAE](-(1[xywz]|2[xyw]|3[xy]|4)[GDAE])*)?$/)
         expect(_.sum(plan.split('-').filter(x => x).map(x => Number(x[0])))).toBe(desMS(mode).shifts)
       })
     }

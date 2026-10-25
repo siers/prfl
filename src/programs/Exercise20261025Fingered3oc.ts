@@ -3,8 +3,9 @@ import type { Fields, TagGen } from './Exercise20261013Scales3oc'
 import { forceSignZero, metroS, modeShifts, range, s, shiftsFingered, shuffle } from './RandomizeLangUtils'
 
 // The S-3ocFingered card: S-3oc's three-octave diatonic modes, with the shifts
-// fingered: `2yG` is a shift of 2 on G starting from finger 2 (x y w z: 1 2 3
-// 4), fitted to the mode's starting string and fingers by the fingerizator.
+// fingered: `2yG` is a shift of 2 on G from the second finger it can start
+// from, 3 (1x 1y 1w 1z: 1 2 3 4, 2x 2y 2w: 2 3 4, 3x 3y: 3 4, and 4 from 4),
+// fitted to the mode's starting string and fingers by the fingerizator.
 // `S-3ocFingered: [key]key:freeze:inline [ExFingered3oc.tags(fields, rotating)]`
 
 const gens = {
