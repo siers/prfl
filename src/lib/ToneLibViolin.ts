@@ -355,29 +355,46 @@ export function modeShifts(
 }
 
 // Two octaves of the key on one string, ending on 4: from the open string (0)
-// when the key spells it, else 1 on the first key note above it. One per scale
-// in the inventory, which counts the shifts like `modeShiftsGen` does. The
-// string takes the mode's slot, so `shiftsMD` reads it like any other ModeShift.
-export function stringShiftsGen(key: Key, scales: string, stringName: StringName): ModeShift[] {
-  const string = stringsForTonality(key)[stringIndex(stringName)]
-  const startFinger = semi(string.positions[0]) == semi(string.base) ? 0 : 1
+// when the key spells it, else 1 on the first key note above it. The shifts are
+// counted like `modeShiftsGen` does, and the string takes the mode's slot, so
+// `shiftsMD` reads it like any other ModeShift and the fingerizator walks it.
+export function stringShiftGen(key: Key, scale: string, stringName: StringName): ModeShiftGen {
+  // this string's own first key note: stringsForTonality would drop its open
+  // string whenever another string's first note falls below that string
+  const string = strings[stringIndex(stringName)]
+  const root = string.positions.map(n => rename(n, key)).find(n => semi(n) >= semi(string.base))!
+  const startFinger = semi(root) == semi(string.base) ? 0 : 1
   const endFinger = 4
 
   const diatonicShifts = positionOf(14, endFinger) - positionOf(0, startFinger)
   const chromShifts = 24 + endFinger - startFinger
 
-  return scales.split(' ').map(scale => ({
+  return {
     modeNr: -1,
     mode: stringName,
     scale,
+    root,
+    key,
+    startString: stringName,
+    endNote: rename(stepN(root, 14), key),
     start: startFinger,
     end: endFinger,
+    diatonicShifts,
+    chromShifts,
     shifts:
       scale == 'chrom' || scale == 'chr' ? chromShifts :
         scale == 'pos' ? 0 :
           diatonicShifts,
     additional: scale == 'pos' ? shuffleArray('1234567'.split('')).join('') : '',
-  }))
+  }
+}
+
+// `stringShiftGen`, one per scale in the inventory.
+export function stringShiftsGen(key: Key, scales: string, stringName: StringName): ModeShift[] {
+  return scales.split(' ').map(scale => {
+    const { modeNr, mode, start, end, shifts, additional } = stringShiftGen(key, scale, stringName)
+    return { modeNr, mode, scale, start, end, shifts, additional }
+  })
 }
 
 // modeNr is recovered from the mode; root and the raw shift counts are not encoded.

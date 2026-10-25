@@ -254,6 +254,14 @@ describe('ToneLibViolin', () => {
       expect(onString('B', 'E')).toBe('E.dia:04;s10:a')
     })
 
+    test('starts on the open string even when another string has no open string in the key', () => {
+      // Bb has Eb, below the E string, but spells G, D and A
+      expect(onString('Bb', 'G')).toBe('G.dia:04;s10:a')
+      expect(onString('Bb', 'D')).toBe('D.dia:04;s10:a')
+      expect(onString('Bb', 'A')).toBe('A.dia:04;s10:a')
+      expect(onString('Ab', 'G')).toBe('G.dia:04;s10:a')
+    })
+
     test('starts on 1 when the key has no open string', () => {
       expect(onString('B', 'D')).toBe('D.dia:14;s11:a')
       expect(onString('Gb', 'E')).toBe('E.dia:14;s11:a')

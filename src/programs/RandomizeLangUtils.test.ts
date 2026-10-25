@@ -37,12 +37,17 @@ import {
   modeShifts,
   shiftsFingered,
   shiftsFingeredGen,
+  stringShiftsFingered,
+  stringShiftsFingeredGen,
   desMS,
   maybePolarize,
   maybePolarizeL,
 } from './RandomizeLangUtils'
 import _ from 'lodash'
 import { expectPlays } from '../lib/ToneLibViolinFingerizator.expect'
+import * as ToneLib from '../lib/ToneLib'
+import * as ToneLibViolin from '../lib/ToneLibViolin'
+import type { StringName } from '../lib/ToneLibViolin'
 
 
 test('s', () => {
@@ -549,4 +554,47 @@ test('shiftsFingeredGen: every trace plays the 3-oc scale up, major or minor key
         if (ms.diatonicShifts >= 0) expect(fingerings.length).toBeGreaterThan(0)
         fingerings.slice(0, 10).forEach(f => expectPlays(ms, f))
       }
+})
+
+test('stringShiftsFingeredGen: every trace plays two octaves up on the one string', () => {
+  for (const key of ['D', 'B', 'Gb', 'F#', 'Bm', 'Ebm'])
+    for (const string of ToneLibViolin.stringNames) {
+      const { ms, fingerings } = stringShiftsFingeredGen(key, string, '-1-2')
+      expect(fingerings.length).toBeGreaterThan(0)
+      fingerings.slice(0, 10).forEach(f => {
+        expectPlays(ms, f)
+        expect(f.steps.length).toBe(15)
+        f.steps.forEach(st => expect(st.string).toBe(string))
+      })
+    }
+})
+
+test('stringShiftsFingered: finger-labeled plans on the string, adding up to its shifts', () => {
+  const plans = stringShiftsFingered('B', 'D', '-421')
+  expect(plans.length).toBeGreaterThan(0)
+  plans.forEach(plan => {
+    expect(plan).toMatch(/^((1[xywz]|2[xyw]|3[xy]|4)D(-(1[xywz]|2[xyw]|3[xy]|4)D)*)?$/)
+    expect(_.sum(plan.split('-').map(x => Number(x[0])))).toBe(11)
+  })
+})
+
+test('stringShiftsFingeredGen: two octaves from the first key note on or above the open string', () => {
+  const strings: [StringName, string][] = [['G', 'G3'], ['D', 'D4'], ['A', 'A4'], ['E', 'E5']]
+  for (const key of 'Cb Gb Db Ab Eb Bb F C G D A E B F# C# Abm Ebm Bbm Fm Cm Gm Dm Am Em Bm F#m C#m G#m D#m A#m'.split(' '))
+    for (const [string, openName] of strings) {
+      const open = ToneLib.parseNote(openName)!
+      const keyNotes = ToneLib.parseModalKey(key)!.key
+      const steps = stringShiftsFingeredGen(key, string, '-1-2').fingerings[0].steps
+      const [first, last] = [steps[0].note, steps.at(-1)!.note]
+      const label = `${key} on ${string}: ${ToneLib.render(first)}-${ToneLib.render(last)}`
+
+      // the open string's letter, or the next one up when the key's is below the string
+      expect([open.name, ToneLib.stepN(open, 1).name], label).toContain(first.name)
+      // no key note between the open string and the first note
+      const below = _.range(ToneLib.semi(open), ToneLib.semi(first)).filter(sm => keyNotes.some(n => ToneLib.pitchClass(n) == sm % 12))
+      expect(below, label).toStrictEqual([])
+      // G-G, Ab-Ab, …: the same note two octaves up
+      expect([last.name, last.alter, last.octave], label).toStrictEqual([first.name, first.alter, first.octave + 2])
+      expect(ToneLib.semi(last) - ToneLib.semi(first), label).toBe(24)
+    }
 })

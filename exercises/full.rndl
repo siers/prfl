@@ -52,7 +52,7 @@ S-3ocNear: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales:
 S-Pos: [keyz]key:freeze:inline [ss(`1234567`)]:computed [`s 28r`]next
 S-Direction: [keyz]:inline [zip(shuffleX(`uudd`, 8))]:show-1:inline [`4f`]next:inline
 S-Direction2: [keyz]:inline [zipLongestShuf(shuffleX(`uudd`, 8), `/`, ss(`ABCDEFG`)).map(x=>x.join(``))]:show-1:inline [`4f`]next:inline
-S-String: [keyz]key:freeze [ss(`G D A E`)]string:show-1:inline [s(`-4321, -421, -321, 1233-4, -1, -1-2`)]inventory:show-1:nonrotated:inline [shiftsMD(stringShifts(fields.key.at(0), `dia`, fields.string.at(0)).at(0), fields.inventory.at(0), `${'GDAE'.indexOf(fields.string.at(0))}`.repeat(12))]:computed:show-1:inline add 4 notes
+S-String: [keyz]key:freeze [ss(`G D A E`)]string:show-1:inline [s(`-4321, -421, -321, 1233-4, -1, -1-2`)]inventory:show-1:nonrotated:inline [stringShiftsFingered(fields.key.at(0), fields.string.at(0), fields.inventory.at(0))]:computed:show-1:inline add 4 notes
 S-Pos-Chrom: [zipLongest(keys(), ss(`↑↓`))] [ss(`triads 4ads 6bdom`)] [ss(`base inv1 inv2`)] [ss(`straight flips`)] [ss(`p1,p2a,p2b,p3a,p3b,p4,p5a,p5b,p6a,p6b,p7`)] [metroS(50, 8)]metro:show-1:inline
 -=- Arps3
 A-3oc: [keyz]key:freeze:inline [ExScales3oc.tags(fields, rotating, { scales: 'dia pent sus2 sus4' })]

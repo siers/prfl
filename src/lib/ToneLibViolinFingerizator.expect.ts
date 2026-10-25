@@ -1,13 +1,16 @@
 import { expect } from 'vitest'
 import _ from 'lodash'
-import { equalLetterOctave, rename, semi, stepN } from './ToneLib'
+import { equalLetterOctave, names, Note, rename, semi, stepN } from './ToneLib'
 import { ModeShiftGen, stringIndex, strings3 } from './ToneLibViolin'
 import { Fingering, FingeringStep } from './ToneLibViolinFingerizator'
 
 // Test expectations shared by the fingerizator's tests and its users'.
 
-// the scale, independently: 22 notes a diatonic step apart from the root, in the key
-const scaleOf = (ms: ModeShiftGen) => _.range(22).map(i => rename(stepN(ms.root, i), ms.key))
+// the scale, independently: the notes a diatonic step apart from the root up to
+// the end note's letter and octave, in the key
+const letterIndex = (n: Note) => n.octave * 7 + names.indexOf(n.name)
+const scaleOf = (ms: ModeShiftGen) =>
+  _.range(letterIndex(ms.endNote) - letterIndex(ms.root) + 1).map(i => rename(stepN(ms.root, i), ms.key))
 
 // the note under a step's finger: the column of its position and finger, on its string
 const sounding = (st: FingeringStep) => {
@@ -16,7 +19,7 @@ const sounding = (st: FingeringStep) => {
   return { letter: string.positions[column], base: string.base }
 }
 
-// The trace plays the mode's three-octave scale up, every note under its
+// The trace plays the mode's scale up to its end note, every note under its
 // finger and not below its string, from the start finger to the end finger.
 export function expectPlays(ms: ModeShiftGen, fingering: Fingering) {
   expect(fingering.steps.map(st => st.note)).toStrictEqual(scaleOf(ms))

@@ -552,6 +552,21 @@ export function shiftsFingered(keyIn: string, serMS: string, inv: string, distri
   return shiftsFingeredGen(keyIn, serMS, inv, distrib).fingerings.map(f => f.plan)
 }
 
+// Like `shiftsFingeredGen`, for two octaves of the ModalKey `keyIn` on one
+// string (`stringShifts`): the sketches all on that string.
+export function stringShiftsFingeredGen(keyIn: string, string: ToneLibViolin.StringName, inv: string): { ms: ToneLibViolin.ModeShiftGen, fingerings: Fingering[] } {
+  const key = ToneLib.parseModalKey(keyIn)?.key
+  if (!key) throw new Error(`stringShiftsFingered: invalid key ${keyIn}`)
+  const ms = ToneLibViolin.stringShiftGen(key, 'dia', string)
+  const sketches = shiftsDistributed(ms.diatonicShifts, inv, string.repeat(12), string)
+  return { ms, fingerings: sketchesFingeringGen(ms, sketches) }
+}
+
+// The plans of `stringShiftsFingeredGen`: `1xD-4D-2yD`.
+export function stringShiftsFingered(keyIn: string, string: ToneLibViolin.StringName, inv: string): string[] {
+  return stringShiftsFingeredGen(keyIn, string, inv).fingerings.map(f => f.plan)
+}
+
 // Tempos rising from..to (inclusive) by `+step`, each repeated `xReps` times;
 // step and reps default to 1: `40-120 +2 x4` → 40,40,40,40, 42,42,42,42, …
 export function metroIncr(spec: string): string[] {
