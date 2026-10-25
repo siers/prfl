@@ -23,7 +23,7 @@ export type Card = { scales: string, modulations?: string }
 
 const isModulation = (m: string): m is Modulation => Object.hasOwn(modulations, m)
 
-const gensOf = ({ scales, modulations = '' }: Card) => ({
+export const gensOf = ({ scales, modulations = '' }: Card) => ({
   modulation: () => shuffle(s(modulations).filter(isModulation)),
   // `key` moved by the modulation; `-` when it can't be.
   target: ({ key, modulation }) => {
@@ -42,7 +42,9 @@ const gensOf = ({ scales, modulations = '' }: Card) => ({
   additional: ({ mode }) => [desMS(mode[0]).additional || '-'],
 }) satisfies Record<string, TagGen>
 
-type Spec = `${keyof ReturnType<typeof gensOf>}${'' | `:${string}`}`
+export type Gens = ReturnType<typeof gensOf>
+
+type Spec = `${keyof Gens}${'' | `:${string}`}`
 
 // `name:flag:flag`, in card order. A tag reads only the ones before it.
 const modulationSpecs: Spec[] = [
@@ -65,7 +67,11 @@ const specs: Spec[] = [
 // rolls every tag fresh; a rotation (`rotating`) keeps the current values of
 // the rolled tags and re-derives only the `computed` ones from them.
 export function tags(fields: Fields, rotating: boolean, card: Card): GeneratedTag[] {
-  const gens = gensOf(card)
+  return tagsWith(gensOf(card), fields, rotating, card)
+}
+
+// `tags`, made by other generators for the same tags: a card varying S-3oc.
+export function tagsWith(gens: Gens, fields: Fields, rotating: boolean, card: Card): GeneratedTag[] {
   const isName = (n: string): n is keyof typeof gens => Object.hasOwn(gens, n)
   const resolved: Fields = { ...fields }
   return [...(card.modulations ? modulationSpecs : []), ...specs].flatMap(spec => {

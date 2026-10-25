@@ -1,6 +1,8 @@
-# Three-octave diatonic modes, S-3oc style, with fingered shifts.
+# Three-octave modes, S-3oc style, with fingered shifts.
 # 2yG = a shift of 2 on G from the second finger it can start from, 3:
 # 1x 1y 1w 1z = fingers 1 2 3 4, 2x 2y 2w = 2 3 4, 3x 3y = 3 4, 4 = 4.
+# Only dia, hm and mm get fingered; other scales keep plain shifts.
 -=-
 {key=pick(allKeysMinMaj());}
-S-3ocFingered: [key]key:freeze:inline [ExFingered3oc.tags(fields, rotating)]
+S-3ocFingered: [key]key:freeze:inline [ExFingered3oc.tags(fields, rotating, { scales: 'dia hm mm' })]
+S-3ocFingeredNear: [key]key:freeze:inline [ExFingered3oc.tags(fields, rotating, { scales: 'dia,', modulations: '-1, +1, +6, sub' })]
