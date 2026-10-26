@@ -2,6 +2,8 @@
 
 A musical practice list generator with a timer and metronome built in.
 
+Live at [raitis.veinbahs.lv/perflab](https://raitis.veinbahs.lv/perflab?load=demo).
+
 Offers hierarchical timers for items and their subdecks (parametrizations or real subdecks). Current item's timers can be also restarted or subtracted from the total.
 
 Practice list's main job is to allocate work to specific tasks, so it is also partly a scheduler.
